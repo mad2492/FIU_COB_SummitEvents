@@ -1,0 +1,93 @@
+[
+    {
+        "name":  "CreatedDate",
+        "label":  "Created Date",
+        "type":  "datetime",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "CreatedById",
+        "label":  "Created By ID",
+        "type":  "reference",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "LastModifiedDate",
+        "label":  "Last Modified Date",
+        "type":  "datetime",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "LastModifiedById",
+        "label":  "Last Modified By ID",
+        "type":  "reference",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "summit__Event_Instance__c",
+        "label":  "Event Instance",
+        "type":  "reference",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "summit__Display_Attendance_Publicly__c",
+        "label":  "Display Attendance Publicly",
+        "type":  "boolean",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "summit__New_Contact_Created__c",
+        "label":  "New Contact Created",
+        "type":  "boolean",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "summit__New_Lead_Created__c",
+        "label":  "New Lead Created",
+        "type":  "boolean",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "summit__Registrant_Do_Not_Call__c",
+        "label":  "Registrant Do Not Call",
+        "type":  "boolean",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "summit__Registrant_Receive_Texts__c",
+        "label":  "Registrant Receive Texts",
+        "type":  "boolean",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "summit__Reminder_Call_Complete__c",
+        "label":  "Reminder Call Complete?",
+        "type":  "boolean",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "Is_Facebook_Converted__c",
+        "label":  "Is Facebook Converted",
+        "type":  "boolean",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "Terms_and_Conditions__c",
+        "label":  "Terms and Conditions",
+        "type":  "boolean",
+        "nillable":  false,
+        "createable":  true
+    }
+]

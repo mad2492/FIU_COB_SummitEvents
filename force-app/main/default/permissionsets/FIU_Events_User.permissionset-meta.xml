@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Access to FIU Events app shell and guided experience.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>FIU Events User</label>
+    <tabSettings>
+        <tab>fiuEventsHome</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+</PermissionSet>

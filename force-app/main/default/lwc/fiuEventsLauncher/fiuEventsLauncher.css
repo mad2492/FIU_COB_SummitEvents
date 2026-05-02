@@ -1,0 +1,14 @@
+.launcher-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+.launcher-card {
+    border: 1px solid #d8dde6;
+    border-radius: 0.5rem;
+    padding: 0.875rem;
+    background: #fafaf9;
+}
+.launcher-card h3 { margin: 0 0 0.5rem; }
+.launcher-card p { margin: 0 0 0.75rem; }

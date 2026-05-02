@@ -1,0 +1,51 @@
+[
+    {
+        "name":  "CreatedDate",
+        "label":  "Created Date",
+        "type":  "datetime",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "CreatedById",
+        "label":  "Created By ID",
+        "type":  "reference",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "LastModifiedDate",
+        "label":  "Last Modified Date",
+        "type":  "datetime",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "LastModifiedById",
+        "label":  "Last Modified By ID",
+        "type":  "reference",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "summit__Event__c",
+        "label":  "Event",
+        "type":  "reference",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "summit__Attendee_List__c",
+        "label":  "Attendee List",
+        "type":  "boolean",
+        "nillable":  false,
+        "createable":  true
+    },
+    {
+        "name":  "summit__Private_Instance__c",
+        "label":  "Private Instance",
+        "type":  "boolean",
+        "nillable":  false,
+        "createable":  true
+    }
+]
