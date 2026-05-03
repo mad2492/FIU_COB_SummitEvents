@@ -1,3 +1,18 @@
+.section-heading {
+    margin-bottom: 0.75rem;
+}
+
+.section-heading h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #032d60;
+}
+
+.section-heading p {
+    margin: 0.25rem 0 0;
+    color: #3e3e3c;
+}
+
 .launcher-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -12,3 +27,15 @@
 }
 .launcher-card h3 { margin: 0 0 0.5rem; }
 .launcher-card p { margin: 0 0 0.75rem; }
+
+.active-panel {
+    border: 1px solid #d8dde6;
+    border-radius: 0.5rem;
+    background: #ffffff;
+    padding: 0.875rem;
+}
+
+.active-panel h3 {
+    margin: 0 0 0.75rem;
+    color: #032d60;
+}

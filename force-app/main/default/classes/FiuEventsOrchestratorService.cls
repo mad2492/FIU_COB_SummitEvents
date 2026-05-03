@@ -10,12 +10,17 @@ public with sharing class FiuEventsOrchestratorService {
             throw new AuraHandledException('Source Event Id is required.');
         }
 
-        String eventObject = resolveEventObject();
+        String eventObject = FiuEventsAccessService.resolveEventObject();
         if (eventObject == null) {
             throw new AuraHandledException('No Summit Event object found in this org.');
         }
 
-        String soql = 'SELECT Id, Name, summit__Account__c, summit__Payment_Gateway__c, Accounting_Department__c, FIU_Create_Opps_From_Regs__c, Send_Registration_Confirmation_Email__c FROM ' + eventObject + ' WHERE Id = :sourceEventId LIMIT 1';
+        Set<Id> allowedRecordTypes = FiuEventsAccessService.getAllowedEventRecordTypeIds();
+        if (allowedRecordTypes.isEmpty()) {
+            throw new AuraHandledException('You do not have access to any FIU Event record types.');
+        }
+
+        String soql = 'SELECT Id, Name, RecordTypeId, summit__Account__c, summit__Payment_Gateway__c, Accounting_Department__c, FIU_Create_Opps_From_Regs__c, Send_Registration_Confirmation_Email__c FROM ' + eventObject + ' WHERE Id = :sourceEventId AND RecordTypeId IN :allowedRecordTypes LIMIT 1';
         SObject sourceEvent = Database.query(soql);
         return evaluateCloneRiskRecord(sourceEvent);
     }
@@ -49,13 +54,6 @@ public with sharing class FiuEventsOrchestratorService {
 
         result.riskWarnings.add('Review business-unit/program/plan values in spEventsFIUPlanLookup before activation.');
         return result;
-    }
-
-    private static String resolveEventObject() {
-        Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
-        if (gd.containsKey('summit__Summit_Event__c')) return 'summit__Summit_Event__c';
-        if (gd.containsKey('summit__Event__c')) return 'summit__Event__c';
-        return null;
     }
 
     private static Object safeGet(SObject record, String fieldApiName) {

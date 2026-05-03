@@ -5,6 +5,10 @@
     <navType>Standard</navType>
     <tabs>standard-home</tabs>
     <tabs>fiuEventsHome</tabs>
+    <tabs>fiuEventBrowser</tabs>
+    <tabs>fiuInstanceBrowser</tabs>
+    <tabs>fiuRegistrationBrowser</tabs>
+    <tabs>fiuReadinessDashboard</tabs>
     <formFactors>Large</formFactors>
     <uiType>Lightning</uiType>
 </CustomApplication>

@@ -1,10 +1,10 @@
 import { LightningElement } from 'lwc';
 
 export default class FiuEventsLauncher extends LightningElement {
-    mode;
+    mode = 'create';
 
     handleRoute(event) {
-        this.mode = event.target.dataset.mode;
+        this.mode = event.currentTarget.dataset.mode;
     }
 
     get isCreate() {
@@ -17,5 +17,15 @@ export default class FiuEventsLauncher extends LightningElement {
 
     get isInstance() {
         return this.mode === 'instance';
+    }
+
+    get selectedHeading() {
+        if (this.mode === 'clone') {
+            return 'Clone Existing Event';
+        }
+        if (this.mode === 'instance') {
+            return 'Add New Instance to Existing Event';
+        }
+        return 'Create New Event';
     }
 }

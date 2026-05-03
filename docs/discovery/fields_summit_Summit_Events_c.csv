@@ -1,0 +1,12 @@
+﻿"EntityDefinition.QualifiedApiName","QualifiedApiName","Label","DataType","NamespacePrefix"
+"summit__Summit_Events__c","Accounting_Department__c","Accounting Department","Lookup(FIU_COB_Dept_Accnt)",
+"summit__Summit_Events__c","Campaign__c","Campaign","Lookup(Campaign)",
+"summit__Summit_Events__c","Category__c","Category","Picklist",
+"summit__Summit_Events__c","Default_Plan__c","Default Plan","Lookup(Plan)",
+"summit__Summit_Events__c","FIU_Create_Opps_From_Regs__c","Create Opportunities From Registrations","Checkbox",
+"summit__Summit_Events__c","Includes_Multiple_Programs__c","Includes Multiple Programs?","Checkbox",
+"summit__Summit_Events__c","Register_Button_Text__c","Register Button Label","Text(120)",
+"summit__Summit_Events__c","Send_Registration_Confirmation_Email__c","Send Registration Confirmation Email","Checkbox",
+"summit__Summit_Events__c","Template_Banner_Image__c","Template Banner Image","URL(255)",
+"summit__Summit_Events__c","Template_Disclaimer_Text__c","Template Disclaimer Text","Rich Text Area(4000)",
+"summit__Summit_Events__c","Template_Logo_Image__c","Template Logo Image","URL(255)",

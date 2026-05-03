@@ -1,0 +1,13 @@
+﻿"EntityDefinition.QualifiedApiName","QualifiedApiName","Label","DataType","NamespacePrefix"
+"summit__Summit_Events_Instance__c","Calculated_Close_Date__c","Calculated Close Date","Formula (Date)",
+"summit__Summit_Events_Instance__c","Campaign_Override__c","Campaign Override","Lookup(Campaign)",
+"summit__Summit_Events_Instance__c","EPEs_Course_Offer_Expiration_Date__c","EPEs Course Offer Expiration Date","Formula (Text)",
+"summit__Summit_Events_Instance__c","Instance_Description__c","Instance Description","Rich Text Area(32768)",
+"summit__Summit_Events_Instance__c","Parking_info__c","Parking info","Long Text Area(1000)",
+"summit__Summit_Events_Instance__c","Related_Term__c","Related Term","Lookup(Term)",
+"summit__Summit_Events_Instance__c","Template_Logo_Override__c","Template Logo Override","URL(255)",
+"summit__Summit_Events_Instance__c","Time_Text__c","Time Text","Formula (Text)",
+"summit__Summit_Events_Instance__c","Virtual_Meeting_ID__c","Virtual Meeting ID","Text(100)",
+"summit__Summit_Events_Instance__c","Virtual_Meeting_Password__c","Virtual Meeting Password","Text(100)",
+"summit__Summit_Events_Instance__c","Zoom_Recording_Link__c","Zoom Recording Link","URL(255)",
+"summit__Summit_Events_Instance__c","Zoom_Recording_Password__c","Zoom Recording Password","Text(100)",

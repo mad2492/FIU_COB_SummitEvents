@@ -1,0 +1,18 @@
+<template>
+    <lightning-card title="Event Browser" icon-name="standard:event">
+        <lightning-button slot="actions" label="Create New Event" variant="brand" onclick={handleCreateNew}></lightning-button>
+        <div class="slds-p-around_medium toolbar">
+            <lightning-input label="Search by event name" value={searchKey} onchange={handleSearch}></lightning-input>
+            <lightning-combobox label="Status" value={statusFilter} options={statusOptions} onchange={handleStatus}></lightning-combobox>
+            <lightning-combobox label="Readiness" value={readinessFilter} options={readinessOptions} onchange={handleReadiness}></lightning-combobox>
+            <lightning-combobox label="Program" value={programCode} options={programOptions} onchange={handleProgram}></lightning-combobox>
+        </div>
+        <lightning-datatable
+            key-field="id"
+            data={rows}
+            columns={columns}
+            hide-checkbox-column
+            onrowaction={handleRowAction}>
+        </lightning-datatable>
+    </lightning-card>
+</template>

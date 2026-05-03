@@ -1,4 +1,8 @@
 <template>
+    <div class="section-heading">
+        <h2>Guided Actions</h2>
+        <p>Choose one path to begin. The panel below will switch to the selected workflow.</p>
+    </div>
     <div class="launcher-grid">
         <article class="launcher-card">
             <h3>Create New Event</h3>
@@ -16,7 +20,10 @@
             <lightning-button label="Start" variant="brand" data-mode="instance" onclick={handleRoute}></lightning-button>
         </article>
     </div>
-    <template if:true={isCreate}><c-fiu-event-create-wizard></c-fiu-event-create-wizard></template>
-    <template if:true={isClone}><c-fiu-event-clone-wizard></c-fiu-event-clone-wizard></template>
-    <template if:true={isInstance}><c-fiu-instance-create-wizard></c-fiu-instance-create-wizard></template>
+    <section class="active-panel">
+        <h3>{selectedHeading}</h3>
+        <template if:true={isCreate}><c-fiu-event-create-wizard></c-fiu-event-create-wizard></template>
+        <template if:true={isClone}><c-fiu-event-clone-wizard></c-fiu-event-clone-wizard></template>
+        <template if:true={isInstance}><c-fiu-instance-create-wizard></c-fiu-instance-create-wizard></template>
+    </section>
 </template>

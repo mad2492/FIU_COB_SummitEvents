@@ -1,0 +1,8 @@
+﻿"EntityDefinition.QualifiedApiName","QualifiedApiName","Label","DataType","NamespacePrefix"
+"Summit_Events_Instance_Reminder__c","Amount_of_Time__c","Amount of Time","Number(3, 0)",
+"Summit_Events_Instance_Reminder__c","Notification_Date_Time__c","Notification Date & Time","Formula (Date/Time)",
+"Summit_Events_Instance_Reminder__c","Sent_via__c","Sent via","Picklist",
+"Summit_Events_Instance_Reminder__c","Status__c","Status","Picklist",
+"Summit_Events_Instance_Reminder__c","Summit_Events_Instance__c","Summit Events Instance","Master-Detail(Summit Events Instance)",
+"Summit_Events_Instance_Reminder__c","Timezone_Offset__c","Timezone Offset","Number(2, 0)",
+"Summit_Events_Instance_Reminder__c","Unit_of_time__c","Unit of Time","Picklist",

@@ -3,6 +3,26 @@
     <description>Access to FIU Events app shell and guided experience.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>FIU Events User</label>
+    <applicationVisibilities>
+        <application>FIU_Events</application>
+        <visible>true</visible>
+    </applicationVisibilities>
+    <tabSettings>
+        <tab>fiuEventBrowser</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>fiuInstanceBrowser</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>fiuRegistrationBrowser</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>fiuReadinessDashboard</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
     <tabSettings>
         <tab>fiuEventsHome</tab>
         <visibility>Visible</visibility>

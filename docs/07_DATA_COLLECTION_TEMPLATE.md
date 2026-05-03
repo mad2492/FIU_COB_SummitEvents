@@ -56,3 +56,21 @@ Updated from Prod discovery snapshot on 2026-05-02. Supporting raw extracts are 
 - Admins: Pending role matrix confirmation from profile/permset inventory
 - OGI users: Pending role matrix confirmation from profile/permset inventory
 - Raw Summit tab access: Pending final policy decision in Phase 1 rollout
+
+## 7. FIU-Created Field Inventory (Partial UAT Snapshot)
+Method:
+- Source: Partial UAT Tooling API (`FieldDefinition`)
+- Rule: include fields on Summit Events objects where API name ends in `__c` and does not start with `summit__`
+- Output files: `docs/discovery/fields_*.csv`
+
+Object-level counts:
+- `summit__Summit_Events__c`: 11 fields
+- `summit__Summit_Events_Instance__c`: 12 fields
+- `summit__Summit_Events_Registration__c`: 26 fields
+- `Summit_Events_Instance_Reminder__c`: 7 fields
+- `summit__Summit_Events_Payment__c`: 0 fields found by this rule
+- `summit__Summit_Events_Question__c`: 0 fields found by this rule
+
+Notes:
+- This confirms FIU-specific extensions like `Accounting_Department__c`, `Default_Plan__c`, `Includes_Multiple_Programs__c`, `Parking_info__c`, and `Terms_and_Conditions__c` are present in UAT.
+- Next discovery pass should classify each field as: UI-only, automation-critical, integration-critical, or reporting-only.

@@ -1,9 +1,76 @@
 <template>
-    <lightning-card title="FIU Events" icon-name="custom:custom14">
-        <div class="slds-p-around_medium">
-            <p class="slds-text-body_regular slds-m-bottom_medium">
-                Start from the parent Event, then choose the guided path below.
-            </p>
+    <lightning-card title="FIU Events Command Center" icon-name="custom:custom14">
+        <div class="hero slds-p-around_medium">
+            <p class="eyebrow">Summit Events Extension Layer</p>
+            <h1>Run Events With Clarity</h1>
+            <p class="subtitle">Monitor what is upcoming, what needs attention, and jump into action in one place.</p>
+            <div class="slds-m-top_small">
+                <lightning-combobox class="scope-picker" label="Program Scope" value={programCode} options={programOptions} onchange={handleProgram}></lightning-combobox>
+                <p class="scope-summary">Current scope: <span>{selectedProgramLabel}</span></p>
+            </div>
+        </div>
+
+        <div class="kpi-grid slds-p-horizontal_medium slds-p-bottom_medium">
+            <article class="kpi">
+                <p class="label">Upcoming Instances</p>
+                <p class="value">{kpiUpcoming}</p>
+                <button class="link" onclick={openInstances}>View Instances</button>
+            </article>
+            <article class="kpi">
+                <p class="label">Open Registrations</p>
+                <p class="value">{kpiOpenRegs}</p>
+                <button class="link" onclick={openRegistrations}>View Registrations</button>
+            </article>
+            <article class="kpi warn">
+                <p class="label">Not Ready Instances</p>
+                <p class="value">{kpiNotReady}</p>
+                <button class="link" onclick={resolveIssues}>Resolve Issues</button>
+            </article>
+            <article class="kpi">
+                <p class="label">Active Events</p>
+                <p class="value">{kpiActiveEvents}</p>
+                <button class="link" onclick={openEvents}>Browse Events</button>
+            </article>
+            <article class="kpi warn">
+                <p class="label">Not Ready Events</p>
+                <p class="value">{kpiNotReadyEvents}</p>
+                <button class="link" onclick={reviewNotReadyEvents}>Review Events</button>
+            </article>
+        </div>
+
+        <div class="layout slds-p-horizontal_medium slds-p-bottom_medium">
+            <section class="panel">
+                <h2>Needs Attention</h2>
+                <template if:true={attentionRows.length}>
+                    <template for:each={attentionRows} for:item="row">
+                        <div key={row.instanceId} class="row">
+                            <p class="title">{row.instanceTitle} <span>- {row.eventName}</span></p>
+                            <p class="meta">{row.reason}</p>
+                        </div>
+                    </template>
+                </template>
+                <template if:false={attentionRows.length}>
+                    <p class="empty">No readiness issues detected.</p>
+                </template>
+            </section>
+
+            <section class="panel">
+                <h2>Upcoming This Week</h2>
+                <template if:true={upcomingRows.length}>
+                    <template for:each={upcomingRows} for:item="row">
+                        <div key={row.instanceId} class="row">
+                            <p class="title">{row.instanceTitle} <span>- {row.eventName}</span></p>
+                            <p class="meta">{row.startDate} | {row.status}</p>
+                        </div>
+                    </template>
+                </template>
+                <template if:false={upcomingRows.length}>
+                    <p class="empty">No upcoming instances found.</p>
+                </template>
+            </section>
+        </div>
+
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
             <c-fiu-events-launcher></c-fiu-events-launcher>
         </div>
     </lightning-card>

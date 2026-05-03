@@ -1,0 +1,50 @@
+<template>
+    <lightning-card title="FIU Instance Workspace" icon-name="standard:event">
+        <div class="hero slds-p-around_medium">
+            <p class="eyebrow">Event Occurrence</p>
+            <h2>{titleValue}</h2>
+            <p class="subtitle">{eventNameValue}</p>
+        </div>
+
+        <div class="slds-p-around_medium grid">
+            <article class="panel">
+                <h3>Schedule</h3>
+                <p><strong>Start:</strong> {startDateValue} {startTimeValue}</p>
+                <p><strong>End:</strong> {endDateValue} {endTimeValue}</p>
+                <p><strong>Time Zone:</strong> {timeZoneValue}</p>
+            </article>
+
+            <template if:true={showPhysicalLocation}>
+                <article class="panel">
+                    <h3>Location</h3>
+                    <p><strong>Type:</strong> {locationTypeValue}</p>
+                    <p><strong>Title:</strong> {locationTitleValue}</p>
+                    <p><strong>Address:</strong> {locationAddressValue}</p>
+                    <p><strong>Map Link:</strong> {mapLinkValue}</p>
+                    <p><strong>Parking:</strong> {parkingInfoValue}</p>
+                </article>
+            </template>
+
+            <template if:true={isOnlineLocation}>
+                <article class="panel">
+                    <h3>Virtual Access</h3>
+                    <p><strong>Type:</strong> {locationTypeValue}</p>
+                    <p><strong>Virtual Meeting Link:</strong> {virtualMeetingValue}</p>
+                    <p><strong>Virtual Appointment Link:</strong> {virtualApptValue}</p>
+                </article>
+            </template>
+
+            <article class="panel">
+                <h3>Operations</h3>
+                <p><strong>Status:</strong> {activeStatusValue}</p>
+                <p><strong>Open Registration:</strong> {openRegistrationValue}</p>
+                <p><strong>Capacity:</strong> {capacityValue}</p>
+                <p><strong>Current Available:</strong> {availableCapacityValue}</p>
+            </article>
+        </div>
+
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+            <c-fiu-instance-roster-manager></c-fiu-instance-roster-manager>
+        </div>
+    </lightning-card>
+</template>
