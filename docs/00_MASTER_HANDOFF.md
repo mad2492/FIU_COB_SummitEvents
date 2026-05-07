@@ -67,9 +67,11 @@ Each option must explain in plain language when to use it.
 
 ## Desired Future Capabilities
 - Browse Events by status, program, and upcoming instance activity
+- Browse Events and Instances in a shared FIU list-shell experience with right-side quick view
 - Guided event creation
 - Robust clone event experience with warnings
 - Guided add-instance experience
+- In-app Guide page that teaches the Event -> Instance -> Registration model
 - Easier RSVP/attendance viewing by instance
 - CSV export of attendees
 - Natural post-event attendance updating
@@ -88,4 +90,3 @@ Each option must explain in plain language when to use it.
 - Modifying managed package components or metadata
 - Replacing payment engine internals in Phase 1
 - Replacing all existing automation before understanding dependencies
-

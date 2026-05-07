@@ -74,7 +74,17 @@ public with sharing class FiuProgramFilterService {
         String normalizedCode = String.escapeSingleQuotes(selectedProgramCode.trim());
         List<String> predicates = new List<String>();
         for (String fieldApi : config.eventProgramFields) {
-            predicates.add(eventPathPrefix + fieldApi + ' = \'' + normalizedCode + '\'');
+            predicates.add(
+                '(' +
+                eventPathPrefix + fieldApi + ' = \'' + normalizedCode + '\'' +
+                ' OR ' + eventPathPrefix + fieldApi + ' LIKE \'' + normalizedCode + ',%\'' +
+                ' OR ' + eventPathPrefix + fieldApi + ' LIKE \'%,' + normalizedCode + ',%\'' +
+                ' OR ' + eventPathPrefix + fieldApi + ' LIKE \'%,' + normalizedCode + '\'' +
+                ' OR ' + eventPathPrefix + fieldApi + ' LIKE \'' + normalizedCode + ', %\'' +
+                ' OR ' + eventPathPrefix + fieldApi + ' LIKE \'%, ' + normalizedCode + ',%\'' +
+                ' OR ' + eventPathPrefix + fieldApi + ' LIKE \'%, ' + normalizedCode + '\'' +
+                ')'
+            );
         }
         if (config.hasDefaultPlanLookup) {
             predicates.add(eventPathPrefix + 'Default_Plan__r.Plan_Code__c = \'' + normalizedCode + '\'');

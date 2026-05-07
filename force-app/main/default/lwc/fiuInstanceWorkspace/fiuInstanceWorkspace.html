@@ -1,50 +1,71 @@
 <template>
-    <lightning-card title="FIU Instance Workspace" icon-name="standard:event">
-        <div class="hero slds-p-around_medium">
-            <p class="eyebrow">Event Occurrence</p>
-            <h2>{titleValue}</h2>
-            <p class="subtitle">{eventNameValue}</p>
+    <lightning-card title="Instance Workspace" icon-name="standard:event">
+        <div slot="actions" class="header-actions">
+            <lightning-button-group>
+                <lightning-button label="Edit" icon-name="utility:edit" onclick={handleEdit}></lightning-button>
+                <lightning-button label="View Registrations" onclick={handleViewRegistrations}></lightning-button>
+            </lightning-button-group>
         </div>
 
-        <div class="slds-p-around_medium grid">
-            <article class="panel">
-                <h3>Schedule</h3>
-                <p><strong>Start:</strong> {startDateValue} {startTimeValue}</p>
-                <p><strong>End:</strong> {endDateValue} {endTimeValue}</p>
-                <p><strong>Time Zone:</strong> {timeZoneValue}</p>
-            </article>
+        <template if:true={record}>
+            <div class="slds-p-around_medium">
+                <header class="instance-header slds-m-bottom_medium">
+                    <p class="slds-text-body_small slds-text-color_weak slds-text-transform_uppercase">Event Occurrence</p>
+                    <h2 class="slds-text-heading_medium">{titleValue}</h2>
+                    <p class="slds-text-body_regular slds-text-color_weak">{eventNameValue}</p>
+                </header>
 
-            <template if:true={showPhysicalLocation}>
-                <article class="panel">
-                    <h3>Location</h3>
-                    <p><strong>Type:</strong> {locationTypeValue}</p>
-                    <p><strong>Title:</strong> {locationTitleValue}</p>
-                    <p><strong>Address:</strong> {locationAddressValue}</p>
-                    <p><strong>Map Link:</strong> {mapLinkValue}</p>
-                    <p><strong>Parking:</strong> {parkingInfoValue}</p>
-                </article>
-            </template>
+                <lightning-record-view-form record-id={recordId} object-api-name="summit__Summit_Events_Instance__c">
+                    <div class="grid">
+                        <article class="panel">
+                            <h3 class="slds-text-heading_small slds-m-bottom_small">Schedule</h3>
+                            <lightning-output-field field-name="summit__Instance_Start_Date__c"></lightning-output-field>
+                            <lightning-output-field field-name="summit__Instance_Start_Time__c"></lightning-output-field>
+                            <lightning-output-field field-name="summit__Instance_End_Date__c"></lightning-output-field>
+                            <lightning-output-field field-name="summit__Instance_End_Time__c"></lightning-output-field>
+                            <lightning-output-field field-name="summit__Instance_Time_Zone__c"></lightning-output-field>
+                        </article>
 
-            <template if:true={isOnlineLocation}>
-                <article class="panel">
-                    <h3>Virtual Access</h3>
-                    <p><strong>Type:</strong> {locationTypeValue}</p>
-                    <p><strong>Virtual Meeting Link:</strong> {virtualMeetingValue}</p>
-                    <p><strong>Virtual Appointment Link:</strong> {virtualApptValue}</p>
-                </article>
-            </template>
+                        <template if:true={showPhysicalLocation}>
+                            <article class="panel">
+                                <h3 class="slds-text-heading_small slds-m-bottom_small">Location</h3>
+                                <lightning-output-field field-name="summit__Location_Type_Override__c"></lightning-output-field>
+                                <lightning-output-field field-name="summit__Location_Title_Override__c"></lightning-output-field>
+                                <lightning-output-field field-name="summit__Location_Address_Override__c"></lightning-output-field>
+                                <lightning-output-field field-name="summit__Location_Map_Link_Override__c"></lightning-output-field>
+                                <lightning-output-field field-name="Parking_info__c"></lightning-output-field>
+                            </article>
+                        </template>
 
-            <article class="panel">
-                <h3>Operations</h3>
-                <p><strong>Status:</strong> {activeStatusValue}</p>
-                <p><strong>Open Registration:</strong> {openRegistrationValue}</p>
-                <p><strong>Capacity:</strong> {capacityValue}</p>
-                <p><strong>Current Available:</strong> {availableCapacityValue}</p>
-            </article>
-        </div>
+                        <template if:true={isOnlineLocation}>
+                            <article class="panel">
+                                <h3 class="slds-text-heading_small slds-m-bottom_small">Virtual Access</h3>
+                                <lightning-output-field field-name="summit__Location_Type_Override__c"></lightning-output-field>
+                                <lightning-output-field field-name="summit__Virtual_Meeting_Link__c"></lightning-output-field>
+                                <lightning-output-field field-name="summit__Virtual_Appointment_Link__c"></lightning-output-field>
+                            </article>
+                        </template>
 
-        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
-            <c-fiu-instance-roster-manager></c-fiu-instance-roster-manager>
-        </div>
+                        <article class="panel">
+                            <h3 class="slds-text-heading_small slds-m-bottom_small">Operations</h3>
+                            <lightning-output-field field-name="summit__Active_Status__c"></lightning-output-field>
+                            <lightning-output-field field-name="summit__Open_Registration__c"></lightning-output-field>
+                            <lightning-output-field field-name="summit__Capacity__c"></lightning-output-field>
+                            <lightning-output-field field-name="summit__Current_Available_Capacity__c"></lightning-output-field>
+                        </article>
+                    </div>
+                </lightning-record-view-form>
+            </div>
+
+            <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+                <c-fiu-instance-roster-manager></c-fiu-instance-roster-manager>
+            </div>
+        </template>
+
+        <template if:false={record}>
+            <div class="slds-p-around_medium">
+                <lightning-spinner alternative-text="Loading instance" size="small"></lightning-spinner>
+            </div>
+        </template>
     </lightning-card>
 </template>

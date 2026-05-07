@@ -8,7 +8,7 @@
     <tabs>fiuEventBrowser</tabs>
     <tabs>fiuInstanceBrowser</tabs>
     <tabs>fiuRegistrationBrowser</tabs>
-    <tabs>fiuReadinessDashboard</tabs>
+    <tabs>fiuEventsGuide</tabs>
     <formFactors>Large</formFactors>
     <uiType>Lightning</uiType>
 </CustomApplication>

@@ -52,7 +52,7 @@ public with sharing class FiuEventsOrchestratorService {
             result.riskWarnings.add('Source event has no Account and may produce external authorization issues.');
         }
 
-        result.riskWarnings.add('Review business-unit/program/plan values in spEventsFIUPlanLookup before activation.');
+        result.riskWarnings.add('Review business-unit/program/plan values before activation.');
         return result;
     }
 

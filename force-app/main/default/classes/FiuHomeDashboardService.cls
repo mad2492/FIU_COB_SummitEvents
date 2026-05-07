@@ -2,6 +2,7 @@ public with sharing class FiuHomeDashboardService {
     public class DashboardData {
         @AuraEnabled public Integer upcomingInstances;
         @AuraEnabled public Integer openRegistrations;
+        @AuraEnabled public Integer startedRegistrations;
         @AuraEnabled public Integer notReadyInstances;
         @AuraEnabled public Integer notReadyEvents;
         @AuraEnabled public Integer activeEvents;
@@ -11,6 +12,8 @@ public with sharing class FiuHomeDashboardService {
 
     public class AttentionRow {
         @AuraEnabled public Id instanceId;
+        @AuraEnabled public Id eventId;
+        @AuraEnabled public String rowType;
         @AuraEnabled public String instanceTitle;
         @AuraEnabled public String eventName;
         @AuraEnabled public String reason;
@@ -29,6 +32,7 @@ public with sharing class FiuHomeDashboardService {
         DashboardData data = new DashboardData();
         data.upcomingInstances = 0;
         data.openRegistrations = 0;
+        data.startedRegistrations = 0;
         data.notReadyInstances = 0;
         data.notReadyEvents = 0;
         data.activeEvents = 0;
@@ -41,22 +45,66 @@ public with sharing class FiuHomeDashboardService {
         Date today = Date.today();
 
         FiuProgramFilterService.ProgramFilterConfig programConfig = FiuProgramFilterService.getConfig();
-        List<String> activeEventFields = new List<String>{ 'Id', 'summit__Event_Status__c', 'summit__Account__c', 'Default_Plan__c', 'Includes_Multiple_Programs__c' };
+        List<String> activeEventFields = new List<String>{
+            'Id',
+            'Name',
+            'summit__Event_Status__c',
+            'summit__Account__c',
+            'Default_Plan__c',
+            'Includes_Multiple_Programs__c',
+            'summit__Event_Additional_Question_Title__c',
+            'summit__Event_Additional_Questions_Description__c'
+        };
         activeEventFields.addAll(programConfig.eventProgramFields);
         if (programConfig.hasDefaultPlanLookup) activeEventFields.add('Default_Plan__r.Plan_Code__c');
         List<SObject> activeEventRows = Database.query(
             'SELECT ' + String.join(activeEventFields, ',') +
             ' FROM summit__Summit_Events__c WHERE RecordTypeId IN :allowedRt AND summit__Event_Status__c = \'Active\' LIMIT 5000'
         );
+        Map<Id, Integer> questionCountByEventId = new Map<Id, Integer>();
+        Set<Id> activeEventIds = new Set<Id>();
+        for (SObject eventRow : activeEventRows) {
+            activeEventIds.add((Id) eventRow.get('Id'));
+        }
+        if (!activeEventIds.isEmpty()) {
+            String questionObject = FiuEventsAccessService.resolveEventQuestionObject();
+            String questionEventLookup = FiuEventsAccessService.resolveEventQuestionLookupField();
+            if (questionObject != null && questionEventLookup != null) {
+                try {
+                    String soql =
+                        'SELECT ' + questionEventLookup + ' eventId, COUNT(Id) rowCount FROM ' + questionObject +
+                        ' WHERE ' + questionEventLookup + ' IN :activeEventIds GROUP BY ' + questionEventLookup;
+                    for (AggregateResult ar : Database.query(soql)) {
+                        questionCountByEventId.put((Id) ar.get('eventId'), Integer.valueOf(String.valueOf(ar.get('rowCount'))));
+                    }
+                } catch (Exception ex) {
+                    // Gracefully continue if question object/field visibility differs.
+                }
+            }
+        }
         for (SObject eventRow : activeEventRows) {
             if (!FiuProgramFilterService.eventMatchesSelectedProgram(eventRow, programConfig, programCode)) continue;
             data.activeEvents++;
-            if (!String.isBlank(getEventNotReadyReason(eventRow, programConfig))) data.notReadyEvents++;
+            Integer questionCount = questionCountByEventId.containsKey((Id) eventRow.get('Id')) ? questionCountByEventId.get((Id) eventRow.get('Id')) : 0;
+            String eventReason = getEventNotReadyReason(eventRow, programConfig, questionCount);
+            if (!String.isBlank(eventReason)) {
+                data.notReadyEvents++;
+                if (data.attentionRows.size() < 8) {
+                    AttentionRow eventAttention = new AttentionRow();
+                    eventAttention.eventId = (Id) eventRow.get('Id');
+                    eventAttention.rowType = 'Event';
+                    eventAttention.instanceTitle = (String) eventRow.get('Name');
+                    eventAttention.eventName = 'Event';
+                    eventAttention.reason = eventReason;
+                    data.attentionRows.add(eventAttention);
+                }
+            }
         }
 
         List<String> instanceFields = new List<String>{
             'Id', 'summit__Instance_Title__c', 'summit__Instance_Start_Date__c', 'summit__Active_Status__c', 'summit__Open_Registration__c',
             'summit__Location_Title_Override__c', 'summit__Location_Address_Override__c', 'summit__Location_Map_Link_Override__c', 'Parking_info__c',
+            'summit__Event__c',
             'summit__Event__r.Name', 'summit__Event__r.summit__Account__c', 'summit__Event__r.summit__Payment_Gateway__c', 'summit__Event__r.Accounting_Department__c'
         };
         for (String eventProgramField : programConfig.eventProgramFields) {
@@ -95,6 +143,8 @@ public with sharing class FiuHomeDashboardService {
                 if (data.attentionRows.size() < 8) {
                     AttentionRow ar = new AttentionRow();
                     ar.instanceId = (Id) row.get('Id');
+                    ar.eventId = (Id) row.get('summit__Event__c');
+                    ar.rowType = 'Instance';
                     ar.instanceTitle = (String) row.get('summit__Instance_Title__c');
                     SObject ev = row.getSObject('summit__Event__r');
                     ar.eventName = ev == null ? null : (String) ev.get('Name');
@@ -105,17 +155,33 @@ public with sharing class FiuHomeDashboardService {
         }
 
         if (!upcomingIds.isEmpty()) {
-            data.openRegistrations = [
-                SELECT COUNT()
-                FROM summit__Summit_Events_Registration__c
-                WHERE summit__Event_Instance__c IN :upcomingIds
-            ];
+            String statusField = resolveOptionalField('summit__Summit_Events_Registration__c', new List<String>{ 'summit__Status__c', 'Status__c' });
+            if (statusField == null) {
+                data.openRegistrations = [
+                    SELECT COUNT()
+                    FROM summit__Summit_Events_Registration__c
+                    WHERE summit__Event_Instance__c IN :upcomingIds
+                ];
+            } else {
+                List<SObject> regs = Database.query(
+                    'SELECT Id, ' + statusField + ' FROM summit__Summit_Events_Registration__c WHERE summit__Event_Instance__c IN :upcomingIds LIMIT 5000'
+                );
+                for (SObject reg : regs) {
+                    String statusValue = String.valueOf(reg.get(statusField));
+                    if (statusValue == 'Started') {
+                        data.startedRegistrations++;
+                    }
+                    if (statusValue != 'Started' && statusValue != 'Cancelled') {
+                        data.openRegistrations++;
+                    }
+                }
+            }
         }
 
         return data;
     }
 
-    private static String getEventNotReadyReason(SObject eventRow, FiuProgramFilterService.ProgramFilterConfig programConfig) {
+    private static String getEventNotReadyReason(SObject eventRow, FiuProgramFilterService.ProgramFilterConfig programConfig, Integer relatedQuestionCount) {
         List<String> reasons = new List<String>();
         if (eventRow.get('summit__Account__c') == null) reasons.add('Missing account');
 
@@ -127,6 +193,13 @@ public with sharing class FiuHomeDashboardService {
             if (!hasProgramFilterCodes && !hasDefaultPlan) reasons.add('Missing selected program');
         } else {
             if (!hasDefaultPlan && !hasProgramFilterCodes) reasons.add('Missing selected program');
+        }
+
+        String customQuestionTitle = (String) eventRow.get('summit__Event_Additional_Question_Title__c');
+        String customQuestionDescription = (String) eventRow.get('summit__Event_Additional_Questions_Description__c');
+        Boolean hasCustomQuestionPageDetails = !String.isBlank(customQuestionTitle) || !String.isBlank(customQuestionDescription);
+        if (hasCustomQuestionPageDetails && (relatedQuestionCount == null || relatedQuestionCount == 0)) {
+            reasons.add('Custom questions details set but no related Summit Event Questions');
         }
         return reasons.isEmpty() ? null : String.join(reasons, '; ');
     }
@@ -152,5 +225,15 @@ public with sharing class FiuHomeDashboardService {
             }
         }
         return reasons.isEmpty() ? null : String.join(reasons, '; ');
+    }
+
+    private static String resolveOptionalField(String objectApiName, List<String> candidates) {
+        Schema.SObjectType sType = Schema.getGlobalDescribe().get(objectApiName);
+        if (sType == null) return null;
+        Map<String, Schema.SObjectField> mapFields = sType.getDescribe().fields.getMap();
+        for (String fieldApi : candidates) {
+            if (mapFields.containsKey(fieldApi)) return fieldApi;
+        }
+        return null;
     }
 }

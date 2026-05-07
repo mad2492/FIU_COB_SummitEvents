@@ -1,8 +1,16 @@
 <template>
-    <lightning-card title="Add New Instance Wizard">
+    <lightning-card title="Add New Instance to Existing Event" icon-name="standard:events">
         <div class="slds-p-around_medium">
-            <p class="slds-m-bottom_small">Select an existing parent event and create a new instance occurrence.</p>
-            <p class="slds-text-color_weak">Use this when the event structure already exists and only dates/location/capacity need changes.</p>
+            <div class="slds-illustration slds-illustration_small slds-text-align_center">
+                <lightning-icon icon-name="utility:advanced_function" size="medium" alternative-text="Coming soon"></lightning-icon>
+                <h3 class="slds-text-heading_small slds-m-top_small">Guided Add Instance is not available yet</h3>
+                <p class="slds-text-body_regular slds-text-color_weak slds-m-top_x-small">
+                    Use this when the event structure already exists and you only need another occurrence with new dates, location, or capacity.
+                </p>
+                <p class="slds-text-body_small slds-m-top_medium slds-text-color_weak">
+                    For now, open the parent event from the Events browser and use the standard Salesforce New Instance action.
+                </p>
+            </div>
         </div>
     </lightning-card>
 </template>

@@ -1,0 +1,7 @@
+<apex:page controller="ExportCsvController"
+    contentType="{!pageContentType}"
+    showHeader="false"
+    sidebar="false"
+    standardStylesheets="false"
+    applyHtmlTag="false"
+    applyBodyTag="false"><apex:outputText value="{!output}" escape="false"/></apex:page>

@@ -1,8 +1,536 @@
 <template>
-    <lightning-card title="Create New Event Wizard">
+    <lightning-card title={title} icon-name="standard:event">
         <div class="slds-p-around_medium">
-            <p class="slds-m-bottom_small">Create the parent event first, then add the first instance.</p>
-            <p class="slds-text-color_weak">Critical checks: Account, payment gateway/accounting for paid events, opportunity and confirmation email flags.</p>
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:false={isSuccess}>
+                    <div class="slds-m-bottom_medium">
+                        <lightning-progress-indicator current-step={currentStepValue} type="base" variant="base">
+                            <lightning-progress-step label="Event Setup" value="1"></lightning-progress-step>
+                            <lightning-progress-step label="First Instance" value="2"></lightning-progress-step>
+                            <lightning-progress-step label="Done" value="3"></lightning-progress-step>
+                        </lightning-progress-indicator>
+                    </div>
+
+                    <template if:true={isStep1}>
+                        <div class="explainer slds-box slds-theme_shade slds-m-bottom_medium">
+                            <p class="slds-text-body_regular">
+                                <strong>The Event is the overall setup. The Instance is the actual date/time people register for.</strong>
+                                Most FIU events need both before they are ready to use. We will walk through the Event setup first, then create the first Instance.
+                            </p>
+                        </div>
+                    </template>
+
+                    <template if:true={error}>
+                        <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error slds-m-bottom_medium" role="alert">
+                            <span>{error}</span>
+                        </div>
+                    </template>
+
+                    <template if:true={isStep1}>
+                        <div class="tab-status-strip slds-m-bottom_small" role="tablist" aria-label="Event Setup Sections">
+                            <template for:each={step1TabStatuses} for:item="tab">
+                                <button
+                                    key={tab.value}
+                                    class={tab.buttonClass}
+                                    data-tab={tab.value}
+                                    onclick={handleStatusTabClick}
+                                    role="tab"
+                                    aria-selected={tab.isActive}>
+                                    <span class="tab-status-label">{tab.label}</span>
+                                    <span class={tab.badgeClass}>{tab.statusText}</span>
+                                </button>
+                            </template>
+                        </div>
+                        <div class="tab-panel-shell">
+                            <template if:true={isEventDetailsTab}>
+                                <lightning-input
+                                    data-field="eventName"
+                                    label="Event Name"
+                                    value={form.eventName}
+                                    required
+                                    message-when-value-missing="Enter a name for this event."
+                                    onchange={handleInput}>
+                                </lightning-input>
+                                <lightning-combobox
+                                    class="slds-m-top_small"
+                                    data-field="recordTypeId"
+                                    label="Record Type"
+                                    value={form.recordTypeId}
+                                    options={recordTypeOptions}
+                                    required
+                                    message-when-value-missing="Select a record type."
+                                    onchange={handleInput}>
+                                </lightning-combobox>
+                                <template if:true={showDependentPicklists}>
+                                    <lightning-combobox
+                                        class="slds-m-top_small"
+                                        data-field="eventStatus"
+                                        label="Event Status"
+                                        value={form.eventStatus}
+                                        options={statusOptions}
+                                        required
+                                        message-when-value-missing="Select an event status."
+                                        onchange={handleInput}>
+                                    </lightning-combobox>
+                                    <div class="slds-grid slds-gutters slds-m-top_small">
+                                        <div class="slds-col">
+                                            <lightning-input
+                                                type="date"
+                                                data-field="eventStartDate"
+                                                label="Start Date"
+                                                value={form.eventStartDate}
+                                                required
+                                                message-when-value-missing="Start Date is required."
+                                                onchange={handleInput}>
+                                            </lightning-input>
+                                        </div>
+                                        <div class="slds-col">
+                                            <lightning-input
+                                                type="date"
+                                                data-field="eventEndDate"
+                                                label="End Date"
+                                                value={form.eventEndDate}
+                                                required
+                                                message-when-value-missing="End Date is required."
+                                                onchange={handleInput}>
+                                            </lightning-input>
+                                        </div>
+                                    </div>
+                                    <div class="form-grid-two slds-m-top_small">
+                                        <lightning-combobox
+                                            data-field="eventType"
+                                            label="Event Type"
+                                            value={form.eventType}
+                                            options={eventTypeOptions}
+                                            required
+                                            message-when-value-missing="Select an event type."
+                                            onchange={handleInput}>
+                                        </lightning-combobox>
+                                        <lightning-combobox
+                                            data-field="category"
+                                            label="Category"
+                                            value={form.category}
+                                            options={categoryOptions}
+                                            required
+                                            message-when-value-missing="Category controls downstream communications. Select one."
+                                            onchange={handleInput}>
+                                        </lightning-combobox>
+                                    </div>
+                                    <lightning-combobox
+                                        class="slds-m-top_small"
+                                        data-field="locationType"
+                                        label="Location Type"
+                                        value={form.locationType}
+                                        options={locationTypeOptions}
+                                        required
+                                        message-when-value-missing="Select an overall location type for this event."
+                                        onchange={handleInput}>
+                                    </lightning-combobox>
+                                    <template if:true={requiresPhysicalLocationFields}>
+                                        <div class="form-grid-two slds-m-top_small">
+                                            <lightning-input
+                                                data-field="locationTitle"
+                                                label="Location Title"
+                                                value={form.locationTitle}
+                                                required
+                                                message-when-value-missing="Location Title is required for this location type."
+                                                onchange={handleInput}>
+                                            </lightning-input>
+                                            <lightning-input
+                                                data-field="locationAddress"
+                                                label="Location Address"
+                                                value={form.locationAddress}
+                                                required
+                                                message-when-value-missing="Location Address is required for this location type."
+                                                onchange={handleInput}>
+                                            </lightning-input>
+                                            <lightning-input
+                                                data-field="locationMapLink"
+                                                label="Location Map Link"
+                                                value={form.locationMapLink}
+                                                required
+                                                message-when-value-missing="Location Map Link is required for this location type."
+                                                onchange={handleInput}>
+                                            </lightning-input>
+                                            <lightning-input
+                                                data-field="building"
+                                                label="Building"
+                                                value={form.building}
+                                                required
+                                                message-when-value-missing="Building is required for this location type."
+                                                onchange={handleInput}>
+                                            </lightning-input>
+                                        </div>
+                                    </template>
+                                    <lightning-input
+                                        class="slds-m-top_small"
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        data-field="capacity"
+                                        label="Capacity"
+                                        value={form.capacity}
+                                        field-level-help="Maximum number of attendees this event can support."
+                                        onchange={handleInput}>
+                                    </lightning-input>
+                                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_medium slds-m-bottom_small">
+                                        Program and plan selections control where this event appears on the FIU Business website and how registrations connect to recruiting records.
+                                    </p>
+                                    <lightning-combobox
+                                        data-field="businessUnitId"
+                                        label="Business Unit"
+                                        value={form.businessUnitId}
+                                        options={businessUnitOptions}
+                                        required
+                                        message-when-value-missing="Select a Business Unit."
+                                        onchange={handleBusinessUnitChange}>
+                                    </lightning-combobox>
+                                    <lightning-dual-listbox
+                                        class="slds-m-top_small"
+                                        data-field="selectedPlanIds"
+                                        name="selectedPlanIds"
+                                        label="Programs"
+                                        source-label="Available"
+                                        selected-label="Selected"
+                                        options={programOptions}
+                                        value={selectedProgramValues}
+                                        required
+                                        message-when-value-missing="Select at least one Program."
+                                        onchange={handleProgramSelectionChange}
+                                        disable-reordering="true">
+                                    </lightning-dual-listbox>
+                                </template>
+                                <template if:false={showDependentPicklists}>
+                                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_small">Select a Record Type to load dependent fields.</p>
+                                </template>
+                            </template>
+
+                            <template if:true={isAdditionalConfigTab}>
+                                <template if:true={showDependentPicklists}>
+                                    <lightning-input
+                                        type="checkbox"
+                                        data-field="createOppsFromRegs"
+                                        label="Create Opportunities from Registrations"
+                                        field-level-help="Turn on when registrations should create or update recruiting/application Opportunity records."
+                                        checked={form.createOppsFromRegs}
+                                        onchange={handleInput}>
+                                    </lightning-input>
+                                    <lightning-input
+                                        class="slds-m-top_small"
+                                        type="checkbox"
+                                        data-field="sendRegistrationConfirmation"
+                                        label="Send Registration Confirmation Email"
+                                        field-level-help="Turn on so registrants receive FIU's standard dynamic confirmation email."
+                                        checked={form.sendRegistrationConfirmation}
+                                        onchange={handleInput}>
+                                    </lightning-input>
+                                    <lightning-combobox
+                                        class="slds-m-top_small"
+                                        data-field="registrationEmailRestriction"
+                                        label="Registration Email Restriction"
+                                        value={form.registrationEmailRestriction}
+                                        options={registrationEmailRestrictionOptions}
+                                        onchange={handleInput}>
+                                    </lightning-combobox>
+                                    <lightning-combobox
+                                        class="slds-m-top_small"
+                                        data-field="websitePublishingChoice"
+                                        label="Publish this event to business.fiu.edu?"
+                                        field-level-help="Selecting Yes adds Landing Pages criteria in the background so related Instances can appear on the FIU Business website event feed."
+                                        value={form.websitePublishingChoice}
+                                        options={websitePublishingOptions}
+                                        onchange={handleInput}>
+                                    </lightning-combobox>
+                                </template>
+                                <template if:false={showDependentPicklists}>
+                                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_small">Select a Record Type to load dependent fields.</p>
+                                </template>
+                            </template>
+
+                            <template if:true={isPageDetailsTab}>
+                                <fieldset class="slds-m-bottom_medium">
+                                    <legend class="slds-text-heading_small slds-m-bottom_x-small">Landing Page</legend>
+                                    <div class="slds-form-element__label">
+                                        Event Description
+                                        <lightning-helptext content="Primary description shown on the event landing page."></lightning-helptext>
+                                    </div>
+                                    <lightning-input-rich-text data-field="landingDescription" value={form.landingDescription} onchange={handleInput}></lightning-input-rich-text>
+                                    <div class="slds-form-element__label slds-m-top_small">
+                                        Event Full Text
+                                        <lightning-helptext content="Expanded detail content shown in the full event page experience."></lightning-helptext>
+                                    </div>
+                                    <lightning-input-rich-text data-field="landingFullText" value={form.landingFullText} onchange={handleInput}></lightning-input-rich-text>
+                                    <div class="slds-form-element__label slds-m-top_small">
+                                        Event Short Listing Description
+                                        <lightning-helptext content="Short teaser text used in listings/cards before users open the event page."></lightning-helptext>
+                                    </div>
+                                    <lightning-input-rich-text data-field="landingShortListingDescription" value={form.landingShortListingDescription} onchange={handleInput}></lightning-input-rich-text>
+                                </fieldset>
+                                <fieldset class="section-spacer-top">
+                                    <legend class="slds-text-heading_small slds-m-bottom_x-small">Confirmation Page</legend>
+                                    <lightning-input data-field="confirmationTitle" label="Event Confirmation Title" value={form.confirmationTitle} onchange={handleInput}></lightning-input>
+                                    <div class="slds-form-element__label slds-m-top_small">
+                                        Event Confirmation Description
+                                        <lightning-helptext content="Shown on the confirmation page after a successful registration submission."></lightning-helptext>
+                                    </div>
+                                    <lightning-input-rich-text data-field="confirmationDescription" value={form.confirmationDescription} onchange={handleInput}></lightning-input-rich-text>
+                                </fieldset>
+                                <fieldset class="section-spacer-top">
+                                    <legend class="slds-text-heading_small slds-m-bottom_x-small">Custom Questions Page</legend>
+                                    <lightning-input
+                                        data-field="customQuestionsTitle"
+                                        label="Custom Questions Page Title"
+                                        value={form.customQuestionsTitle}
+                                        onchange={handleInput}>
+                                    </lightning-input>
+                                    <div class="slds-form-element__label slds-m-top_small">
+                                        Custom Questions Page Description
+                                        <lightning-helptext content="Rich text shown above custom RSVP questions when question records are configured for this event."></lightning-helptext>
+                                    </div>
+                                    <lightning-input-rich-text
+                                        data-field="customQuestionsDescription"
+                                        value={form.customQuestionsDescription}
+                                        onchange={handleInput}>
+                                    </lightning-input-rich-text>
+                                </fieldset>
+                            </template>
+
+                            <template if:true={isEventFeesTab}>
+                                <lightning-input
+                                    type="checkbox"
+                                    data-field="isPaidRegistration"
+                                    label="This is a Paid Registration event"
+                                    checked={form.isPaidRegistration}
+                                    onchange={handleInput}>
+                                </lightning-input>
+                                <template if:true={paidEvent}>
+                                    <div class="slds-notify slds-notify_alert slds-theme_warning slds-m-top_small slds-m-bottom_small" role="alert">
+                                        <span>Payment settings affect the external registration/payment flow. Both fields below are required for paid events.</span>
+                                    </div>
+                                    <lightning-combobox
+                                        class="slds-m-top_small"
+                                        data-field="paymentGateway"
+                                        label="Payment Gateway"
+                                        value={form.paymentGateway}
+                                        options={paymentGatewayOptions}
+                                        required
+                                        message-when-value-missing="Paid events require a Payment Gateway."
+                                        onchange={handleInput}>
+                                    </lightning-combobox>
+                                    <lightning-combobox
+                                        class="slds-m-top_small"
+                                        data-field="accountingDepartmentId"
+                                        label="Accounting Department"
+                                        value={form.accountingDepartmentId}
+                                        options={accountingDepartmentOptions}
+                                        required
+                                        message-when-value-missing="Paid events require an Accounting Department."
+                                        onchange={handleInput}>
+                                    </lightning-combobox>
+                                    <lightning-card class="slds-m-top_small" title="Event Fee Configuration">
+                                        <div class="slds-p-around_small">
+                                            <lightning-input type="number" step="0.01" data-field="eventFee" label="Event Fee" value={form.eventFee} required message-when-value-missing="Event Fee is required for paid events." onchange={handleInput}></lightning-input>
+
+                                            <div class="slds-form-element__label slds-m-top_small">
+                                                Event Payment Received Description
+                                                <lightning-helptext content="Rich text shown after payment is recorded as received. This appears in fee-related RSVP messaging."></lightning-helptext>
+                                            </div>
+                                            <lightning-input-rich-text data-field="eventPaymentReceivedDescription" value={form.eventPaymentReceivedDescription} onchange={handleInput}></lightning-input-rich-text>
+
+                                            <div class="slds-form-element__label slds-m-top_small">
+                                                Event Payment Due Description
+                                                <lightning-helptext content="Rich text shown when payment is still due. Use this to explain next steps and deadlines."></lightning-helptext>
+                                            </div>
+                                            <lightning-input-rich-text data-field="eventPaymentDueDescription" value={form.eventPaymentDueDescription} onchange={handleInput}></lightning-input-rich-text>
+                                        </div>
+                                    </lightning-card>
+                                    <lightning-card class="slds-m-top_small" title="Labels">
+                                        <div class="slds-p-around_small labels-grid">
+                                            <lightning-input data-field="eventFeeLabel" label="Event Fee Label" value={form.eventFeeLabel} field-level-help="Label shown for the base event fee." onchange={handleInput}></lightning-input>
+                                            <lightning-input data-field="eventFeesReceivedLabel" label="Event Fees Received Label" value={form.eventFeesReceivedLabel} field-level-help="Label shown for fees received value." onchange={handleInput}></lightning-input>
+                                            <lightning-input data-field="eventFeeSubmitListLabel" label="Event Fee Submit List Label" value={form.eventFeeSubmitListLabel} field-level-help="Label shown in the submit list for event fee." onchange={handleInput}></lightning-input>
+                                            <lightning-input data-field="eventFeeTotalLabel" label="Event Fee Total Label" value={form.eventFeeTotalLabel} field-level-help="Label shown for fee total value." onchange={handleInput}></lightning-input>
+                                            <lightning-input data-field="eventPaymentReceivedHeadingLabel" label="Event Payment Received Heading Label" value={form.eventPaymentReceivedHeadingLabel} field-level-help="Heading label for payment received section." onchange={handleInput}></lightning-input>
+                                            <lightning-input data-field="eventPaymentDueHeadingLabel" label="Event Payment Due Heading Label" value={form.eventPaymentDueHeadingLabel} field-level-help="Heading label for payment due section." onchange={handleInput}></lightning-input>
+                                        </div>
+                                    </lightning-card>
+                                </template>
+                            </template>
+
+                            <template if:true={isRsvpTemplateTab}>
+                                <template if:true={showDependentPicklists}>
+                                    <lightning-combobox
+                                        data-field="templateId"
+                                        label="Template"
+                                        field-level-help="Primary RSVP template used for this event experience."
+                                        value={form.templateId}
+                                        options={templateOptions}
+                                        required
+                                        message-when-value-missing="Select an RSVP template."
+                                        onchange={handleInput}>
+                                    </lightning-combobox>
+                                </template>
+                                <template if:false={showDependentPicklists}>
+                                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_small">Select a Record Type to load Template choices.</p>
+                                </template>
+                                <lightning-input
+                                    class="slds-m-top_small"
+                                    data-field="templateBannerImage"
+                                    label="Template Banner Image"
+                                    field-level-help="Banner image URL shown in the RSVP template header."
+                                    value={form.templateBannerImage}
+                                    onchange={handleInput}>
+                                </lightning-input>
+                                <template if:true={showBannerPreview}>
+                                    <div class="image-preview slds-m-top_x-small">
+                                        <img data-preview="banner" src={form.templateBannerImage} alt="Banner preview" onload={handlePreviewLoad} onerror={handlePreviewError} />
+                                    </div>
+                                </template>
+                                <template if:true={previewState.bannerError}>
+                                    <p class="slds-text-color_error slds-text-body_small slds-m-top_x-small">Banner image URL could not be loaded. Please verify the link.</p>
+                                </template>
+                                <lightning-input
+                                    class="slds-m-top_small"
+                                    data-field="templateLogoImage"
+                                    label="Template Logo Image"
+                                    field-level-help="Logo image URL used by the RSVP template."
+                                    value={form.templateLogoImage}
+                                    onchange={handleInput}>
+                                </lightning-input>
+                                <template if:true={showLogoPreview}>
+                                    <div class="image-preview slds-m-top_x-small">
+                                        <img data-preview="logo" src={form.templateLogoImage} alt="Logo preview" onload={handlePreviewLoad} onerror={handlePreviewError} />
+                                    </div>
+                                </template>
+                                <template if:true={previewState.logoError}>
+                                    <p class="slds-text-color_error slds-text-body_small slds-m-top_x-small">Logo image URL could not be loaded. Please verify the link.</p>
+                                </template>
+                                <div class="slds-form-element__label slds-m-top_small">
+                                    Template Disclaimer Text
+                                    <lightning-helptext content="Rich text disclaimer content shown on the RSVP experience."></lightning-helptext>
+                                </div>
+                                <lightning-input-rich-text data-field="templateDisclaimerText" value={form.templateDisclaimerText} onchange={handleInput}></lightning-input-rich-text>
+                                <lightning-input
+                                    class="slds-m-top_small"
+                                    data-field="registerButtonText"
+                                    label="Register Button Text"
+                                    field-level-help="Text shown on the RSVP register button."
+                                    value={form.registerButtonText}
+                                    onchange={handleInput}>
+                                </lightning-input>
+                                <div class="slds-m-top_medium">
+                                    <lightning-button variant="neutral" label="Preview RSVP" onclick={handlePreviewRsvp} disabled={isPreviewDisabled}></lightning-button>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div class="step-actions slds-m-top_medium">
+                            <template if:true={hasPrevTab}>
+                                <lightning-button label="Previous" icon-name="utility:back" onclick={handleStep1PrevTab}></lightning-button>
+                            </template>
+                            <template if:true={hasNextTab}>
+                                <lightning-button class="slds-m-left_small" variant="brand" label="Next" icon-name="utility:forward" icon-position="right" onclick={handleStep1NextTab}></lightning-button>
+                            </template>
+                        </div>
+                        <template if:true={isRsvpTemplateTab}>
+                            <div class="step-actions slds-m-top_small">
+                                <lightning-button variant="brand" label="Continue to Instance Setup" icon-name="utility:forward" icon-position="right" onclick={openInstanceStep} disabled={finalizeStep1Disabled}></lightning-button>
+                                <lightning-button class="slds-m-left_small" variant="neutral" label="Save Event Without Instance" onclick={createEventOnly} disabled={finalizeStep1Disabled}></lightning-button>
+                            </div>
+                            <template if:false={canFinalizeStep1}>
+                                <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                                    Complete the required setup fields before continuing or saving.
+                                </p>
+                            </template>
+                        </template>
+                    </template>
+
+                    <template if:true={isStep2}>
+                        <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
+                            Now create the first Instance for this Event. The Instance defaults to inactive so it won't go public until you're ready.
+                        </p>
+                        <lightning-input
+                            data-field="instanceTitle"
+                            label="Instance Title"
+                            value={form.instanceTitle}
+                            required
+                            message-when-value-missing="Give this instance a title (e.g., 'Spring 2026 Open House')."
+                            onchange={handleInput}>
+                        </lightning-input>
+                        <div class="slds-grid slds-gutters slds-m-top_small">
+                            <div class="slds-col">
+                                <lightning-input
+                                    type="datetime"
+                                    data-field="instanceStart"
+                                    label="Start"
+                                    value={form.instanceStart}
+                                    required
+                                    message-when-value-missing="Start date and time are required."
+                                    onchange={handleInput}>
+                                </lightning-input>
+                            </div>
+                            <div class="slds-col">
+                                <lightning-input
+                                    type="datetime"
+                                    data-field="instanceEnd"
+                                    label="End"
+                                    value={form.instanceEnd}
+                                    required
+                                    message-when-value-missing="End date and time are required."
+                                    onchange={handleInput}>
+                                </lightning-input>
+                            </div>
+                        </div>
+                        <lightning-input
+                            class="slds-m-top_small"
+                            type="checkbox"
+                            data-field="instanceOpenRegistration"
+                            label="Open Registration"
+                            field-level-help="Turn on only when this instance is fully ready and you want users to register."
+                            checked={form.instanceOpenRegistration}
+                            onchange={handleInput}>
+                        </lightning-input>
+
+                        <div class="step-actions slds-m-top_medium">
+                            <lightning-button label="Back" icon-name="utility:back" onclick={prevStep}></lightning-button>
+                            <lightning-button class="slds-m-left_small" variant="brand" label="Create Event + Instance" onclick={finishCreate} disabled={isSaving}></lightning-button>
+                        </div>
+                    </template>
+                </template>
+
+                <template if:true={isSuccess}>
+                    <div class="slds-m-bottom_medium">
+                        <lightning-progress-indicator current-step="3" type="base" variant="base">
+                            <lightning-progress-step label="Event Setup" value="1"></lightning-progress-step>
+                            <lightning-progress-step label="First Instance" value="2"></lightning-progress-step>
+                            <lightning-progress-step label="Done" value="3"></lightning-progress-step>
+                        </lightning-progress-indicator>
+                    </div>
+                    <div class="slds-box slds-theme_success slds-m-bottom_medium">
+                        <p class="slds-text-heading_small">Event created successfully.</p>
+                        <template if:true={createdInstanceId}>
+                            <p class="slds-m-top_x-small">First instance was created and remains inactive until you're ready to go live.</p>
+                        </template>
+                    </div>
+                    <template if:true={successWarnings.length}>
+                        <div class="slds-notify slds-notify_alert slds-theme_warning slds-m-bottom_medium" role="alert">
+                            <span>Review before go-live: {firstSuccessWarning}</span>
+                        </div>
+                    </template>
+                    <div class="step-actions">
+                        <lightning-button variant="brand" label="Open Event" onclick={openEvent}></lightning-button>
+                        <template if:true={createdInstanceId}>
+                            <lightning-button class="slds-m-left_small" label="Open Instance" onclick={openInstance}></lightning-button>
+                        </template>
+                        <lightning-button class="slds-m-left_small" label="Add Another Instance" onclick={addAnotherInstance}></lightning-button>
+                        <lightning-button class="slds-m-left_small" label="Return to Browser" onclick={returnToBrowser}></lightning-button>
+                    </div>
+                </template>
+            </template>
         </div>
     </lightning-card>
 </template>

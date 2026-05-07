@@ -1,0 +1,123 @@
+.explainer {
+    border-left: 3px solid #0176d3;
+}
+
+.tab-status-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.tab-panel-shell {
+    border: 1px solid #d8dde6;
+    border-radius: .35rem;
+    padding: .85rem;
+    background: #fff;
+}
+
+.tab-status-item {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    border: 1px solid #d8dde6;
+    border-radius: 999px;
+    background: #fff;
+    padding: .25rem .6rem;
+    color: #032d60;
+    font-size: .75rem;
+    line-height: 1.2;
+}
+
+.tab-status-item.is-active {
+    border-color: #0176d3;
+    box-shadow: 0 0 0 1px #0176d3 inset;
+}
+
+.tab-status-label {
+    font-weight: 600;
+}
+
+.tab-status-badge {
+    border-radius: 999px;
+    padding: .1rem .45rem;
+    font-weight: 700;
+    font-size: .7rem;
+}
+
+.tab-status-badge.is-complete {
+    background: #2e844a;
+    color: #fff;
+}
+
+.tab-status-badge.is-pending {
+    background: #fe9339;
+    color: #181818;
+}
+
+.tab-status-badge.is-review {
+    background: #1b96ff;
+    color: #ffffff;
+}
+
+.tab-status-badge.is-hidden {
+    display: none;
+}
+
+.step-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+}
+
+fieldset {
+    border: 1px solid #d8dde6;
+    border-radius: .25rem;
+    padding: .75rem;
+    margin: 0;
+}
+
+fieldset legend {
+    padding: 0 .5rem;
+    color: #032d60;
+}
+
+.section-spacer-top {
+    margin-top: 1rem;
+}
+
+.labels-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.form-grid-two {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.image-preview {
+    border: 1px solid #d8dde6;
+    border-radius: 0.25rem;
+    background: #fff;
+    padding: 0.5rem;
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 180px;
+    display: block;
+    object-fit: contain;
+}
+
+@media (max-width: 767px) {
+    .labels-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-grid-two {
+        grid-template-columns: 1fr;
+    }
+}

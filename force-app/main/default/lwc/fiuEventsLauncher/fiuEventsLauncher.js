@@ -1,10 +1,25 @@
 import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
 
-export default class FiuEventsLauncher extends LightningElement {
-    mode = 'create';
+export default class FiuEventsLauncher extends NavigationMixin(LightningElement) {
+    mode;
+    isModalOpen = false;
 
     handleRoute(event) {
-        this.mode = event.currentTarget.dataset.mode;
+        const mode = event.currentTarget.dataset.mode;
+        if (mode === 'create') {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__navItemPage',
+                attributes: { apiName: 'fiuEventCreateWizard' }
+            });
+            return;
+        }
+        this.mode = mode;
+        this.isModalOpen = true;
+    }
+
+    closeModal() {
+        this.isModalOpen = false;
     }
 
     get isCreate() {

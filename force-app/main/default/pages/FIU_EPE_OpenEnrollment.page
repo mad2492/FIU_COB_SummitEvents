@@ -1,0 +1,564 @@
+<!--
+  @Page Name          : FIU_RsvpTemplate_NonRecruitment.page
+  @Description        :
+  @Author             : aniubo
+  @Group              :
+  @Last Modified By   : vadelaos
+  @Last Modified On   : 03/20/2026, 10:59 AM
+  @Modification Log   :
+  ==============================================================================
+  Ver         Date                     Author                 Modification
+  ==============================================================================
+  1.0    5/30/2023, 4:12:02 PM   aniubo     Initial Version
+-->
+<apex:page id="SP_RsvpTemplate"
+    lightningStylesheets="true"
+    sidebar="false"
+    showHeader="false"
+    standardStylesheets="false"
+    cache="false"
+    applyHtmlTag="false"
+    controller="SPRsvpTemplateController"
+>
+    <apex:slds />
+    <html
+        class="no-js"
+        lang="en-US"
+        xmlns="http://www.w3.org/2000/svg"
+        xmlns:xlink="http://www.w3.org/1999/xlink"
+    >
+        <head>
+            <!-- Google Tag Manager -->
+            <script>
+                (function (w, d, s, l, i) {
+                    w[l] = w[l] || [];
+                    w[l].push({
+                        "gtm.start": new Date().getTime(),
+                        event: "gtm.js"
+                    });
+                    var f = d.getElementsByTagName(s)[0],
+                        j = d.createElement(s),
+                        dl = l != "dataLayer" ? "&l=" + l : "";
+                    j.async = true;
+                    j.src =
+                        "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+                    f.parentNode.insertBefore(j, f);
+                })(window, document, "script", "dataLayer", "GTM-PPN6MT");
+            </script>
+            <!-- End Google Tag Manager -->
+            <meta charset="utf-8" />
+            <meta content="IE=edge" http-equiv="X-UA-Compatible" />
+            <meta
+                content="width=device-width, initial-scale=1.0"
+                name="viewport"
+            />
+            <title>{!htmlTitle}</title>
+
+            <style>
+                #loading .background {
+                    background-image: url({!URLFOR(
+                            $Resource.summit__SummitEventsAssets,
+                            "/img/loading-summit_events.gif"
+                        )}) !important;
+                    width: 160px;
+                    height: 160px;
+                }
+
+                .slds-col img {
+                    max-width: 99%;
+                }
+            </style>
+            <script>
+                window.dataInfo = [];
+                dataInfo.push({
+                    registerLabel: "{!registerButtonLabel}",
+                    calendarUrl: "{!calendarUrl}",
+                    meetUrl: "{!meetUrl}",
+                    online: "{!onlineEvent}"
+                });
+            </script>
+            <meta content="{!backgroundImageUrl}" property="og:image" />
+            <meta content="website" property="og:type" />
+            <meta content="{!metaTitle}" property="og:title" />
+            <meta
+                content="https://fiu-staging.azurewebsites.net/cob/fiubusiness/mbacrm/"
+                property="og:url"
+            />
+            <link
+                href="https://fiu-staging.azurewebsites.net/cob/fiubusiness/mbacrm/"
+                rel="canonical"
+            />
+            <meta content="summary_large_image" name="twitter:card" />
+            <script id="page-schema" type="application/ld+json">
+                {
+                    "@context": "https://schema.org",
+
+                    "@graph": [
+                        {
+                            "@type": "WebSite",
+                            "@id": "https://fiu-staging.azurewebsites.net/cob",
+                            "url": "https://fiu-staging.azurewebsites.net/cob",
+                            "name": "College of Business | Florida International University",
+                            "potentialAction": {
+                                "@type": "SearchAction",
+                                "target": "https://fiu-staging.azurewebsites.net/cob/results.html?q={query}",
+                                "query-input": "required name=query"
+                            }
+                        },
+                        {
+                            "@type": "WebPage",
+                            "@id": "https://fiu-staging.azurewebsites.net/cob/fiubusiness/mbacrm/",
+                            "@url": "https://fiu-staging.azurewebsites.net/cob/fiubusiness/mbacrm/",
+                            "inLanguage": "en-US",
+                            "name": "Online MBA in Cybersecurity Risk Management | College of Business | Florida International University",
+                            "isPartOf": {
+                                "@id": "https://fiu-staging.azurewebsites.net/cob"
+                            },
+
+                            "description": "Florida International University's MBA in Cybersecurity Risk Management degree program bridges the gap between IT and business. Learn to prevent, detect, and respond to cybersecurity attacks, and earn a STEM-designated degree from an R1 school.",
+
+                            "datePublished": "2023-05-10T13:10:51",
+                            "dateModified": "2023-05-10T13:09:39"
+                        }
+                    ]
+                }
+            </script>
+
+            <link
+                href="https://digicdn.fiu.edu/core/_assets/css/fiu-custom-foundation.css"
+                rel="stylesheet"
+            />
+            <link
+                href="https://digicdn.fiu.edu/v2/assets/css/styles.css"
+                rel="stylesheet"
+            />
+            <link
+                href="https://digicdn.fiu.edu/core/_assets/css/styles.css?v=1.21.0"
+                rel="stylesheet"
+            />
+
+            <link
+                href="https://digicdn.fiu.edu/fonts/fa/css/all.min.css"
+                rel="stylesheet"
+            />
+            <link
+                href="https://digicdn.fiu.edu/fonts/fa/css/v4-shims.min.css"
+                rel="stylesheet"
+            />
+
+            <link href="https://use.typekit.net/fpx6thr.css" rel="stylesheet" />
+            <link
+                href="https://digicdn.fiu.edu/fonts/furore.css"
+                rel="stylesheet"
+            />
+            <link
+                href="https://digicdn.fiu.edu/fonts/barlow.css"
+                rel="stylesheet"
+            />
+            <link
+                href="{!URLFOR($Resource.sp_rsvp, '/css/rsvp.css')}"
+                rel="stylesheet"
+            />
+
+            <link
+                href="https://business.fiu.edu/_assets/css/custom.css?v=03232023"
+                rel="stylesheet"
+            />
+            <link
+                href="https://business.fiu.edu/_assets/css/landing-page.css"
+                rel="stylesheet"
+            />
+
+            <link
+                href="https://digicdn.fiu.edu/core/_assets/favicon/apple-touch-icon.png"
+                rel="apple-touch-icon"
+                sizes="180x180"
+            />
+            <link
+                href="https://digicdn.fiu.edu/core/_assets/favicon/favicon-32x32.png"
+                rel="icon"
+                sizes="32x32"
+                type="image/png"
+            />
+            <link
+                href="https://digicdn.fiu.edu/core/_assets/favicon/favicon-16x16.png"
+                rel="icon"
+                sizes="16x16"
+                type="image/png"
+            />
+            <link
+                href="https://digicdn.fiu.edu/core/_assets/favicon/site.webmanifest"
+                rel="manifest"
+            />
+            <link
+                color="#112d54"
+                href="https://digicdn.fiu.edu/core/_assets/favicon/safari-pinned-tab.svg"
+                rel="mask-icon"
+            />
+
+            <meta content="#e8cd7d" name="msapplication-TileColor" />
+            <meta content="#ffffff" name="theme-color" />
+            <meta
+                content="https://digicdn.fiu.edu/core/_assets/favicon/browserconfig.xml"
+                name="msapplication-config"
+            />
+            <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" type="text/javascript"></script>  -->
+            <script src="https://code.jquery.com/jquery-3.6.2.min.js" type="text/javascript"></script> <!--MB 09182023-->
+            <apex:insert name="scriptsHead" />
+        </head>
+        <body id="rsvpBody" style="color: #333">
+            <apex:includeLightning />
+            <div id="compContainer" />
+            <!-- Google Tag Manager (noscript) -->
+            <noscript>
+                <iframe
+                    src="https://www.googletagmanager.com/ns.html?id=GTM-PPN6MT"
+                    height="0"
+                    width="0"
+                    style="display: none; visibility: hidden"
+                ></iframe>
+            </noscript>
+            <!-- End Google Tag Manager (noscript) -->
+            <main id="main-content" class="slds-scope">
+                <div
+                    class="fiu-background-blue banner-flex short banner-container energize cyan"
+                    id="banner"
+                    style="background-image: url({!backgroundImageUrl})"
+                >
+                    <div class="headline-container">
+                        <div class="row">
+                            <div class="columns">
+                                <div class="content-flex">
+                                    <div class="content">
+                                        <img
+                                            alt="FIU Business - Florida International University"
+                                            class="landing-page-logo"
+                                            height="50"
+                                            src="{!logoImageUrl}"
+                                            width="237"
+                                        />
+                                        
+                                        <h1 class="heading">
+                                            <span class="subheading"
+                                                >Begins {!startEventWeekDay},
+                                                {!startEventMonthDay},
+                                                {!startEventYear} •
+                                                {!startEventTime} - {!timeZone} </span
+                                            >{!eventDescription}
+                                           <span id='formattedDateHide' style='display:none;'> {!formattedEventStartDate} </span>
+                                        </h1>
+                                        <p>
+                                            <a
+                                                id="registerToday"
+                                                class="button button--bright-gold"
+                                                href="#SummitEventsRegister:RsvpTemplate:SummitEventRegisterForm"
+                                                >Register Today!</a
+                                            >
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <article aria-hidden="true" aria-label="" id="page-intro">
+                    <div class="row content-block white no-padding">
+                        <div class="small-12 columns"></div>
+                    </div>
+                </article>
+                <article aria-label="Overview">
+                 <div id="eventInstanceDescriptionDiv" style="display:none"> {!eventInstanceDescription} </div>
+                    <div
+                        class="fiu-background-white content-block landing-page-intro white-panel"
+                    >
+                        <div class="row">
+                            <div id="disclaimer" style="display: none">
+                                <apex:outputText escape="false"
+                                    value="{!disclaimerText}"
+                                />
+                            </div>
+                            <div
+                                id="bodyDiv"
+                                class="small-12 medium-12 columns"
+                            >
+                                <apex:insert name="body" />
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                <article id="article-panel">
+                    <div id="div-panel">
+                        <div class="row">
+                            <!-- <div class="columns small-12 medium-12 text-center">
+                                <button
+                                    type="button"
+                                    class="button padding-right-2x"
+                                    id="btn-calendar"
+                                >
+                                    Add Calendar
+                                </button>
+                                <button
+                                    type="button"
+                                    class="button padding-right-2x"
+                                    id="btn-print"
+                                >
+                                    Print
+                                </button>
+                                <button
+                                    rendered="{!onlineEvent}"
+                                    type="button"
+                                    class="button padding-right-2x"
+                                    id="btn-website"
+                                >
+                                    Website
+                                </button>
+                            </div> -->
+                             <div class="small-12 columns">
+                                <small class="italic">
+                                    Should you need an ADA accommodation to participate in a university event, program, or activity or need to request materials in an accessible format, please contact FIU’s Office of Civil Rights (OCR) at <a href="tel:+13053482785">305-348-2785</a> or <a href="mailto:accommodations@fiu.edu">accommodations@fiu.edu</a>. 
+                                    All requests for ADA accommodation or accessible materials for this event must be submitted to OCR at least seven (7) business days prior to the event or at the earliest possible opportunity.
+                                </small>
+                             </div>
+                        </div>
+                    </div>
+                </article>
+
+                <article aria-label="">
+                    <div class="fiu-background-white content-block">
+                        <div class="row">
+                            <div class="small-12 columns">
+                                <h2
+                                    style="
+                                        line-height: 1.2;
+                                        margin-bottom: 1rem;
+                                        color: #081e3f;
+                                        text-align: center;
+                                        margin-top: 0;
+                                        font-family: frank-new, new-frank,
+                                            Helvetica, Arial, sans-serif;
+                                        font-style: normal;
+                                        font-size: 2.05rem;
+                                    "
+                                >
+                                    Accreditation
+                                </h2>
+                                <div>
+                                    <img
+                                        alt="logo-aacsb.png"
+                                        src="https://business.fiu.edu/fiubusiness/_assets/images/logo-aacsb.png"
+                                        style="
+                                            display: block;
+                                            margin-left: auto;
+                                            margin-right: auto;
+                                        "
+                                        width="110"
+                                        height="153"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </main>
+
+            <footer>
+                <div class="row footer-flex">
+                    <div class="columns medium-5">
+                        <a
+                            href="https://business.fiu.edu/"
+                            rel="noopener"
+                            target="_blank"
+                            ><img
+                                alt="FIU Business"
+                                class="footer-logo"
+                                src="{!logoImageUrl}"
+                                width="316"
+                                height="82"
+                        /></a>
+                        <address>
+                            Modesto A. Maidique Campus <br />11200 S.W. 8th
+                            Street, CBC 200 <br />Miami, Florida 33199-0001
+                            <br />305.348.0148 <br />
+                            <a href="mailto:chapman@fiu.edu">chapman@fiu.edu</a>
+                        </address>
+                    </div>
+                    <div class="columns medium-7 links-and-social">
+                        <div class="col links">
+                            <a
+                                href="https://ocr.fiu.edu/civil-rights-and-accessibility/harassment-and-discrimination/"
+                                rel="noopener"
+                                target="_blank"
+                                >Nondiscrimination</a
+                            >
+                            <a
+                                href="https://ocr.fiu.edu/title-ix/"
+                                rel="noopener"
+                                target="_blank"
+                                >Title IX</a
+                            >
+                            <a
+                                href="https://report.fiu.edu/"
+                                rel="noopener"
+                                target="_blank"
+                                >Report Discrimination or Harassment</a
+                            >
+                        </div>
+                        <div class="col social">
+                            <p><strong>Connect with Us!</strong></p>
+                            <a
+                                href="https://www.facebook.com/fiubusiness"
+                                rel="noopener"
+                                target="_blank"
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    class="fa-brands fa-facebook"
+                                >
+                                    <span class="show-for-sr">Facebook</span>
+                                </span>
+                            </a>
+                            <a
+                                href="https://www.linkedin.com/edu/school?id=18094"
+                                rel="noopener"
+                                target="_blank"
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    class="fa-brands fa-linkedin"
+                                >
+                                    <span class="show-for-sr">LinkedIn</span>
+                                </span>
+                            </a>
+                            <a
+                                href="https://www.instagram.com/fiubusiness/"
+                                rel="noopener"
+                                target="_blank"
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    class="fa-brands fa-instagram"
+                                >
+                                    <span class="show-for-sr">Instagram</span>
+                                </span>
+                            </a>
+                            <a
+                                href="https://www.youtube.com/fiubusiness"
+                                rel="noopener"
+                                target="_blank"
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    class="fa-brands fa-youtube"
+                                >
+                                    <span class="show-for-sr">YouTube</span>
+                                </span>
+                            </a>
+                            <a
+                                href="https://twitter.com/fiubusiness"
+                                rel="noopener"
+                                target="_blank"
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    class="fa-brands fa-twitter"
+                                >
+                                    <span class="show-for-sr">Twitter</span>
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+            <script
+                src="{!URLFOR($Resource.summit__SummitEventsAssets, '/js/loading.js')}"
+                type="text/javascript"
+            ></script>
+            <script
+                src="{!URLFOR($Resource.sp_rsvp, '/js/rsvp.js')}"
+                type="text/javascript"
+            ></script>
+        </body>
+        <script
+            src="https://digicdn.fiu.edu/core/_assets/js/core.js?v1.17.0"
+            type="text/javascript"
+        ></script>
+
+        <script
+            src="https://business.fiu.edu/_assets/js/info-sessions-listing.js"
+        ></script>
+
+        <script
+            src="https://business.fiu.edu/_assets/js/custom.js"
+        ></script>
+        <script src="https://static.addtoany.com/menu/page.js"></script>
+        <script>
+            var gcId = JSON.parse(localStorage.getItem( 'gclid' ));
+
+            jQuery.noConflict();
+    jQuery(document).ready(function($) {
+          //Customize Managed Form slightly
+          $("h2[id='request-info-form']").text("Application");
+          $("h4").filter(function() { return ($(this).text() === 'Event Details') }).next('p').next('p').text($('#formattedDateHide').text());
+          $('#registerToday').text($('a[id^="SummitEventsRegister:SP_RsvpTemplate:SummitEventRegisterForm"]').text());
+            $('form input[id*=\'mobile\']').filter(':not([required]:visible)').eq(0).parent('div').parent('div').parent('div').next().find('abbr').remove(); //remove unnecessary Required asterisk
+            
+            var zipDiv = $("form label:contains('Zip Code')").parent('div').parent('div') ;
+            var mobileDiv = $('form div[id*=\'phoneBlock\']');
+            if($(mobileDiv).eq(0) && $(zipDiv))
+            {
+                $(zipDiv).insertBefore($(mobileDiv).eq(0)).addClass('slds-large-size_3-of-6'); 
+            }
+            
+            if($('div[id*="addInfo"]').find('.slds-col').length <= 1)
+            {
+               $('div[id*="addInfo"]').css('display','none');
+            }
+            
+              var hdr = $('#mainInfoDiv'); 
+              hdr.append($('#eventInstanceDescriptionDiv').text()); 
+        
+          });
+            $Lightning.use("c:facebookRegistrationCompleteApp", function () {
+                $Lightning.createComponent(
+                    "c:facebookRegistrationComplete",
+                    {
+                        registrationId: "{!registrationId}",
+                        fbc: "{!fbc}",
+                        fbp: "{!fbp}",
+                        userAgent: "{!userAgent}",
+                        clientIpAddress: "{!clientIp}",
+                        relativePath: "{!relativePath}",
+                        gclId: gcId?.value
+                    },
+                    "compContainer",
+                    function (cmp) {
+                        console.log(
+                            "c:VFPageApp loaded successfully in VF page"
+                        );
+                    }
+                );
+            });
+        </script>
+
+        <div
+            style="
+                position: absolute !important;
+                top: 0px !important;
+                left: 0px !important;
+                height: 0px !important;
+                width: 0px !important;
+            "
+            data-lastpass-root=""
+        >
+            <div
+                data-lastpass-infield="true"
+                style="
+                    position: absolute !important;
+                    top: 0px !important;
+                    left: 0px !important;
+                "
+            ></div>
+        </div>
+    </html>
+</apex:page>

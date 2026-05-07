@@ -20,11 +20,20 @@
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>fiuReadinessDashboard</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
-    <tabSettings>
         <tab>fiuEventsHome</tab>
         <visibility>Visible</visibility>
     </tabSettings>
+    <tabSettings>
+        <tab>fiuEventCreateWizard</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <tabSettings>
+        <tab>fiuEventsGuide</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>summit__Summit_Events__c.Preview_Event__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
 </PermissionSet>

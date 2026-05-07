@@ -1,0 +1,42 @@
+.fiu-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.25rem;
+    padding: 0 .5rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: .72rem;
+    line-height: 1.2;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.fiu-pill--success {
+    background: #d8f1d1;
+    border-color: #acd7a2;
+    color: #276738;
+}
+
+.fiu-pill--warning {
+    background: #fdf1e4;
+    border-color: #f2c792;
+    color: #8a4d09;
+}
+
+.fiu-pill--error {
+    background: #fce4dd;
+    border-color: #ecaaa2;
+    color: #8e1d1d;
+}
+
+.fiu-pill--info {
+    background: #edf5ff;
+    border-color: #c2daf7;
+    color: #014486;
+}
+
+.fiu-pill--neutral {
+    background: #f4f4f4;
+    border-color: #d2d2d2;
+    color: #444444;
+}

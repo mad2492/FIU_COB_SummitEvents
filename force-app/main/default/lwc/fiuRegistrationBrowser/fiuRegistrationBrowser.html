@@ -1,24 +1,183 @@
 <template>
-    <lightning-card title="Registration Browser" icon-name="standard:people">
-        <lightning-button
-            slot="actions"
-            label="Export to CSV"
-            variant="brand-outline"
-            onclick={handleExport}>
-        </lightning-button>
-        <div class="slds-p-around_medium toolbar">
-            <lightning-input label="Search by registrant or event" value={searchKey} onchange={handleSearch}></lightning-input>
-            <lightning-combobox label="Attendance" value={attendanceFilter} options={attendanceOptions} onchange={handleAttendance}></lightning-combobox>
-            <lightning-combobox label="Program" value={programCode} options={programOptions} onchange={handleProgram}></lightning-combobox>
+    <lightning-card title="FIU Events > Registrations" icon-name="utility:people">
+        <div class="slds-p-horizontal_medium slds-p-top_small">
+            <div class="breadcrumbs">
+                <button class="breadcrumb-link" onclick={navigateHome}>Home</button>
+                <span class="breadcrumb-separator" aria-hidden="true">&gt;</span>
+                <span class="breadcrumb-current">Registrations</span>
+            </div>
         </div>
+        <div class="slds-p-horizontal_medium slds-p-top_small">
+            <div class="toolbar">
+                <div class="toolbar__left"><p aria-hidden="true"></p></div>
+                <div class="toolbar__right">
+                    <div class="toolbar__primary">
+                        <lightning-button-group>
+                            <lightning-button label="Mass Update" variant="brand" onclick={openMassModal}></lightning-button>
+                            <lightning-button-menu alternative-text="Export Options" label="Export" menu-alignment="right" onselect={handleExportMenuSelect}>
+                                <lightning-menu-item value="selected" label="Selected Rows"></lightning-menu-item>
+                                <lightning-menu-item value="filtered" label="Current Filtered View"></lightning-menu-item>
+                            </lightning-button-menu>
+                            <template if:true={canImport}>
+                                <lightning-button label="Import" onclick={handleImport}></lightning-button>
+                            </template>
+                        </lightning-button-group>
+                    </div>
+                    <div class="toolbar__controls">
+                        <lightning-input class="search" type="search" variant="label-hidden" label="Search this list" placeholder="Search this list..." value={searchKey} onchange={handleSearch}></lightning-input>
+                        <div class="list-actions">
+                            <lightning-button-icon icon-name="utility:refresh" alternative-text="Refresh" title="Refresh" onclick={refreshView}></lightning-button-icon>
+                            <lightning-button-icon icon-name="utility:filterList" alternative-text="Filters" title="Filters" onclick={openFilterModal}></lightning-button-icon>
+                            <lightning-button-menu alternative-text="View Settings" icon-name="utility:settings" menu-alignment="right" onselect={handleGearSelect}>
+                                <lightning-menu-item value="fields" label="Select Fields to Display"></lightning-menu-item>
+                                <lightning-menu-item value="reset" label="Reset to Default View"></lightning-menu-item>
+                            </lightning-button-menu>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <template if:true={instanceScopeLabel}>
             <div class="slds-p-horizontal_medium slds-p-bottom_x-small">
                 <lightning-badge label={instanceScopeLabel}></lightning-badge>
             </div>
         </template>
-        <div class="slds-p-horizontal_medium slds-p-bottom_x-small note">
-            Export uses FIU's `ExportCsvController` and follows its row-limit/email workflow.
+
+        <template if:true={hasActiveFilters}>
+            <div class="slds-p-horizontal_medium slds-p-bottom_x-small filter-pills">
+                <template for:each={activeFilterPills} for:item="pill">
+                    <lightning-pill key={pill.key} label={pill.label} name={pill.key} onremove={handleRemovePill}></lightning-pill>
+                </template>
+                <lightning-button class="slds-m-left_x-small" variant="base" label="Clear all" onclick={resetToDefaultView}></lightning-button>
+            </div>
+        </template>
+
+        <template if:true={inlineErrorMessage}>
+            <div class="slds-p-horizontal_medium slds-p-bottom_x-small slds-text-color_error">{inlineErrorMessage}</div>
+        </template>
+
+        <template if:true={loadError}>
+            <div class="slds-p-horizontal_medium slds-p-bottom_x-small slds-text-color_error">{loadError}</div>
+        </template>
+
+        <template if:true={isLoading}>
+            <div class="slds-p-horizontal_medium slds-p-bottom_x-small">
+                <lightning-spinner alternative-text="Loading registrations" size="small"></lightning-spinner>
+            </div>
+        </template>
+
+        <div class="listview-shell slds-m-horizontal_medium slds-m-bottom_medium">
+            <template if:true={hasRows}>
+                <lightning-datatable
+                    key-field="id"
+                    data={rows}
+                    columns={columns}
+                    selected-rows={selectedRowIds}
+                    sorted-by={sortField1}
+                    sorted-direction={sortedDirection}
+                    default-sort-direction="asc"
+                    onsort={handleSort}
+                    onrowselection={handleSelection}
+                    onrowaction={handleRowAction}>
+                </lightning-datatable>
+            </template>
+            <template if:false={hasRows}>
+                <template if:false={isLoading}>
+                    <div class="empty-state slds-p-around_large slds-text-align_center">
+                        <p class="slds-text-heading_small">No registrations match these filters.</p>
+                        <p class="slds-text-body_small slds-m-top_x-small">Try adjusting your search or filters, or clear all to start over.</p>
+                        <lightning-button class="slds-m-top_small" variant="base" label="Clear filters" onclick={resetToDefaultView}></lightning-button>
+                    </div>
+                </template>
+            </template>
+
+            <div class="pager slds-p-around_medium">
+                <span>Selected: {selectedCount}</span>
+                <span>Page {pageNumber} of {totalPages} ({totalCount} records)</span>
+                <div class="pager-actions">
+                    <lightning-combobox class="rows-per-page slds-m-right_x-small" label="Rows per page" value={pageSizeValue} options={pageSizeOptions} onchange={handlePageSize}></lightning-combobox>
+                    <lightning-button label="Previous" onclick={handlePrevPage} disabled={disablePrev}></lightning-button>
+                    <lightning-button class="slds-m-left_x-small" label="Next" onclick={handleNextPage} disabled={disableNext}></lightning-button>
+                </div>
+            </div>
         </div>
-        <lightning-datatable key-field="id" data={rows} columns={columns} hide-checkbox-column></lightning-datatable>
     </lightning-card>
+
+    <template if:true={isFilterModalOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header"><h2 class="slds-text-heading_medium">Filters</h2></header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <lightning-combobox label="Registration Status" value={draftStatusFilter} options={statusOptions} onchange={handleDraftStatus}></lightning-combobox>
+                    <div class="slds-m-top_medium">
+                        <lightning-combobox label="Program" value={draftProgramCode} options={programOptions} onchange={handleDraftProgram}></lightning-combobox>
+                    </div>
+                    <div class="slds-m-top_medium">
+                        <lightning-combobox label="Location Type" value={draftLocationTypeOverrideFilter} options={locationTypeOverrideOptions} onchange={handleDraftLocationTypeOverride}></lightning-combobox>
+                    </div>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={closeFilterModal}></lightning-button>
+                    <lightning-button class="slds-m-left_small" variant="brand" label="Apply" onclick={applyFilters}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <template if:true={isFieldModalOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container field-modal-container">
+                <header class="slds-modal__header"><h2 class="slds-text-heading_medium">Select Fields to Display</h2></header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <lightning-dual-listbox
+                        class="field-picker"
+                        name="registrationFieldPicker"
+                        label="Visible Fields"
+                        source-label="Available Fields"
+                        selected-label="Visible Fields"
+                        options={fieldChooserOptions}
+                        value={draftVisibleColumnKeys}
+                        onchange={handleFieldSelection}>
+                    </lightning-dual-listbox>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={closeFieldModal}></lightning-button>
+                    <lightning-button class="slds-m-left_small" variant="brand" label="Apply" onclick={applyFieldSelection}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <template if:true={isMassModalOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">Mass Update Registrations</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_warning slds-m-bottom_medium" role="alert">
+                        <span>{massSummary}</span>
+                    </div>
+                    <lightning-input type="checkbox" label="Update Registration Status" checked={updateStatusEnabled} onchange={handleToggleStatus}></lightning-input>
+                    <lightning-combobox class="slds-m-top_x-small" label="Set Registration Status" value={massStatus} options={massStatusOptions} onchange={handleMassStatus} disabled={statusInputDisabled}></lightning-combobox>
+                    <div class="slds-m-top_medium">
+                        <lightning-input type="checkbox" label="Update Event" checked={updateEventEnabled} onchange={handleToggleEvent}></lightning-input>
+                        <lightning-record-picker class="slds-m-top_x-small" label="Set Event" object-api-name="summit__Summit_Events__c" onchange={handleMassEvent} disabled={eventInputDisabled}></lightning-record-picker>
+                    </div>
+                    <div class="slds-m-top_medium">
+                        <lightning-input type="checkbox" label="Update Instance" checked={updateInstanceEnabled} onchange={handleToggleInstance}></lightning-input>
+                        <lightning-record-picker class="slds-m-top_x-small" label="Set Instance" object-api-name="summit__Summit_Events_Instance__c" onchange={handleMassInstance} disabled={instanceInputDisabled}></lightning-record-picker>
+                    </div>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={closeMassModal}></lightning-button>
+                    <lightning-button class="slds-m-left_small" variant="brand" label="Apply Updates" onclick={applyMassUpdate}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
 </template>

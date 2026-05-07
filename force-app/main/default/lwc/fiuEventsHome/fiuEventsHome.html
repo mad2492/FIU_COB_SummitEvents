@@ -1,77 +1,220 @@
 <template>
-    <lightning-card title="FIU Events Command Center" icon-name="custom:custom14">
-        <div class="hero slds-p-around_medium">
-            <p class="eyebrow">Summit Events Extension Layer</p>
-            <h1>Run Events With Clarity</h1>
-            <p class="subtitle">Monitor what is upcoming, what needs attention, and jump into action in one place.</p>
-            <div class="slds-m-top_small">
-                <lightning-combobox class="scope-picker" label="Program Scope" value={programCode} options={programOptions} onchange={handleProgram}></lightning-combobox>
-                <p class="scope-summary">Current scope: <span>{selectedProgramLabel}</span></p>
+    <div class="home-shell">
+        <template if:true={showWelcome}>
+            <section class="welcome-banner">
+                <div class="welcome-mark">
+                    <lightning-icon icon-name="utility:lightbulb" size="small" alternative-text="Welcome"></lightning-icon>
+                </div>
+                <div class="welcome-copy">
+                    <h2>Welcome back, {currentUserFirstName}</h2>
+                    <p>
+                        You have <strong>{kpiNotReady}</strong> instances that need attention before they can go live, and
+                        <strong> {kpiStartedRegs}</strong> in-progress registrations to follow up on.
+                    </p>
+                </div>
+                <div class="welcome-actions">
+                    <button class="welcome-guide-button" onclick={openGuide} type="button">
+                        <lightning-icon
+                            icon-name="utility:info"
+                            size="x-small"
+                            alternative-text="Guide">
+                        </lightning-icon>
+                        <span>New here? Read the guide</span>
+                    </button>
+                    <lightning-button-icon
+                        icon-name="utility:close"
+                        variant="bare-inverse"
+                        alternative-text="Dismiss welcome"
+                        title="Dismiss welcome"
+                        onclick={dismissWelcome}>
+                    </lightning-button-icon>
+                </div>
+            </section>
+        </template>
+
+        <lightning-card title="FIU Events Command Center" icon-name="utility:home">
+            <div slot="actions" class="scope-actions">
+                <lightning-combobox
+                    class="scope-picker"
+                    variant="label-hidden"
+                    label="Program Scope"
+                    value={programCode}
+                    options={programOptions}
+                    onchange={handleProgram}>
+                </lightning-combobox>
+                <lightning-button-icon
+                    class="refresh-button"
+                    icon-name="utility:refresh"
+                    variant="border-filled"
+                    alternative-text="Refresh"
+                    title="Refresh"
+                    onclick={refreshDashboard}>
+                </lightning-button-icon>
             </div>
-        </div>
 
-        <div class="kpi-grid slds-p-horizontal_medium slds-p-bottom_medium">
-            <article class="kpi">
-                <p class="label">Upcoming Instances</p>
-                <p class="value">{kpiUpcoming}</p>
-                <button class="link" onclick={openInstances}>View Instances</button>
-            </article>
-            <article class="kpi">
-                <p class="label">Open Registrations</p>
-                <p class="value">{kpiOpenRegs}</p>
-                <button class="link" onclick={openRegistrations}>View Registrations</button>
-            </article>
-            <article class="kpi warn">
-                <p class="label">Not Ready Instances</p>
-                <p class="value">{kpiNotReady}</p>
-                <button class="link" onclick={resolveIssues}>Resolve Issues</button>
-            </article>
-            <article class="kpi">
-                <p class="label">Active Events</p>
-                <p class="value">{kpiActiveEvents}</p>
-                <button class="link" onclick={openEvents}>Browse Events</button>
-            </article>
-            <article class="kpi warn">
-                <p class="label">Not Ready Events</p>
-                <p class="value">{kpiNotReadyEvents}</p>
-                <button class="link" onclick={reviewNotReadyEvents}>Review Events</button>
-            </article>
-        </div>
+            <div class="command-center-body">
+                <p class="scope-line">Scope: <strong>{selectedProgramLabel}</strong></p>
 
-        <div class="layout slds-p-horizontal_medium slds-p-bottom_medium">
-            <section class="panel">
-                <h2>Needs Attention</h2>
-                <template if:true={attentionRows.length}>
-                    <template for:each={attentionRows} for:item="row">
-                        <div key={row.instanceId} class="row">
-                            <p class="title">{row.instanceTitle} <span>- {row.eventName}</span></p>
-                            <p class="meta">{row.reason}</p>
+                <div class="kpi-grid">
+                    <article class="kpi kpi--warn">
+                        <p class="label">Not Ready Instances</p>
+                        <p class="value">{kpiNotReady}</p>
+                        <lightning-button variant="base" label="Resolve issues" onclick={resolveIssues}></lightning-button>
+                    </article>
+                    <article class="kpi kpi--warn">
+                        <p class="label">Not Ready Events</p>
+                        <p class="value">{kpiNotReadyEvents}</p>
+                        <lightning-button variant="base" label="Review events" onclick={reviewNotReadyEvents}></lightning-button>
+                    </article>
+                    <article class="kpi kpi--warn">
+                        <p class="label">Started Registrations</p>
+                        <p class="value">{kpiStartedRegs}</p>
+                        <lightning-button variant="base" label="Review started" onclick={openStartedRegistrations}></lightning-button>
+                    </article>
+                    <article class="kpi">
+                        <p class="label">Upcoming Instances</p>
+                        <p class="value">{kpiUpcoming}</p>
+                        <lightning-button variant="base" label="View instances" onclick={openInstances}></lightning-button>
+                    </article>
+                    <article class="kpi">
+                        <p class="label">Active Registrations</p>
+                        <p class="value">{kpiOpenRegs}</p>
+                        <lightning-button variant="base" label="View active" onclick={openRegistrations}></lightning-button>
+                    </article>
+                    <article class="kpi">
+                        <p class="label">Active Events</p>
+                        <p class="value">{kpiActiveEvents}</p>
+                        <lightning-button variant="base" label="Browse events" onclick={openEvents}></lightning-button>
+                    </article>
+                </div>
+
+                <div class="layout">
+                    <section class="panel">
+                        <div class="panel-head">
+                            <h2 class="slds-text-heading_small">Needs Attention</h2>
+                            <span class="panel-count">{attentionCount}</span>
                         </div>
-                    </template>
-                </template>
-                <template if:false={attentionRows.length}>
-                    <p class="empty">No readiness issues detected.</p>
-                </template>
-            </section>
+                        <template if:true={attentionRows.length}>
+                            <ul class="slds-has-dividers_around-space panel-list">
+                                <template for:each={attentionRows} for:item="row">
+                                    <li key={row.rowKey} class="slds-item slds-p-around_x-small attention-row">
+                                        <div class="row-copy">
+                                            <p class="title">{row.instanceTitle}<span class="slds-text-color_weak"> &middot; {row.eventName}</span></p>
+                                            <p class="meta slds-text-body_small">{row.reason}</p>
+                                        </div>
+                                        <lightning-button
+                                            label="Fix"
+                                            data-event-id={row.eventId}
+                                            data-instance-id={row.instanceId}
+                                            onclick={openAttentionFix}>
+                                        </lightning-button>
+                                    </li>
+                                </template>
+                            </ul>
+                        </template>
+                        <template if:false={attentionRows.length}>
+                            <p class="panel-empty slds-text-color_weak">No readiness issues detected.</p>
+                        </template>
+                    </section>
 
-            <section class="panel">
-                <h2>Upcoming This Week</h2>
-                <template if:true={upcomingRows.length}>
-                    <template for:each={upcomingRows} for:item="row">
-                        <div key={row.instanceId} class="row">
-                            <p class="title">{row.instanceTitle} <span>- {row.eventName}</span></p>
-                            <p class="meta">{row.startDate} | {row.status}</p>
+                    <section class="panel">
+                        <div class="panel-head">
+                            <h2 class="slds-text-heading_small">Upcoming This Week</h2>
+                            <span class="panel-count">{upcomingCount}</span>
                         </div>
-                    </template>
-                </template>
-                <template if:false={upcomingRows.length}>
-                    <p class="empty">No upcoming instances found.</p>
-                </template>
-            </section>
-        </div>
+                        <template if:true={upcomingRows.length}>
+                            <ul class="slds-has-dividers_around-space panel-list">
+                                <template for:each={upcomingRows} for:item="row">
+                                    <li key={row.instanceId} class="slds-item slds-p-around_x-small">
+                                        <p class="title">{row.instanceTitle}<span class="slds-text-color_weak"> &middot; {row.eventName}</span></p>
+                                        <p class="meta slds-text-body_small">
+                                            <lightning-formatted-date-time value={row.startDate}></lightning-formatted-date-time>
+                                            <span class="slds-m-left_x-small">&middot; {row.status}</span>
+                                        </p>
+                                    </li>
+                                </template>
+                            </ul>
+                        </template>
+                        <template if:false={upcomingRows.length}>
+                            <p class="panel-empty slds-text-color_weak">No upcoming instances found.</p>
+                        </template>
+                    </section>
+                </div>
 
-        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
-            <c-fiu-events-launcher></c-fiu-events-launcher>
-        </div>
-    </lightning-card>
+                <section class="panel concept-panel">
+                    <div class="panel-head">
+                        <h2 class="slds-text-heading_small">How FIU Events fit together</h2>
+                        <span class="slds-text-color_weak">The mental model in 30 seconds</span>
+                    </div>
+                    <div class="concept-triplet">
+                        <article class="concept-card concept-card--event">
+                            <div class="concept-card__header">
+                                <span class="concept-icon concept-icon--event">
+                                    <lightning-icon icon-name="utility:event" size="x-small" alternative-text="Event"></lightning-icon>
+                                </span>
+                                <p class="title">Event</p>
+                            </div>
+                            <p class="meta">The parent concept: name, branding, location type, and program targeting.</p>
+                            <p class="concept-example">e.g. MBA Spring 2026 Open House</p>
+                        </article>
+                        <div class="concept-arrow" aria-hidden="true">
+                            <lightning-icon icon-name="utility:arrowright" size="x-small" alternative-text=""></lightning-icon>
+                        </div>
+                        <article class="concept-card concept-card--instance">
+                            <div class="concept-card__header">
+                                <span class="concept-icon concept-icon--instance">
+                                    <lightning-icon icon-name="utility:date_time" size="x-small" alternative-text="Instance"></lightning-icon>
+                                </span>
+                                <p class="title">Instance</p>
+                            </div>
+                            <p class="meta">A specific date/time people register for. One Event can have many Instances.</p>
+                            <p class="concept-example">e.g. May 12, 6:30 PM at Coral Gables</p>
+                        </article>
+                        <div class="concept-arrow" aria-hidden="true">
+                            <lightning-icon icon-name="utility:arrowright" size="x-small" alternative-text=""></lightning-icon>
+                        </div>
+                        <article class="concept-card concept-card--registration">
+                            <div class="concept-card__header">
+                                <span class="concept-icon concept-icon--registration">
+                                    <lightning-icon icon-name="utility:people" size="x-small" alternative-text="Registration"></lightning-icon>
+                                </span>
+                                <p class="title">Registration</p>
+                            </div>
+                            <p class="meta">A person signing up for one Instance and entering RSVP details.</p>
+                            <p class="concept-example">e.g. Maria Alvarez, registered</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2 class="slds-text-heading_small">What do you want to do?</h2>
+                        <span class="slds-text-color_weak">Pick a workflow - we'll walk you through it</span>
+                    </div>
+                    <div class="guided-grid">
+                        <article class="guided-card guided-card--primary clickable" data-action="create" onclick={handleGuidedAction}>
+                            <lightning-icon class="guided-icon" icon-name="utility:add" size="small" alternative-text="Create New Event"></lightning-icon>
+                            <p class="title">Create New Event</p>
+                            <p class="meta">Set up a brand-new parent event and then add instances.</p>
+                        </article>
+                        <article class="guided-card clickable" data-action="clone" onclick={handleGuidedAction}>
+                            <lightning-icon class="guided-icon" icon-name="utility:copy" size="small" alternative-text="Clone Existing Event"></lightning-icon>
+                            <p class="title">Clone Existing Event</p>
+                            <p class="meta">Copy setup from an existing event and review risk settings.</p>
+                        </article>
+                        <article class="guided-card clickable" data-action="instance" onclick={handleGuidedAction}>
+                            <lightning-icon class="guided-icon" icon-name="utility:event" size="small" alternative-text="Add a date to an existing event"></lightning-icon>
+                            <p class="title">Add a date to an existing event</p>
+                            <p class="meta">Create another occurrence under an existing event.</p>
+                        </article>
+                        <article class="guided-card clickable" data-action="bulk" onclick={handleGuidedAction}>
+                            <lightning-icon class="guided-icon" icon-name="utility:people" size="small" alternative-text="Bulk Update Registrations"></lightning-icon>
+                            <p class="title">Bulk Update Registrations</p>
+                            <p class="meta">Mass-update statuses and reassign registrations quickly.</p>
+                        </article>
+                    </div>
+                </section>
+            </div>
+        </lightning-card>
+    </div>
 </template>

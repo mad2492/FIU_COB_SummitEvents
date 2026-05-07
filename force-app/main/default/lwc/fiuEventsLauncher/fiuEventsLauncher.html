@@ -1,7 +1,7 @@
 <template>
     <div class="section-heading">
         <h2>Guided Actions</h2>
-        <p>Choose one path to begin. The panel below will switch to the selected workflow.</p>
+        <p>Pick the workflow that matches your need. We'll walk you through it step by step.</p>
     </div>
     <div class="launcher-grid">
         <article class="launcher-card">
@@ -20,10 +20,21 @@
             <lightning-button label="Start" variant="brand" data-mode="instance" onclick={handleRoute}></lightning-button>
         </article>
     </div>
-    <section class="active-panel">
-        <h3>{selectedHeading}</h3>
-        <template if:true={isCreate}><c-fiu-event-create-wizard></c-fiu-event-create-wizard></template>
-        <template if:true={isClone}><c-fiu-event-clone-wizard></c-fiu-event-clone-wizard></template>
-        <template if:true={isInstance}><c-fiu-instance-create-wizard></c-fiu-instance-create-wizard></template>
-    </section>
+
+    <template if:true={isModalOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container modal-large">
+                <header class="slds-modal__header">
+                    <lightning-button-icon icon-name="utility:close" variant="bare-inverse" alternative-text="Close" class="slds-modal__close" onclick={closeModal}></lightning-button-icon>
+                    <h2 class="slds-text-heading_medium">{selectedHeading}</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <template if:true={isCreate}><c-fiu-event-create-wizard></c-fiu-event-create-wizard></template>
+                    <template if:true={isClone}><c-fiu-event-clone-wizard></c-fiu-event-clone-wizard></template>
+                    <template if:true={isInstance}><c-fiu-instance-create-wizard></c-fiu-instance-create-wizard></template>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
 </template>

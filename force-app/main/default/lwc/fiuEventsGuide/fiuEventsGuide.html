@@ -1,0 +1,160 @@
+<template>
+    <div class="guide-shell">
+        <section class="guide-header">
+            <div class="breadcrumbs">
+                <button class="breadcrumb-link" onclick={navigateHome}>Home</button>
+                <span class="breadcrumb-separator" aria-hidden="true">&gt;</span>
+                <span class="breadcrumb-current">Guide</span>
+            </div>
+            <h1>FIU Events - How it works</h1>
+        </section>
+
+        <div class="guide-layout">
+            <section class="guide-main panel">
+                <h2>How FIU Events fit together</h2>
+                <p class="intro-copy">
+                    Start with the parent Event, add one or more dated Instances underneath it, and then track the
+                    Registrations that come in for each Instance.
+                </p>
+
+                <article class="concept-card concept-card--event">
+                    <div class="concept-number">1</div>
+                    <div class="concept-copy">
+                        <h3>Event</h3>
+                        <p>
+                            The parent. A reusable concept like "MBA Spring Open House" or "MS Finance Webinar Series".
+                            Set up branding, audience, and location type once.
+                        </p>
+                    </div>
+                </article>
+
+                <article class="concept-card concept-card--instance">
+                    <div class="concept-number">2</div>
+                    <div class="concept-copy">
+                        <h3>Instance</h3>
+                        <p>
+                            A specific date/time of an Event. People register for instances, not events. One Event can
+                            have many Instances - that's how you run the same Open House at three different dates.
+                        </p>
+                    </div>
+                </article>
+
+                <article class="concept-card concept-card--registration">
+                    <div class="concept-number">3</div>
+                    <div class="concept-copy">
+                        <h3>Registration</h3>
+                        <p>
+                            A single contact signing up for one Instance. Status moves from Started to Registered to
+                            Attended, or Cancelled. Started means they bailed mid-form, so it is worth a follow-up.
+                        </p>
+                    </div>
+                </article>
+
+                <section class="content-block">
+                    <h3>Readiness - the most important concept</h3>
+                    <p>
+                        Every Event and Instance has a Readiness flag. <strong>Not Ready</strong> means a record cannot
+                        go live yet. The system checks for required fields, payment setup, location details, and related
+                        configuration gaps. Your dashboard surfaces those blockers - fix the specific blocker before launch,
+                        not just the status label.
+                    </p>
+                </section>
+
+                <section class="content-block">
+                    <h3>Choose the right workflow first</h3>
+                    <ul class="pitfall-list">
+                        <li><strong>Create New Event</strong> when this is a brand-new concept with its own branding, program targeting, or setup.</li>
+                        <li><strong>Clone Existing Event</strong> when the setup is mostly the same and you want to reuse a proven configuration.</li>
+                        <li><strong>Add another Instance</strong> when the event already exists and you just need a new date or occurrence.</li>
+                    </ul>
+                </section>
+
+                <section class="content-block">
+                    <h3>What actually makes an event work</h3>
+                    <ul class="pitfall-list">
+                        <li><strong>Program selection matters.</strong> Program values drive recruiter routing, website/API visibility, and downstream Opportunity behavior.</li>
+                        <li><strong>Every Event needs an Account.</strong> If the Account is missing, the public registration experience can fail or become unavailable.</li>
+                        <li><strong>Paid events need full setup.</strong> If payment is required, set both Payment Gateway and Accounting Department.</li>
+                        <li><strong>Instances carry the public experience.</strong> Location, map link, parking, active status, and registration-open settings live there.</li>
+                    </ul>
+                </section>
+
+                <section class="content-block">
+                    <h3>Common pitfalls</h3>
+                    <ul class="pitfall-list">
+                        <li><strong>My event is not visible publicly.</strong> The Event must be Active, and it needs at least one Active, Ready Instance.</li>
+                        <li><strong>Payment is not working.</strong> Paid events need both a Payment Gateway and an Accounting Department.</li>
+                        <li><strong>I cannot change the Record Type.</strong> Record Type is locked after creation, so clone instead.</li>
+                        <li><strong>Started registrations are piling up.</strong> Those are abandoned forms, not completed registrations. Follow up or bulk-cancel them.</li>
+                        <li><strong>Reminder sends are struggling.</strong> Large-volume reminder runs may need MCAE/Pardot support instead of relying only on the reminder layer.</li>
+                    </ul>
+                </section>
+
+                <div class="guide-actions">
+                    <lightning-button
+                        label="Create your first event"
+                        variant="brand"
+                        icon-name="utility:add"
+                        onclick={navigateCreateWizard}>
+                    </lightning-button>
+                    <lightning-button
+                        label="Browse events"
+                        variant="neutral"
+                        icon-name="utility:event"
+                        onclick={navigateEvents}>
+                    </lightning-button>
+                </div>
+            </section>
+
+            <aside class="guide-rail">
+                <section class="panel glossary-panel">
+                    <h2>Glossary</h2>
+
+                    <dl class="glossary-list">
+                        <div class="glossary-item">
+                            <dt>Record Type</dt>
+                            <dd>Layout and approval routing - Chapman / EPE / OGI.</dd>
+                        </div>
+                        <div class="glossary-item">
+                            <dt>Business Unit</dt>
+                            <dd>Owning department. Auto-derived from Record Type.</dd>
+                        </div>
+                        <div class="glossary-item">
+                            <dt>Program</dt>
+                            <dd>Recruiter-routing selection tied to the registration, not just a marketing audience label.</dd>
+                        </div>
+                        <div class="glossary-item">
+                            <dt>Template</dt>
+                            <dd>Visual style of the registration page.</dd>
+                        </div>
+                        <div class="glossary-item">
+                            <dt>Readiness</dt>
+                            <dd>Operational go-live status that tells you whether a record is blocked and why.</dd>
+                        </div>
+                        <div class="glossary-item">
+                            <dt>Active</dt>
+                            <dd>Status used when an Event or Instance is intended to be live and usable.</dd>
+                        </div>
+                        <div class="glossary-item">
+                            <dt>Started</dt>
+                            <dd>Registration not completed (abandoned).</dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <section class="panel support-panel">
+                    <h2>Need help?</h2>
+                    <p>
+                        Email
+                        <a href="mailto:cobsf@fiu.edu"> cobsf@fiu.edu</a>
+                        for admin help or process questions.
+                    </p>
+                    <p class="support-note">
+                        Best first check: Home for readiness blockers, Instances for live-date setup, Registrations for
+                        Started follow-up and attendance cleanup.
+                    </p>
+                </section>
+            </aside>
+        </div>
+    </div>
+</template>

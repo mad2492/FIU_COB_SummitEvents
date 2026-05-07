@@ -4,6 +4,7 @@
 - FIU Events Lightning App
 - FIU Events Home page
 - FIU Events utility/help text panel
+- `fiuEventsGuide`
 
 ## Launcher / Guided Entry
 - `fiuEventsLauncher`
@@ -13,6 +14,8 @@
 
 ## Browsing / Search
 - `fiuEventBrowser`
+- `fiuInstanceBrowser`
+- shared FIU custom list-shell/table pattern for browser screens
 - `fiuUpcomingInstanceBrowser`
 - filters by status, program, business unit, payment-enabled, future/past
 
@@ -20,6 +23,7 @@
 - `fiuEventReadinessPanel`
 - `fiuInstanceReadinessPanel`
 - surfaces missing required fields and operational warnings
+- quick-view readiness callouts and public registration-link actions for instances
 
 ## Attendance / Registration Ops
 - `fiuInstanceRosterManager`

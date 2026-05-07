@@ -1,13 +1,20 @@
 <template>
     <lightning-card title="Readiness Dashboard" icon-name="standard:scan_card">
         <div class="slds-p-around_medium">
-            <p class="slds-m-bottom_small">Use this view to identify events that need setup attention before launch.</p>
-            <ul class="slds-list_dotted">
-                <li>Missing Account</li>
-                <li>Payment gateway/accounting mismatch</li>
-                <li>Opportunity creation enabled</li>
-                <li>Registration confirmation email enabled</li>
-            </ul>
+            <div class="slds-illustration slds-illustration_small slds-text-align_center">
+                <lightning-icon icon-name="utility:advanced_function" size="medium" alternative-text="Coming soon"></lightning-icon>
+                <h3 class="slds-text-heading_small slds-m-top_small">Standalone readiness dashboard is not available yet</h3>
+                <p class="slds-text-body_regular slds-text-color_weak slds-m-top_x-small">
+                    Phase 1 readiness diagnostics live on the FIU Events Home and inside the Events / Instances browsers.
+                </p>
+                <p class="slds-text-body_small slds-m-top_small">A future readiness dashboard will surface:</p>
+                <ul class="slds-list_dotted slds-m-top_x-small slds-text-align_left coming-soon-list">
+                    <li>Missing Account</li>
+                    <li>Payment gateway / accounting mismatch</li>
+                    <li>Opportunity creation enabled</li>
+                    <li>Registration confirmation email enabled</li>
+                </ul>
+            </div>
         </div>
     </lightning-card>
 </template>

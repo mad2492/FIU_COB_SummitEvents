@@ -1,10 +1,23 @@
 <template>
-    <lightning-card title="Clone Existing Event Wizard">
+    <lightning-card title="Clone Existing Event" icon-name="standard:event">
         <div class="slds-p-around_medium">
-            <p class="slds-m-bottom_small">Clone event setup, then re-confirm risky operational values before activation.</p>
-            <ul class="slds-list_dotted">
-                <li>Payment setup values</li><li>Opportunity creation flag</li><li>Registration confirmation email behavior</li><li>Program/plan/business-unit mappings</li>
-            </ul>
+            <div class="slds-illustration slds-illustration_small slds-text-align_center">
+                <lightning-icon icon-name="utility:advanced_function" size="medium" alternative-text="Coming soon"></lightning-icon>
+                <h3 class="slds-text-heading_small slds-m-top_small">Guided clone is not available yet</h3>
+                <p class="slds-text-body_regular slds-text-color_weak slds-m-top_x-small">
+                    The Phase 1 clone wizard will copy event setup and surface risky values for re-confirmation before activation.
+                </p>
+                <p class="slds-text-body_small slds-m-top_small">Phase 1 clone will help you re-confirm:</p>
+                <ul class="slds-list_dotted slds-m-top_x-small slds-text-align_left coming-soon-list">
+                    <li>Payment setup values</li>
+                    <li>Opportunity creation flag</li>
+                    <li>Registration confirmation email behavior</li>
+                    <li>Program / plan / business-unit mappings</li>
+                </ul>
+                <p class="slds-text-body_small slds-m-top_medium slds-text-color_weak">
+                    For now, clone an event from its record page, or create a new event using the guided Create flow.
+                </p>
+            </div>
         </div>
     </lightning-card>
 </template>

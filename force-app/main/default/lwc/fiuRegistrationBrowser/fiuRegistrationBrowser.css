@@ -1,1 +1,141 @@
-.toolbar { display:grid; grid-template-columns: 2fr 1fr; gap: .75rem; }
+.breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .84rem;
+}
+
+.breadcrumb-link {
+    border: 0;
+    background: none;
+    color: #0176d3;
+    cursor: pointer;
+    padding: 0;
+    font: inherit;
+}
+
+.breadcrumb-link:hover,
+.breadcrumb-link:focus {
+    text-decoration: underline;
+}
+
+.breadcrumb-separator,
+.breadcrumb-current {
+    color: #747474;
+}
+
+.toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: .75rem 1rem;
+}
+
+.toolbar__left {
+    min-height: 1px;
+}
+
+.toolbar__right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .5rem;
+}
+
+.toolbar__primary {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
+.toolbar__controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .5rem;
+}
+
+.search {
+    width: 280px;
+}
+
+.list-actions {
+    display: flex;
+    gap: .25rem;
+    align-items: center;
+}
+
+.filter-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    align-items: center;
+}
+
+.empty-state {
+    color: #54698d;
+}
+
+.pager {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: wrap;
+}
+
+.pager-actions {
+    display: flex;
+    align-items: end;
+    gap: .25rem;
+}
+
+.rows-per-page {
+    min-width: 140px;
+    display: inline-block;
+}
+
+.field-modal-container {
+    max-width: 64rem;
+    width: 92vw;
+}
+
+.field-picker {
+    --slds-c-dual-listbox-sizing-min-height: 18rem;
+}
+
+.listview-shell {
+    background: #ffffff;
+    border: 1px solid #d8dde6;
+    border-radius: .5rem;
+    padding: .5rem;
+}
+
+@media (max-width: 900px) {
+    .toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .toolbar__right,
+    .toolbar__primary,
+    .toolbar__controls {
+        align-items: stretch;
+        justify-content: flex-start;
+    }
+
+    .toolbar__controls {
+        flex-wrap: wrap;
+    }
+
+    .search {
+        width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .field-modal-container {
+        width: 96vw;
+    }
+}

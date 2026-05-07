@@ -28,6 +28,7 @@ The current delivery target is **Phase 1 in Partial UAT** with a **Prod discover
    - Events Browser (including Create New Event and View Instances flows)
    - Instances Browser (including Open, Clone Instance, and View Registrations actions)
    - Registrations Browser (including Export to CSV action via FIU controller and instance-scoped deep links)
+   - Events and Instances now use a shared custom list-shell pattern instead of stock datatable for higher design fidelity
 5. Instance-focused workspace/page experience for operational handling.
 6. Server-side record-type-aware filtering based on user-available event record types.
 7. Program-aware filtering across Home/Events/Instances/Registrations using:
@@ -46,13 +47,23 @@ The current delivery target is **Phase 1 in Partial UAT** with a **Prod discover
    - Past instances are not flagged just for closed registration / inactive status
 11. Discovery documentation expanded with FIU custom-field inventory from Partial UAT Tooling API.
 12. Selective production data carryover into Partial UAT for key event journeys.
+13. Design-handoff alignment work from `design_handoff_fiu_events/` now includes:
+   - Home command center redesign with current-user welcome banner and readiness-oriented KPIs
+   - In-app Guide tab/page modeled on `10-guide.png`
+   - Events Browser redesign modeled on `02-events.png`
+   - Instances Browser redesign modeled on `03-instances.png`
+14. Instance Quick View enhancements:
+   - readiness-aware issue callout
+   - capacity/registration progress bar
+   - public registration link row with open/copy actions
 
 ## In Progress / Near-Term Phase 1 Work
 1. Expand wizard business logic depth for create/clone/add-instance paths.
 2. Continue UX polish for Home and role-relevant scoping.
-3. Deepen readiness diagnostics and negative-path handling.
+3. Deepen readiness diagnostics and negative-path handling, especially in Registrations and wizard review states.
 4. Add/expand Apex unit tests and LWC Jest coverage aligned to Phase 1 test cases.
 5. Finalize permissions and profile/permission-set alignment for target user groups.
+6. Bring Registrations Browser onto the shared custom list-shell style for parity with the design handoff.
 
 ## Key Functional Expectations
 1. Users can create events, clone events, and add instances from FIU-owned entry points.

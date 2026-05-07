@@ -1,0 +1,271 @@
+.guide-shell {
+    display: grid;
+    gap: 1rem;
+}
+
+.guide-header {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: .5rem;
+    padding: .9rem 1rem 1rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+}
+
+.breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    margin-bottom: .45rem;
+    font-size: .84rem;
+}
+
+.breadcrumb-link {
+    border: 0;
+    background: none;
+    color: #0176d3;
+    cursor: pointer;
+    padding: 0;
+    font: inherit;
+}
+
+.breadcrumb-link:hover,
+.breadcrumb-link:focus {
+    text-decoration: underline;
+}
+
+.breadcrumb-separator,
+.breadcrumb-current {
+    color: #747474;
+}
+
+.guide-header h1 {
+    margin: 0;
+    color: #032d60;
+    font-size: 2rem;
+    line-height: 1.15;
+    font-weight: 700;
+}
+
+.guide-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: .9rem;
+    align-items: start;
+}
+
+.panel {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: .5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+}
+
+.guide-main {
+    padding: 1.5rem;
+}
+
+.guide-main h2 {
+    margin: 0;
+    color: #16325c;
+    font-size: 2.1rem;
+    line-height: 1.15;
+    font-weight: 700;
+}
+
+.intro-copy {
+    margin: 1rem 0 1.25rem;
+    color: #444444;
+    font-size: 1.05rem;
+    line-height: 1.55;
+}
+
+.concept-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .9rem;
+    align-items: start;
+    margin-top: 1rem;
+    padding: 1rem 1rem 1rem .95rem;
+    border: 1px solid #e5e5e5;
+    border-radius: .45rem;
+    background: #ffffff;
+}
+
+.concept-card--event {
+    border-left: 4px solid #5867e8;
+}
+
+.concept-card--instance {
+    border-left: 4px solid #04844b;
+}
+
+.concept-card--registration {
+    border-left: 4px solid #16325c;
+}
+
+.concept-number {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: #5867e8;
+    color: #ffffff;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    line-height: 1;
+    margin-top: .1rem;
+}
+
+.concept-card--instance .concept-number {
+    background: #04844b;
+}
+
+.concept-card--registration .concept-number {
+    background: #16325c;
+}
+
+.concept-copy h3 {
+    margin: 0;
+    color: #181818;
+    font-size: 1.45rem;
+    line-height: 1.2;
+    font-weight: 700;
+}
+
+.concept-copy p {
+    margin: .45rem 0 0;
+    color: #444444;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.content-block {
+    margin-top: 1.85rem;
+}
+
+.content-block h3 {
+    margin: 0 0 .55rem;
+    color: #181818;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.content-block p {
+    margin: 0;
+    color: #444444;
+    font-size: .94rem;
+    line-height: 1.65;
+}
+
+.pitfall-list {
+    margin: 0;
+    padding-left: 1.2rem;
+    color: #444444;
+    font-size: .94rem;
+    line-height: 1.8;
+}
+
+.guide-actions {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+}
+
+.guide-rail {
+    display: grid;
+    gap: .9rem;
+    position: sticky;
+    top: .75rem;
+}
+
+.glossary-panel {
+    background: #eaf5fe;
+    border-color: #b0dafb;
+    padding: 1rem;
+}
+
+.glossary-panel h2,
+.support-panel h2 {
+    margin: 0 0 .8rem;
+    color: #16325c;
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.glossary-list {
+    margin: 0;
+}
+
+.glossary-item + .glossary-item {
+    margin-top: .8rem;
+}
+
+.glossary-item dt {
+    margin: 0 0 .15rem;
+    color: #181818;
+    font-size: .94rem;
+    font-weight: 700;
+}
+
+.glossary-item dd {
+    margin: 0;
+    color: #444444;
+    font-size: .9rem;
+    line-height: 1.45;
+}
+
+.support-panel {
+    padding: 1rem;
+}
+
+.support-panel p {
+    margin: 0;
+    color: #444444;
+    font-size: .9rem;
+    line-height: 1.5;
+}
+
+.support-note {
+    margin-top: .8rem !important;
+    color: #747474;
+}
+
+.support-panel a {
+    color: #0176d3;
+    text-decoration: none;
+}
+
+.support-panel a:hover,
+.support-panel a:focus {
+    text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+    .guide-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .guide-rail {
+        position: static;
+    }
+
+    .guide-main {
+        padding: 1.1rem;
+    }
+
+    .guide-header h1,
+    .guide-main h2 {
+        font-size: 1.65rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .concept-card {
+        grid-template-columns: 1fr;
+    }
+
+    .concept-number {
+        margin-top: 0;
+    }
+}

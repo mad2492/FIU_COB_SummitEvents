@@ -21,12 +21,27 @@ public with sharing class FiuEventsReadinessService {
             throw new AuraHandledException('You do not have access to any FIU Event record types.');
         }
 
-        String soql = 'SELECT Id, Name, RecordTypeId, summit__Account__c, summit__Payment_Gateway__c, Accounting_Department__c, FIU_Create_Opps_From_Regs__c, Send_Registration_Confirmation_Email__c FROM ' + eventObject + ' WHERE Id = :eventId AND RecordTypeId IN :allowedRecordTypes LIMIT 1';
+        String soql = 'SELECT Id, Name, RecordTypeId, summit__Account__c, summit__Payment_Gateway__c, Accounting_Department__c, FIU_Create_Opps_From_Regs__c, Send_Registration_Confirmation_Email__c, summit__Event_Additional_Question_Title__c, summit__Event_Additional_Questions_Description__c FROM ' + eventObject + ' WHERE Id = :eventId AND RecordTypeId IN :allowedRecordTypes LIMIT 1';
         SObject eventRecord = Database.query(soql);
-        return evaluateEventRecord(eventRecord);
+        Integer questionCount = 0;
+        String questionObject = FiuEventsAccessService.resolveEventQuestionObject();
+        String questionEventLookup = FiuEventsAccessService.resolveEventQuestionLookupField();
+        if (questionObject != null && questionEventLookup != null) {
+            try {
+                String countSoql = 'SELECT COUNT() FROM ' + questionObject + ' WHERE ' + questionEventLookup + ' = :eventId';
+                questionCount = Integer.valueOf(Database.countQuery(countSoql));
+            } catch (Exception ex) {
+                questionCount = 0;
+            }
+        }
+        return evaluateEventRecord(eventRecord, questionCount);
     }
 
     public static ReadinessResult evaluateEventRecord(SObject eventRecord) {
+        return evaluateEventRecord(eventRecord, null);
+    }
+
+    public static ReadinessResult evaluateEventRecord(SObject eventRecord, Integer relatedQuestionCount) {
         ReadinessResult result = new ReadinessResult();
         if (eventRecord == null) {
             result.ready = false;
@@ -52,6 +67,14 @@ public with sharing class FiuEventsReadinessService {
 
         if ((Boolean) safeGet(eventRecord, 'Send_Registration_Confirmation_Email__c') == true) {
             result.warnings.add('FIU dynamic registration confirmation email flow is enabled. Confirm content path expectations.');
+        }
+
+        String customQuestionTitle = (String) safeGet(eventRecord, 'summit__Event_Additional_Question_Title__c');
+        String customQuestionDescription = (String) safeGet(eventRecord, 'summit__Event_Additional_Questions_Description__c');
+        Boolean hasCustomQuestionPageDetails = !String.isBlank(customQuestionTitle) || !String.isBlank(customQuestionDescription);
+        Integer effectiveQuestionCount = relatedQuestionCount == null ? 0 : relatedQuestionCount;
+        if (hasCustomQuestionPageDetails && effectiveQuestionCount == 0) {
+            result.warnings.add('Custom Questions Page details are filled in, but no related Summit Event Questions exist.');
         }
 
         return result;
