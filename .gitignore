@@ -46,3 +46,7 @@ $RECYCLE.BIN/
 **/__pycache__/
 **/.venv/
 **/venv/
+
+# Local handoff/reference artifacts
+design_handoff_fiu_events/
+Claude_Handoffs/
