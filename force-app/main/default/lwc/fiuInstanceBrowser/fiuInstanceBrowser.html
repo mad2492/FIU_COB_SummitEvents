@@ -179,8 +179,8 @@
                                             </td>
                                         </template>
                                         <td class="quick-view-col">
-                                            <button class="quick-view-button" data-id={row.id} onclick={openQuickViewFromButton} title="Quick view">
-                                                <lightning-icon icon-name="utility:preview" size="xx-small" alternative-text="Quick view"></lightning-icon>
+                                            <button class="quick-view-button" data-id={row.id} onclick={openQuickViewFromButton} title="Open quick view">
+                                                <lightning-icon icon-name={row.quickViewIcon} size="xx-small" alternative-text="Open quick view"></lightning-icon>
                                             </button>
                                         </td>
                                     </tr>
@@ -282,7 +282,7 @@
                 </div>
                 <div class="quick-view__actions">
                     <lightning-button label="Open" onclick={openSelectedInstanceRecord}></lightning-button>
-                    <lightning-button label="Clone" onclick={cloneSelectedInstance}></lightning-button>
+                    <lightning-button label="Clone Instance" onclick={cloneSelectedInstance}></lightning-button>
                     <lightning-button variant="brand" label="Registrations" onclick={openSelectedInstanceRegistrations}></lightning-button>
                 </div>
             </aside>

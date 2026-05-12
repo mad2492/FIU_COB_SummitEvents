@@ -170,11 +170,12 @@
 }
 
 .table-scroll {
-    overflow-x: auto;
+    overflow-x: hidden;
 }
 
 .instance-table {
-    min-width: 1180px;
+    width: 100%;
+    table-layout: fixed;
 }
 
 .instance-table thead th {
@@ -191,6 +192,9 @@
     vertical-align: middle;
     padding-top: .75rem;
     padding-bottom: .75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .checkbox-col {
@@ -200,6 +204,12 @@
 .quick-view-col {
     width: 3.25rem;
     text-align: center;
+}
+
+.instance-table tbody td.quick-view-col {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
 }
 
 .registered-col {
@@ -252,6 +262,9 @@
 
 .issues-cell {
     color: #ba0517;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
 }
 
 .empty-dash {

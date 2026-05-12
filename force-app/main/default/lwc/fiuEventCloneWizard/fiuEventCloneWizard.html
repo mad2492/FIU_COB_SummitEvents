@@ -1,23 +1,61 @@
 <template>
-    <lightning-card title="Clone Existing Event" icon-name="standard:event">
+    <lightning-card title="Clone Existing Event" icon-name="utility:copy">
         <div class="slds-p-around_medium">
-            <div class="slds-illustration slds-illustration_small slds-text-align_center">
-                <lightning-icon icon-name="utility:advanced_function" size="medium" alternative-text="Coming soon"></lightning-icon>
-                <h3 class="slds-text-heading_small slds-m-top_small">Guided clone is not available yet</h3>
-                <p class="slds-text-body_regular slds-text-color_weak slds-m-top_x-small">
-                    The Phase 1 clone wizard will copy event setup and surface risky values for re-confirmation before activation.
+            <template if:true={hasSourceEvent}>
+                <div class="slds-text-body_regular slds-text-color_weak">
+                    Opening Salesforce Clone for the selected Event...
+                </div>
+            </template>
+
+            <template if:true={showPicker}>
+                <p class="slds-text-body_regular slds-m-bottom_small">
+                    Choose the source Event to clone.
                 </p>
-                <p class="slds-text-body_small slds-m-top_small">Phase 1 clone will help you re-confirm:</p>
-                <ul class="slds-list_dotted slds-m-top_x-small slds-text-align_left coming-soon-list">
-                    <li>Payment setup values</li>
-                    <li>Opportunity creation flag</li>
-                    <li>Registration confirmation email behavior</li>
-                    <li>Program / plan / business-unit mappings</li>
-                </ul>
-                <p class="slds-text-body_small slds-m-top_medium slds-text-color_weak">
-                    For now, clone an event from its record page, or create a new event using the guided Create flow.
-                </p>
-            </div>
+                <lightning-input
+                    type="search"
+                    variant="label-hidden"
+                    label="Search events"
+                    placeholder="Search events..."
+                    value={searchKey}
+                    onchange={handleSearch}>
+                </lightning-input>
+
+                <template if:true={isLoading}>
+                    <div class="slds-p-top_medium slds-align_absolute-center">
+                        <lightning-spinner size="small" alternative-text="Loading events"></lightning-spinner>
+                    </div>
+                </template>
+
+                <template if:false={isLoading}>
+                    <template if:true={hasRows}>
+                        <ul class="slds-has-dividers_around-space slds-m-top_small">
+                            <template for:each={rows} for:item="row">
+                                <li key={row.id} class="slds-item row">
+                                    <div class="row-copy">
+                                        <p class="row-title">{row.name}</p>
+                                        <p class="row-subtitle">{row.subtitle}</p>
+                                    </div>
+                                    <lightning-button
+                                        variant="brand"
+                                        label="Clone Event"
+                                        data-id={row.id}
+                                        onclick={handleCloneFromRow}>
+                                    </lightning-button>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                    <template if:false={hasRows}>
+                        <p class="slds-text-color_weak slds-m-top_small">
+                            No events found.
+                        </p>
+                    </template>
+                </template>
+
+                <div class="slds-m-top_medium">
+                    <lightning-button variant="neutral" label="Open Events Browser" onclick={goToEventBrowser}></lightning-button>
+                </div>
+            </template>
         </div>
     </lightning-card>
 </template>

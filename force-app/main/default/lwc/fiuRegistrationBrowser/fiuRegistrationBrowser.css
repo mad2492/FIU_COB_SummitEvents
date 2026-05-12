@@ -1,3 +1,34 @@
+.panel {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: .5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: .95rem 1rem;
+    margin-bottom: .9rem;
+}
+
+.page-header__main h1 {
+    margin: .35rem 0 0;
+    color: #032d60;
+    font-size: 1.75rem;
+    line-height: 1.15;
+    font-weight: 700;
+}
+
+.page-header__actions {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
 .breadcrumbs {
     display: flex;
     align-items: center;
@@ -24,47 +55,99 @@
     color: #747474;
 }
 
-.toolbar {
+.browser-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .9rem;
     align-items: start;
-    gap: .75rem 1rem;
 }
 
-.toolbar__left {
-    min-height: 1px;
+.browser-layout--panel-open {
+    grid-template-columns: minmax(0, 1fr) 360px;
 }
 
-.toolbar__right {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: .5rem;
+.list-shell {
+    overflow: hidden;
 }
 
-.toolbar__primary {
+.list-shell__header {
+    padding: .85rem 1rem;
+    background: #fafafa;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.list-shell__title {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    gap: .5rem;
+    gap: .7rem;
+}
+
+.list-shell__title h2 {
+    margin: 0;
+    color: #181818;
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.list-shell__title p {
+    margin: .1rem 0 0;
+    color: #747474;
+    font-size: .84rem;
+}
+
+.list-shell__icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: .35rem;
+    display: grid;
+    place-items: center;
+}
+
+.list-shell__icon--registration {
+    background: #16325c;
+}
+
+.list-shell__icon lightning-icon {
+    --slds-c-icon-color-foreground-default: #ffffff;
+}
+
+.hint-banner {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .6rem 1rem;
+    background: #eaf5fe;
+    border-top: 1px solid #b0dafb;
+    border-bottom: 1px solid #b0dafb;
+    color: #032d60;
+    font-size: .85rem;
+}
+
+.hint-banner lightning-icon {
+    --slds-c-icon-color-foreground-default: #0176d3;
+}
+
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .75rem;
+    padding: .7rem 1rem;
     flex-wrap: wrap;
-}
-
-.toolbar__controls {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: .5rem;
+    background: #fafafa;
+    border-bottom: 1px solid #e5e5e5;
 }
 
 .search {
-    width: 280px;
+    width: 340px;
+    max-width: 100%;
 }
 
-.list-actions {
+.toolbar__actions {
     display: flex;
-    gap: .25rem;
     align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
 }
 
 .filter-pills {
@@ -72,10 +155,154 @@
     flex-wrap: wrap;
     gap: .25rem;
     align-items: center;
+    padding: 0 1rem .7rem;
+    background: #fafafa;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.scope-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
+    padding: 0 .6rem;
+    border-radius: 999px;
+    background: #edf5ff;
+    border: 1px solid #c2daf7;
+    color: #014486;
+    font-size: .74rem;
+    font-weight: 600;
+}
+
+.loading-region,
+.error-region {
+    padding: 0 1rem .75rem;
+}
+
+.table-shell {
+    background: #ffffff;
+}
+
+.table-scroll {
+    overflow-x: hidden;
+}
+
+.registration-table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.registration-table thead th {
+    background: #ffffff;
+    color: #444444;
+    font-size: .78rem;
+    font-weight: 700;
+    white-space: nowrap;
+    padding-top: .65rem;
+    padding-bottom: .65rem;
+}
+
+.registration-table tbody td {
+    vertical-align: middle;
+    padding-top: .75rem;
+    padding-bottom: .75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.checkbox-col {
+    width: 3rem;
+}
+
+.quick-view-col {
+    width: 3.25rem;
+    text-align: center;
+}
+
+.registration-table tbody td.quick-view-col {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+}
+
+.header-label {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1rem;
+}
+
+.sort-button {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    border: 0;
+    background: none;
+    padding: 0;
+    color: #444444;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sort-button:hover,
+.sort-button:focus {
+    color: #032d60;
+}
+
+.sort-icon {
+    --slds-c-icon-color-foreground-default: #706e6b;
+}
+
+.name-button {
+    border: 0;
+    background: none;
+    padding: 0;
+    color: #3e65ad;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+.name-button:hover,
+.name-button:focus {
+    text-decoration: underline;
+}
+
+.contact-warning {
+    color: #ba0517;
+    font-weight: 600;
+}
+
+.quick-view-button {
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    display: inline-grid;
+    place-items: center;
+    cursor: pointer;
+}
+
+.quick-view-button lightning-icon {
+    --slds-c-icon-color-foreground-default: #706e6b;
+}
+
+.quick-view-button:hover,
+.quick-view-button:focus {
+    background: #f3f3f3;
+}
+
+.quick-view-button:hover lightning-icon,
+.quick-view-button:focus lightning-icon {
+    --slds-c-icon-color-foreground-default: #032d60;
 }
 
 .empty-state {
     color: #54698d;
+    padding: 2rem;
+    text-align: center;
 }
 
 .pager {
@@ -84,6 +311,7 @@
     align-items: center;
     gap: .75rem;
     flex-wrap: wrap;
+    padding: .85rem 1rem 1rem;
 }
 
 .pager-actions {
@@ -106,27 +334,134 @@
     --slds-c-dual-listbox-sizing-min-height: 18rem;
 }
 
-.listview-shell {
-    background: #ffffff;
-    border: 1px solid #d8dde6;
-    border-radius: .5rem;
-    padding: .5rem;
+.quick-view {
+    overflow: hidden;
+}
+
+.quick-view__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .75rem;
+    padding: .85rem 1rem;
+    background: #fafafa;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.quick-view__header h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #181818;
+}
+
+.quick-view__body {
+    padding: 1rem;
+}
+
+.quick-view__body h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #181818;
+    font-weight: 700;
+}
+
+.quick-view__subhead {
+    margin: .2rem 0 1rem;
+    color: #747474;
+    font-size: .86rem;
+}
+
+.quick-view__stack {
+    display: grid;
+    gap: .85rem;
+}
+
+.stat-label {
+    display: block;
+    margin-bottom: .2rem;
+    color: #747474;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.stat-value {
+    color: #181818;
+    font-weight: 700;
+}
+
+.stat-value--normal {
+    font-weight: 400;
+}
+
+.warning-callout,
+.issue-callout {
+    display: flex;
+    gap: .45rem;
+    align-items: flex-start;
+    margin-top: 1rem;
+    padding: .75rem;
+    border-radius: .35rem;
+    font-size: .85rem;
+}
+
+.warning-callout {
+    border: 1px solid #fcc58d;
+    background: #fef1ee;
+    color: #8c4a00;
+}
+
+.warning-callout lightning-icon {
+    --slds-c-icon-color-foreground-default: #dd7a01;
+}
+
+.issue-callout {
+    border: 1px solid #f39191;
+    background: #feded7;
+    color: #8e030f;
+}
+
+.issue-callout--warning {
+    border-color: #fcc58d;
+    background: #fef1ee;
+    color: #8c4a00;
+}
+
+.issue-callout lightning-icon {
+    --slds-c-icon-color-foreground-default: #ba0517;
+}
+
+.issue-callout--warning lightning-icon {
+    --slds-c-icon-color-foreground-default: #dd7a01;
+}
+
+.quick-view__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    padding: 1rem;
+    border-top: 1px solid #e5e5e5;
+}
+
+@media (max-width: 1100px) {
+    .browser-layout--panel-open {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 900px) {
-    .toolbar {
-        grid-template-columns: 1fr;
-    }
-
-    .toolbar__right,
-    .toolbar__primary,
-    .toolbar__controls {
+    .page-header {
+        flex-direction: column;
         align-items: stretch;
-        justify-content: flex-start;
     }
 
-    .toolbar__controls {
-        flex-wrap: wrap;
+    .toolbar {
+        align-items: stretch;
+    }
+
+    .toolbar__actions {
+        justify-content: flex-start;
     }
 
     .search {

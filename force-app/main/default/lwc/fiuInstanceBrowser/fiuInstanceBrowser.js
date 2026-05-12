@@ -88,11 +88,6 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         this.loadRows();
     }
 
-    connectedCallback() {
-        this.restoreViewState();
-        this.loadRows();
-    }
-
     @wire(getProgramOptions)
     wiredPrograms({ data }) {
         if (data) {
@@ -325,6 +320,7 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
                     capacityDisplay: capacity > 0 ? String(capacity) : 'Not set',
                     statusTheme: this.getStatusTheme(row),
                     readinessTheme: this.getReadinessTheme(row),
+                    quickViewIcon: row.id === this.selectedInstanceId ? 'utility:chevrondown' : 'utility:chevronright',
                     registrationSummary: capacity > 0 ? `${registrations}/${capacity} (${this.formatPercent(registrations, capacity)})` : `${registrations} registered`,
                     capacityFillStyle: `width:${percentFull}%;`,
                     capacityFillClass: `capacity-fill ${this.getCapacityFillClass(percentFull)}`,
@@ -334,7 +330,9 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
             this.totalCount = data?.totalCount || 0;
             const currentIds = new Set(this.rows.map((row) => row.id));
             this.selectedRowIds = this.selectedRowIds.filter((id) => currentIds.has(id));
+            if (this.selectedInstanceId && !currentIds.has(this.selectedInstanceId)) this.selectedInstanceId = null;
             this.rows = this.rows.map((row) => ({ ...row, isSelected: this.selectedRowIds.includes(row.id) }));
+            this.refreshQuickViewIcons();
             this.loadError = undefined;
             this.persistViewState();
         } catch (error) {
@@ -491,6 +489,7 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
     closeQuickView() {
         this.resetCopiedRegisterUrlState();
         this.selectedInstanceId = null;
+        this.refreshQuickViewIcons();
     }
 
     handleExportMenuSelect(event) {
@@ -535,10 +534,21 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
 
     openQuickViewFromButton(event) {
         const rowId = event.currentTarget?.dataset?.id;
-        if (rowId) {
-            this.resetCopiedRegisterUrlState();
-            this.selectedInstanceId = rowId;
+        if (!rowId) return;
+        if (this.selectedInstanceId === rowId) {
+            this.closeQuickView();
+            return;
         }
+        this.resetCopiedRegisterUrlState();
+        this.selectedInstanceId = rowId;
+        this.refreshQuickViewIcons();
+    }
+
+    refreshQuickViewIcons() {
+        this.rows = this.rows.map((row) => ({
+            ...row,
+            quickViewIcon: row.id === this.selectedInstanceId ? 'utility:chevrondown' : 'utility:chevronright'
+        }));
     }
 
     openSelectedInstanceRecord() {
@@ -556,11 +566,12 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
             return;
         }
         this[NavigationMixin.Navigate]({
-            type: 'standard__recordPage',
-            attributes: {
-                recordId: this.selectedInstance.id,
-                objectApiName: 'summit__Summit_Events_Instance__c',
-                actionName: 'clone'
+            type: 'standard__component',
+            attributes: { componentName: 'c__fiuInstanceCreateWizard' },
+            state: {
+                c__mode: 'clone',
+                c__sourceInstanceId: this.selectedInstance.id,
+                c__eventId: this.selectedInstance.eventId
             }
         });
     }

@@ -1,0 +1,23 @@
+.row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .55rem .5rem;
+}
+
+.row-copy {
+    min-width: 0;
+}
+
+.row-title {
+    margin: 0;
+    color: #181818;
+    font-weight: 600;
+}
+
+.row-subtitle {
+    margin: .12rem 0 0;
+    color: #747474;
+    font-size: .82rem;
+}

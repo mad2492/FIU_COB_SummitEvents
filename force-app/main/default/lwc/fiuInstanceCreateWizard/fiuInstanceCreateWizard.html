@@ -1,16 +1,75 @@
 <template>
-    <lightning-card title="Add New Instance to Existing Event" icon-name="standard:events">
-        <div class="slds-p-around_medium">
-            <div class="slds-illustration slds-illustration_small slds-text-align_center">
-                <lightning-icon icon-name="utility:advanced_function" size="medium" alternative-text="Coming soon"></lightning-icon>
-                <h3 class="slds-text-heading_small slds-m-top_small">Guided Add Instance is not available yet</h3>
-                <p class="slds-text-body_regular slds-text-color_weak slds-m-top_x-small">
-                    Use this when the event structure already exists and you only need another occurrence with new dates, location, or capacity.
-                </p>
-                <p class="slds-text-body_small slds-m-top_medium slds-text-color_weak">
-                    For now, open the parent event from the Events browser and use the standard Salesforce New Instance action.
-                </p>
+    <lightning-card title={titleText} icon-name="utility:date_time">
+        <template if:true={isLoading}>
+            <div class="slds-p-around_medium">
+                <lightning-spinner alternative-text="Loading instance wizard" size="small"></lightning-spinner>
             </div>
-        </div>
+        </template>
+
+        <template if:false={isLoading}>
+            <div class="slds-p-around_medium wizard-wrap">
+                <p class="wizard-subtitle">{subtitleText}</p>
+                <p class="wizard-context"><strong>Event:</strong> {eventName}</p>
+                <template if:true={accountName}>
+                    <p class="wizard-context"><strong>Department:</strong> {accountName}</p>
+                </template>
+
+                <template if:true={validationErrors.length}>
+                    <div class="slds-box slds-theme_error slds-m-bottom_small">
+                        <p class="slds-text-title_caps">Show-stoppers</p>
+                        <template for:each={validationErrors} for:item="err">
+                            <p key={err}>{err}</p>
+                        </template>
+                    </div>
+                </template>
+
+                <div class="grid">
+                    <lightning-input data-field="title" label="Instance Title" value={form.title} onchange={handleChange}></lightning-input>
+                    <lightning-input type="number" min="1" data-field="capacity" label="Capacity (required)" value={form.capacity} onchange={handleChange}></lightning-input>
+                    <lightning-input type="datetime" data-field="startDateTime" label="Start Date/Time" value={form.startDateTime} onchange={handleChange} required></lightning-input>
+                    <lightning-input type="datetime" data-field="endDateTime" label="End Date/Time" value={form.endDateTime} onchange={handleChange} required></lightning-input>
+                    <lightning-combobox data-field="locationType" label="Location Type Override" value={form.locationType} options={locationTypeOptions} onchange={handleChange}></lightning-combobox>
+                    <lightning-input type="toggle" data-field="privateInstance" label="Private Instance" checked={form.privateInstance} onchange={handleCheck}></lightning-input>
+                </div>
+
+                <lightning-textarea class="slds-m-top_small" data-field="shortDescription" label="Instance Short Description" value={form.shortDescription} onchange={handleChange}></lightning-textarea>
+
+                <template if:false={isLocationVirtual}>
+                    <div class="grid slds-m-top_small">
+                        <lightning-input data-field="locationTitle" label="Location Title Override (required)" value={form.locationTitle} onchange={handleChange}></lightning-input>
+                        <lightning-input data-field="locationAddress" label="Location Address Override (required)" value={form.locationAddress} onchange={handleChange}></lightning-input>
+                        <lightning-input data-field="locationMapLink" label="Location Map Link Override (required)" value={form.locationMapLink} onchange={handleChange}></lightning-input>
+                        <lightning-textarea data-field="parkingInfo" label="Parking Info (required)" value={form.parkingInfo} onchange={handleChange}></lightning-textarea>
+                    </div>
+                </template>
+
+                <template if:true={isLocationVirtual}>
+                    <div class="grid slds-m-top_small">
+                        <lightning-input data-field="virtualMeetingLink" label="Virtual Meeting Link (required)" value={form.virtualMeetingLink} onchange={handleChange}></lightning-input>
+                        <lightning-input data-field="meetingId" label="Meeting ID" value={form.meetingId} onchange={handleChange}></lightning-input>
+                        <lightning-input data-field="meetingPasscode" label="Meeting Passcode" value={form.meetingPasscode} onchange={handleChange}></lightning-input>
+                    </div>
+                </template>
+
+                <div class="grid slds-m-top_small">
+                    <lightning-input data-field="templateLogoOverride" label="Template Logo Override" value={form.templateLogoOverride} onchange={handleChange}></lightning-input>
+                    <lightning-input data-field="feedButtonTextOverride" label="Feed Registration Button Text Override" value={form.feedButtonTextOverride} onchange={handleChange}></lightning-input>
+                    <lightning-input type="number" step="0.01" data-field="eventFeeOverride" label="Event Fee Override" value={form.eventFeeOverride} onchange={handleChange}></lightning-input>
+                    <lightning-input type="number" step="0.01" data-field="eventFeeAdditionalOverride" label="Event Fee Additional Override" value={form.eventFeeAdditionalOverride} onchange={handleChange}></lightning-input>
+                    <lightning-input data-field="eventFeeAllocationOverrideId" label="Event Fee Allocation Override Id" value={form.eventFeeAllocationOverrideId} onchange={handleChange}></lightning-input>
+                    <lightning-input data-field="eventFeeAdditionalAllocationOverrideId" label="Event Fee Additional Allocation Override Id" value={form.eventFeeAdditionalAllocationOverrideId} onchange={handleChange}></lightning-input>
+                    <lightning-input data-field="campaignOverrideId" label="Campaign Override Id" value={form.campaignOverrideId} onchange={handleChange}></lightning-input>
+                </div>
+
+                <div class="slds-m-top_small">
+                    <lightning-input type="toggle" data-field="createDefaultReminders" label="Create Instance Reminders" message-toggle-active="On" message-toggle-inactive="Off" checked={form.createDefaultReminders} onchange={handleCheck}></lightning-input>
+                    <p class="slds-text-body_small slds-text-color_weak">{reminderHelpText}</p>
+                </div>
+
+                <div class="slds-m-top_medium">
+                    <lightning-button variant="brand" label="Create Instance" onclick={handleSave} disabled={isSaving}></lightning-button>
+                </div>
+            </div>
+        </template>
     </lightning-card>
 </template>

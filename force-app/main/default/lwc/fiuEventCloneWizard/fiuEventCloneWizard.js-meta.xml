@@ -3,5 +3,9 @@
     <apiVersion>66.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>Clone Existing Event Wizard</masterLabel>
-    <targets><target>lightning__AppPage</target></targets>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__Tab</target>
+        <target>lightning__UrlAddressable</target>
+    </targets>
 </LightningComponentBundle>
