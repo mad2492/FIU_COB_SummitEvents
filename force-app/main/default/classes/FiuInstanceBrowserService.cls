@@ -6,6 +6,7 @@ public with sharing class FiuInstanceBrowserService {
 
     public class InstanceRow {
         @AuraEnabled public Id id;
+        @AuraEnabled public Id eventId;
         @AuraEnabled public String title;
         @AuraEnabled public String eventName;
         @AuraEnabled public Date startDate;
@@ -35,7 +36,10 @@ public with sharing class FiuInstanceBrowserService {
             'summit__Location_Title_Override__c', 'summit__Location_Address_Override__c', 'summit__Location_Map_Link_Override__c', 'Parking_info__c',
             'summit__Event__r.Id', 'summit__Event__r.Name', 'summit__Event__r.summit__Account__c', 'summit__Event__r.summit__Payment_Gateway__c', 'summit__Event__r.Accounting_Department__c',
             'summit__Event__r.Default_Plan__c', 'summit__Event__r.Includes_Multiple_Programs__c',
-            'summit__Event__r.summit__Event_Additional_Question_Title__c', 'summit__Event__r.summit__Event_Additional_Questions_Description__c'
+            'summit__Event__r.summit__Event_Additional_Question_Title__c', 'summit__Event__r.summit__Event_Additional_Questions_Description__c',
+            'summit__Event__r.summit__Event_description__c', 'summit__Event__r.summit__Event_Short_Listing_Description__c',
+            'summit__Event__r.summit__Event_Footer__c', 'summit__Event__r.summit__Event_Full_Text__c',
+            'summit__Event__r.summit__Event_Confirmation_Description__c'
         };
         for (String eventProgramField : programConfig.eventProgramFields) {
             fields.add('summit__Event__r.' + eventProgramField);
@@ -123,6 +127,7 @@ public with sharing class FiuInstanceBrowserService {
             r.activeStatus = (String) row.get('summit__Active_Status__c');
             r.capacity = (Decimal) row.get('summit__Capacity__c');
             SObject evt = row.getSObject('summit__Event__r');
+            r.eventId = evt == null ? null : (Id) evt.get('Id');
             r.eventName = evt == null ? null : (String) evt.get('Name');
             String instanceReason = getUnpublishedReason(row);
             String parentEventReason = evt == null ? null : getParentEventNotReadyReason(
@@ -228,6 +233,7 @@ public with sharing class FiuInstanceBrowserService {
         if (hasCustomQuestionPageDetails && (relatedQuestionCount == null || relatedQuestionCount == 0)) {
             reasons.add('Parent event has custom question details but no related Summit Event Questions');
         }
+        reasons.addAll(FiuEventsReadinessService.collectRichTextImageWarnings(eventRow));
 
         return reasons.isEmpty() ? null : String.join(reasons, '; ');
     }

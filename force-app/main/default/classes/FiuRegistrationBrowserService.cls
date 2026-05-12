@@ -73,6 +73,8 @@ public with sharing class FiuRegistrationBrowserService {
         if (allowedRecordTypes.isEmpty()) return result;
         FiuProgramFilterService.ProgramFilterConfig programConfig = FiuProgramFilterService.getConfig();
         String previewField = FiuEventsAccessService.resolveEventPreviewField();
+        String trimmedSearch = String.isBlank(searchKey) ? null : searchKey.trim();
+        String searchLike = trimmedSearch == null ? null : '%' + String.escapeSingleQuotes(trimmedSearch) + '%';
 
         List<String> fields = new List<String>{
             'Id', 'Name', 'summit__Event__c', 'summit__Event_Instance__c', 'summit__Event_Instance__r.Name',
@@ -96,9 +98,6 @@ public with sharing class FiuRegistrationBrowserService {
         String soql = 'SELECT ' + String.join(fields, ',') + ' FROM summit__Summit_Events_Registration__c ' +
                       'WHERE summit__Event_Instance__r.summit__Event__r.RecordTypeId IN :allowedRecordTypes';
         if (previewField != null) soql += ' AND (summit__Event_Instance__r.summit__Event__r.' + previewField + ' = false OR summit__Event_Instance__r.summit__Event__r.' + previewField + ' = null)';
-        if (String.isNotBlank(searchKey)) {
-            soql += ' AND (Name LIKE :likeSearch OR summit__Event_Instance__r.summit__Event__r.Name LIKE :likeSearch)';
-        }
         if (instanceId != null) {
             soql += ' AND summit__Event_Instance__c = :instanceId';
         }
@@ -114,26 +113,27 @@ public with sharing class FiuRegistrationBrowserService {
         }
         String programClause = FiuProgramFilterService.buildProgramWhereClause('summit__Event_Instance__r.summit__Event__r.', programCode, programConfig);
         if (programClause != null) soql += ' AND ' + programClause;
+        String searchClause = buildSearchClause(searchLike, emailField, processStatusField, contactField, contactNameField, contactRelationshipField);
+        if (searchClause != null) soql += ' AND ' + searchClause;
 
         String countSoql = 'SELECT COUNT() FROM summit__Summit_Events_Registration__c WHERE summit__Event_Instance__r.summit__Event__r.RecordTypeId IN :allowedRecordTypes';
         if (previewField != null) countSoql += ' AND (summit__Event_Instance__r.summit__Event__r.' + previewField + ' = false OR summit__Event_Instance__r.summit__Event__r.' + previewField + ' = null)';
-        if (String.isNotBlank(searchKey)) countSoql += ' AND (Name LIKE :likeSearch OR summit__Event_Instance__r.summit__Event__r.Name LIKE :likeSearch)';
         if (instanceId != null) countSoql += ' AND summit__Event_Instance__c = :instanceId';
         if (statusFilter == 'Open' && processStatusField != null) countSoql += ' AND ' + processStatusField + ' NOT IN (\'Started\', \'Cancelled\')';
         else if (statusFilter == 'Started' && processStatusField != null) countSoql += ' AND ' + processStatusField + ' = \'Started\'';
         else if (statusFilter == 'Cancelled' && processStatusField != null) countSoql += ' AND ' + processStatusField + ' = \'Cancelled\'';
         if (String.isNotBlank(locationTypeOverrideFilter)) countSoql += ' AND summit__Event_Instance__r.summit__Location_Type_Override__c = :locationTypeOverrideFilter';
         if (programClause != null) countSoql += ' AND ' + programClause;
+        if (searchClause != null) countSoql += ' AND ' + searchClause;
 
         Integer safePageSize = pageSize == null || pageSize < 1 ? 25 : Math.min(pageSize, 100);
         Integer safePageNumber = pageNumber == null || pageNumber < 1 ? 1 : pageNumber;
         Integer offsetRows = (safePageNumber - 1) * safePageSize;
-        result.totalCount = Integer.valueOf(Database.countQuery(countSoql));
 
-        String orderBy = buildOrderBy(sortField1, sortDir1, sortField2, sortDir2);
+        String orderBy = buildOrderBy(sortField1, sortDir1, sortField2, sortDir2, emailField, processStatusField);
+        result.totalCount = Integer.valueOf(Database.countQuery(countSoql));
         soql += ' ORDER BY ' + orderBy + ' LIMIT :safePageSize OFFSET :offsetRows';
 
-        String likeSearch = '%' + String.escapeSingleQuotes(searchKey == null ? '' : searchKey.trim()) + '%';
         List<RegistrationRow> rows = new List<RegistrationRow>();
         for (SObject reg : Database.query(soql)) {
             SObject inst = reg.getSObject('summit__Event_Instance__r');
@@ -161,7 +161,7 @@ public with sharing class FiuRegistrationBrowserService {
                 row.contactIssue = 'Missing Contact';
                 row.contactIssueClass = 'slds-text-color_warning slds-text-title_bold';
             } else {
-                row.contactIssue = 'OK';
+                row.contactIssue = null;
                 row.contactIssueClass = 'slds-text-color_success';
             }
             if (inst != null) {
@@ -170,7 +170,7 @@ public with sharing class FiuRegistrationBrowserService {
                 row.locationTypeOverride = (String) inst.get('summit__Location_Type_Override__c');
                 if (evt != null) {
                     row.eventName = (String) evt.get('Name');
-                    row.eventId = (Id) reg.get('summit__Event__c');
+                    row.eventId = (Id) evt.get('Id');
                 }
             }
             rows.add(row);
@@ -179,18 +179,18 @@ public with sharing class FiuRegistrationBrowserService {
         return result;
     }
 
-    private static String buildOrderBy(String sortField1, String sortDir1, String sortField2, String sortDir2) {
+    private static String buildOrderBy(String sortField1, String sortDir1, String sortField2, String sortDir2, String emailField, String processStatusField) {
         Map<String, String> sortMap = new Map<String, String>{
             'name' => 'Name',
-            'email' => 'summit__Registrant_Email__c',
-            'eventName' => 'summit__Event__r.Name',
+            'eventName' => 'summit__Event_Instance__r.summit__Event__r.Name',
             'instanceName' => 'summit__Event_Instance__r.Name',
-            'processStatus' => 'summit__Status__c',
             'instanceStartDate' => 'summit__Event_Instance_Start_Date__c',
             'instanceEndDate' => 'summit__Event_Instance_End_Date__c',
             'locationTypeOverride' => 'summit__Event_Instance__r.summit__Location_Type_Override__c',
             'createdDate' => 'CreatedDate'
         };
+        if (emailField != null) sortMap.put('email', emailField);
+        if (processStatusField != null) sortMap.put('processStatus', processStatusField);
         List<String> orderParts = new List<String>();
         addSortPart(orderParts, sortMap, sortField1, sortDir1);
         addSortPart(orderParts, sortMap, sortField2, sortDir2);
@@ -204,6 +204,27 @@ public with sharing class FiuRegistrationBrowserService {
         String dir = String.valueOf(sortDir).toUpperCase() == 'ASC' ? 'ASC' : 'DESC';
         String part = sortMap.get(sortField) + ' ' + dir + ' NULLS LAST';
         if (!orderParts.contains(part)) orderParts.add(part);
+    }
+
+    private static String buildSearchClause(String searchLike, String emailField, String processStatusField, String contactField, String contactNameField, String contactRelationshipField) {
+        if (String.isBlank(searchLike)) return null;
+        List<String> parts = new List<String>{
+            'Name LIKE :searchLike',
+            'summit__Event_Instance__r.Name LIKE :searchLike',
+            'summit__Event_Instance__r.summit__Event__r.Name LIKE :searchLike',
+            'summit__Event_Instance__r.summit__Location_Type_Override__c LIKE :searchLike'
+        };
+        if (emailField != null) parts.add(emailField + ' LIKE :searchLike');
+        if (processStatusField != null) parts.add(processStatusField + ' LIKE :searchLike');
+        if (contactNameField != null) parts.add(contactNameField + ' LIKE :searchLike');
+        if (contactRelationshipField != null) {
+            parts.add(contactRelationshipField + '.Name LIKE :searchLike');
+            parts.add(contactRelationshipField + '.Email LIKE :searchLike');
+        }
+        if (contactField != null && 'missing contact'.contains(searchLike.replace('%', '').toLowerCase())) {
+            parts.add(contactField + ' = null');
+        }
+        return '(' + String.join(parts, ' OR ') + ')';
     }
 
     @AuraEnabled

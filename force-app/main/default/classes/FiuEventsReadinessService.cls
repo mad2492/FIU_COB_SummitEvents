@@ -21,7 +21,7 @@ public with sharing class FiuEventsReadinessService {
             throw new AuraHandledException('You do not have access to any FIU Event record types.');
         }
 
-        String soql = 'SELECT Id, Name, RecordTypeId, summit__Account__c, summit__Payment_Gateway__c, Accounting_Department__c, FIU_Create_Opps_From_Regs__c, Send_Registration_Confirmation_Email__c, summit__Event_Additional_Question_Title__c, summit__Event_Additional_Questions_Description__c FROM ' + eventObject + ' WHERE Id = :eventId AND RecordTypeId IN :allowedRecordTypes LIMIT 1';
+        String soql = 'SELECT Id, Name, RecordTypeId, summit__Account__c, summit__Payment_Gateway__c, Accounting_Department__c, FIU_Create_Opps_From_Regs__c, Send_Registration_Confirmation_Email__c, summit__Event_Additional_Question_Title__c, summit__Event_Additional_Questions_Description__c, summit__Event_description__c, summit__Event_Short_Listing_Description__c, summit__Event_Footer__c, summit__Event_Full_Text__c, summit__Event_Confirmation_Description__c FROM ' + eventObject + ' WHERE Id = :eventId AND RecordTypeId IN :allowedRecordTypes LIMIT 1';
         SObject eventRecord = Database.query(soql);
         Integer questionCount = 0;
         String questionObject = FiuEventsAccessService.resolveEventQuestionObject();
@@ -77,7 +77,45 @@ public with sharing class FiuEventsReadinessService {
             result.warnings.add('Custom Questions Page details are filled in, but no related Summit Event Questions exist.');
         }
 
+        result.warnings.addAll(collectRichTextImageWarnings(eventRecord));
+
         return result;
+    }
+
+    public static List<String> collectRichTextImageWarnings(SObject eventRecord) {
+        List<String> warnings = new List<String>();
+        List<String> affectedFields = new List<String>();
+        for (String fieldApiName : new List<String>{
+            'summit__Event_description__c',
+            'summit__Event_Short_Listing_Description__c',
+            'summit__Event_Footer__c',
+            'summit__Event_Full_Text__c',
+            'summit__Event_Additional_Questions_Description__c',
+            'summit__Event_Confirmation_Description__c'
+        }) {
+            if (hasSalesforceHostedRichTextImage((String) safeGet(eventRecord, fieldApiName))) {
+                affectedFields.add(fieldApiName);
+            }
+        }
+        if (!affectedFields.isEmpty()) {
+            warnings.add(
+                'Summit Events 0.37 removes Guest User sharing to Event records. Verify embedded images in these rich text fields use public links before launch: ' +
+                String.join(affectedFields, ', ')
+            );
+        }
+        return warnings;
+    }
+
+    public static Boolean hasSalesforceHostedRichTextImage(String htmlValue) {
+        if (String.isBlank(htmlValue)) return false;
+        String normalized = htmlValue.toLowerCase();
+        if (!normalized.contains('<img')) return false;
+        return normalized.contains('/servlet/rtaimage') ||
+            normalized.contains('/sfc/servlet.shepherd') ||
+            normalized.contains('/servlet/servlet.filedownload') ||
+            normalized.contains('/servlet/filefield') ||
+            normalized.contains('documentforce.com') ||
+            normalized.contains('file.force.com');
     }
 
     private static Object safeGet(SObject record, String fieldApiName) {

@@ -45,6 +45,12 @@ public with sharing class FiuHomeDashboardService {
         Date today = Date.today();
 
         FiuProgramFilterService.ProgramFilterConfig programConfig = FiuProgramFilterService.getConfig();
+        String previewField = FiuEventsAccessService.resolveEventPreviewField();
+        Map<String, Schema.SObjectField> eventFields =
+            Schema.getGlobalDescribe().get('summit__Summit_Events__c').getDescribe().fields.getMap();
+        String capacityField = resolveOptionalField(eventFields, new List<String>{ 'summit__Capacity__c', 'Capacity__c' });
+        String readinessStatusField = resolveOptionalField(eventFields, new List<String>{ 'FIU_Readiness_Status__c' });
+        String readinessReasonField = resolveOptionalField(eventFields, new List<String>{ 'FIU_Readiness_Reason__c' });
         List<String> activeEventFields = new List<String>{
             'Id',
             'Name',
@@ -53,14 +59,24 @@ public with sharing class FiuHomeDashboardService {
             'Default_Plan__c',
             'Includes_Multiple_Programs__c',
             'summit__Event_Additional_Question_Title__c',
-            'summit__Event_Additional_Questions_Description__c'
+            'summit__Event_Additional_Questions_Description__c',
+            'summit__Event_description__c',
+            'summit__Event_Short_Listing_Description__c',
+            'summit__Event_Footer__c',
+            'summit__Event_Full_Text__c',
+            'summit__Event_Confirmation_Description__c'
         };
+        if (capacityField != null) activeEventFields.add(capacityField);
+        if (readinessStatusField != null) activeEventFields.add(readinessStatusField);
+        if (readinessReasonField != null) activeEventFields.add(readinessReasonField);
         activeEventFields.addAll(programConfig.eventProgramFields);
         if (programConfig.hasDefaultPlanLookup) activeEventFields.add('Default_Plan__r.Plan_Code__c');
-        List<SObject> activeEventRows = Database.query(
+        String activeEventSoql =
             'SELECT ' + String.join(activeEventFields, ',') +
-            ' FROM summit__Summit_Events__c WHERE RecordTypeId IN :allowedRt AND summit__Event_Status__c = \'Active\' LIMIT 5000'
-        );
+            ' FROM summit__Summit_Events__c WHERE RecordTypeId IN :allowedRt AND summit__Event_Status__c = \'Active\'';
+        if (previewField != null) activeEventSoql += ' AND (' + previewField + ' = false OR ' + previewField + ' = null)';
+        activeEventSoql += ' LIMIT 5000';
+        List<SObject> activeEventRows = Database.query(activeEventSoql);
         Map<Id, Integer> questionCountByEventId = new Map<Id, Integer>();
         Set<Id> activeEventIds = new Set<Id>();
         for (SObject eventRow : activeEventRows) {
@@ -86,7 +102,10 @@ public with sharing class FiuHomeDashboardService {
             if (!FiuProgramFilterService.eventMatchesSelectedProgram(eventRow, programConfig, programCode)) continue;
             data.activeEvents++;
             Integer questionCount = questionCountByEventId.containsKey((Id) eventRow.get('Id')) ? questionCountByEventId.get((Id) eventRow.get('Id')) : 0;
-            String eventReason = getEventNotReadyReason(eventRow, programConfig, questionCount);
+            String eventReason = readinessReasonField == null ? null : (String) eventRow.get(readinessReasonField);
+            if (String.isBlank(eventReason)) {
+                eventReason = getEventNotReadyReason(eventRow, programConfig, questionCount, capacityField);
+            }
             if (!String.isBlank(eventReason)) {
                 data.notReadyEvents++;
                 if (data.attentionRows.size() < 8) {
@@ -107,6 +126,8 @@ public with sharing class FiuHomeDashboardService {
             'summit__Event__c',
             'summit__Event__r.Name', 'summit__Event__r.summit__Account__c', 'summit__Event__r.summit__Payment_Gateway__c', 'summit__Event__r.Accounting_Department__c'
         };
+        String instanceReadinessReasonField = resolveOptionalField('summit__Summit_Events_Instance__c', new List<String>{ 'FIU_Readiness_Reason__c' });
+        if (instanceReadinessReasonField != null) instanceFields.add(instanceReadinessReasonField);
         for (String eventProgramField : programConfig.eventProgramFields) {
             instanceFields.add('summit__Event__r.' + eventProgramField);
         }
@@ -114,6 +135,7 @@ public with sharing class FiuHomeDashboardService {
         String instanceSoql =
             'SELECT ' + String.join(instanceFields, ',') +
             ' FROM summit__Summit_Events_Instance__c WHERE summit__Event__r.RecordTypeId IN :allowedRt';
+        if (previewField != null) instanceSoql += ' AND (summit__Event__r.' + previewField + ' = false OR summit__Event__r.' + previewField + ' = null)';
         instanceSoql += ' ORDER BY summit__Instance_Start_Date__c ASC NULLS LAST LIMIT 1000';
         List<SObject> instances = Database.query(instanceSoql);
 
@@ -121,7 +143,8 @@ public with sharing class FiuHomeDashboardService {
         for (SObject row : instances) {
             if (!FiuProgramFilterService.eventMatchesSelectedProgram(row.getSObject('summit__Event__r'), programConfig, programCode)) continue;
             Date startDate = (Date) row.get('summit__Instance_Start_Date__c');
-            String reason = getNotReadyReason(row);
+            String reason = instanceReadinessReasonField == null ? null : (String) row.get(instanceReadinessReasonField);
+            if (String.isBlank(reason)) reason = getNotReadyReason(row);
 
             if (startDate != null && startDate >= today) {
                 data.upcomingInstances++;
@@ -181,9 +204,13 @@ public with sharing class FiuHomeDashboardService {
         return data;
     }
 
-    private static String getEventNotReadyReason(SObject eventRow, FiuProgramFilterService.ProgramFilterConfig programConfig, Integer relatedQuestionCount) {
+    private static String getEventNotReadyReason(SObject eventRow, FiuProgramFilterService.ProgramFilterConfig programConfig, Integer relatedQuestionCount, String capacityField) {
         List<String> reasons = new List<String>();
         if (eventRow.get('summit__Account__c') == null) reasons.add('Missing account');
+        if (capacityField != null) {
+            Decimal capacity = (Decimal) eventRow.get(capacityField);
+            if (capacity == null || capacity <= 0) reasons.add('Missing capacity');
+        }
 
         Boolean includesMultiple = (Boolean) eventRow.get('Includes_Multiple_Programs__c');
         Boolean hasDefaultPlan = eventRow.get('Default_Plan__c') != null;
@@ -201,6 +228,7 @@ public with sharing class FiuHomeDashboardService {
         if (hasCustomQuestionPageDetails && (relatedQuestionCount == null || relatedQuestionCount == 0)) {
             reasons.add('Custom questions details set but no related Summit Event Questions');
         }
+        reasons.addAll(FiuEventsReadinessService.collectRichTextImageWarnings(eventRow));
         return reasons.isEmpty() ? null : String.join(reasons, '; ');
     }
 
@@ -231,6 +259,11 @@ public with sharing class FiuHomeDashboardService {
         Schema.SObjectType sType = Schema.getGlobalDescribe().get(objectApiName);
         if (sType == null) return null;
         Map<String, Schema.SObjectField> mapFields = sType.getDescribe().fields.getMap();
+        return resolveOptionalField(mapFields, candidates);
+    }
+
+    private static String resolveOptionalField(Map<String, Schema.SObjectField> mapFields, List<String> candidates) {
+        if (mapFields == null || candidates == null) return null;
         for (String fieldApi : candidates) {
             if (mapFields.containsKey(fieldApi)) return fieldApi;
         }

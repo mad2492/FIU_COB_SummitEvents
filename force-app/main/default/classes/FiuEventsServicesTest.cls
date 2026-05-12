@@ -25,6 +25,18 @@ private class FiuEventsServicesTest {
     }
 
     @IsTest
+    static void readiness_detects_salesforce_hosted_rich_text_images() {
+        System.assertEquals(
+            true,
+            FiuEventsReadinessService.hasSalesforceHostedRichTextImage('<p><img src="/servlet/rtaImage?eid=a0B"/></p>')
+        );
+        System.assertEquals(
+            false,
+            FiuEventsReadinessService.hasSalesforceHostedRichTextImage('<p><img src="https://example.edu/event-banner.png"/></p>')
+        );
+    }
+
+    @IsTest
     static void csv_builder_quotes_values() {
         FiuEventsRosterService.RegistrationRow row = new FiuEventsRosterService.RegistrationRow();
         row.registrationId = 'a1T000000000001AAA';

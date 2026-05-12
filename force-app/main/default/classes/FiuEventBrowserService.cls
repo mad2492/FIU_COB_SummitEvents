@@ -31,12 +31,22 @@ public with sharing class FiuEventBrowserService {
 
         FiuProgramFilterService.ProgramFilterConfig programConfig = FiuProgramFilterService.getConfig();
         String previewField = FiuEventsAccessService.resolveEventPreviewField();
+        Map<String, Schema.SObjectField> eventFields =
+            Schema.getGlobalDescribe().get(eventObject).getDescribe().fields.getMap();
+        String capacityField = resolveOptionalField(eventFields, new List<String>{ 'summit__Capacity__c', 'Capacity__c' });
+        String readinessStatusField = resolveOptionalField(eventFields, new List<String>{ 'FIU_Readiness_Status__c' });
+        String readinessReasonField = resolveOptionalField(eventFields, new List<String>{ 'FIU_Readiness_Reason__c' });
         String normalizedSearch = String.isBlank(searchKey) ? null : searchKey.trim().toLowerCase();
         List<String> selectFields = new List<String>{
             'Id', 'Name', 'RecordType.Name', 'summit__Event_Status__c', 'summit__Start_Date__c', 'summit__End_Date__c',
             'summit__Account__c', 'Default_Plan__c', 'Includes_Multiple_Programs__c',
-            'summit__Event_Additional_Question_Title__c', 'summit__Event_Additional_Questions_Description__c'
+            'summit__Event_Additional_Question_Title__c', 'summit__Event_Additional_Questions_Description__c',
+            'summit__Event_description__c', 'summit__Event_Short_Listing_Description__c',
+            'summit__Event_Footer__c', 'summit__Event_Full_Text__c', 'summit__Event_Confirmation_Description__c'
         };
+        if (capacityField != null) selectFields.add(capacityField);
+        if (readinessStatusField != null) selectFields.add(readinessStatusField);
+        if (readinessReasonField != null) selectFields.add(readinessReasonField);
         selectFields.addAll(programConfig.eventProgramFields);
         if (programConfig.hasDefaultPlanLookup) selectFields.add('Default_Plan__r.Plan_Code__c');
 
@@ -99,7 +109,11 @@ public with sharing class FiuEventBrowserService {
         List<EventRow> rows = new List<EventRow>();
         for (SObject record : rawRows) {
             Integer questionCount = questionCountByEventId.containsKey((Id) record.get('Id')) ? questionCountByEventId.get((Id) record.get('Id')) : 0;
-            String issueReason = getEventIssueReason(record, programConfig, questionCount);
+            String issueReason = readinessReasonField == null ? null : (String) record.get(readinessReasonField);
+            String persistedReadiness = readinessStatusField == null ? null : (String) record.get(readinessStatusField);
+            if (String.isBlank(issueReason)) {
+                issueReason = getEventIssueReason(record, programConfig, questionCount, capacityField);
+            }
             if (readinessFilter == 'NotReady' && String.isBlank(issueReason)) continue;
             if (readinessFilter == 'Ready' && !String.isBlank(issueReason)) continue;
             EventRow row = new EventRow();
@@ -112,19 +126,33 @@ public with sharing class FiuEventBrowserService {
             row.startDate = (Date) record.get('summit__Start_Date__c');
             row.endDate = (Date) record.get('summit__End_Date__c');
             row.issueReason = issueReason;
-            Boolean hasIssues = !String.isBlank(issueReason);
-            if (hasIssues && row.status == 'Active') {
-                row.readiness = 'Active w/ Issues';
-                row.readinessClass = 'slds-text-color_error slds-text-title_bold';
-                row.statusClass = 'slds-text-color_error slds-text-title_bold';
-            } else if (hasIssues) {
-                row.readiness = 'Needs Review';
-                row.readinessClass = 'slds-text-color_warning slds-text-title_bold';
-                row.statusClass = 'slds-text-color_warning';
+            if (!String.isBlank(persistedReadiness)) {
+                row.readiness = persistedReadiness;
+                if (persistedReadiness == 'Ready') {
+                    row.readinessClass = 'slds-text-color_success slds-text-title_bold';
+                    row.statusClass = 'slds-text-color_success';
+                } else if (persistedReadiness == 'Needs Review') {
+                    row.readinessClass = 'slds-text-color_warning slds-text-title_bold';
+                    row.statusClass = 'slds-text-color_warning';
+                } else {
+                    row.readinessClass = 'slds-text-color_error slds-text-title_bold';
+                    row.statusClass = row.status == 'Active' ? 'slds-text-color_error slds-text-title_bold' : 'slds-text-color_warning';
+                }
             } else {
-                row.readiness = 'Ready';
-                row.readinessClass = 'slds-text-color_success slds-text-title_bold';
-                row.statusClass = 'slds-text-color_success';
+                Boolean hasIssues = !String.isBlank(issueReason);
+                if (hasIssues && row.status == 'Active') {
+                    row.readiness = 'Active w/ Issues';
+                    row.readinessClass = 'slds-text-color_error slds-text-title_bold';
+                    row.statusClass = 'slds-text-color_error slds-text-title_bold';
+                } else if (hasIssues) {
+                    row.readiness = 'Needs Review';
+                    row.readinessClass = 'slds-text-color_warning slds-text-title_bold';
+                    row.statusClass = 'slds-text-color_warning';
+                } else {
+                    row.readiness = 'Ready';
+                    row.readinessClass = 'slds-text-color_success slds-text-title_bold';
+                    row.statusClass = 'slds-text-color_success';
+                }
             }
             if (normalizedSearch != null && !matchesSearch(row, normalizedSearch)) continue;
             rows.add(row);
@@ -167,9 +195,13 @@ public with sharing class FiuEventBrowserService {
         if (!orderParts.contains(part)) orderParts.add(part);
     }
 
-    private static String getEventIssueReason(SObject eventRow, FiuProgramFilterService.ProgramFilterConfig programConfig, Integer relatedQuestionCount) {
+    private static String getEventIssueReason(SObject eventRow, FiuProgramFilterService.ProgramFilterConfig programConfig, Integer relatedQuestionCount, String capacityField) {
         List<String> reasons = new List<String>();
         if (eventRow.get('summit__Account__c') == null) reasons.add('Missing account');
+        if (capacityField != null) {
+            Decimal capacity = (Decimal) eventRow.get(capacityField);
+            if (capacity == null || capacity <= 0) reasons.add('Missing capacity');
+        }
 
         Boolean includesMultiple = (Boolean) eventRow.get('Includes_Multiple_Programs__c');
         Boolean hasDefaultPlan = eventRow.get('Default_Plan__c') != null;
@@ -186,7 +218,16 @@ public with sharing class FiuEventBrowserService {
         if (hasCustomQuestionPageDetails && (relatedQuestionCount == null || relatedQuestionCount == 0)) {
             reasons.add('Custom questions details set but no related Summit Event Questions');
         }
+        reasons.addAll(FiuEventsReadinessService.collectRichTextImageWarnings(eventRow));
         return reasons.isEmpty() ? null : String.join(reasons, '; ');
+    }
+
+    private static String resolveOptionalField(Map<String, Schema.SObjectField> fieldMap, List<String> candidates) {
+        if (fieldMap == null || candidates == null) return null;
+        for (String fieldApi : candidates) {
+            if (fieldMap.containsKey(fieldApi)) return fieldApi;
+        }
+        return null;
     }
 
     private static Boolean matchesSearch(EventRow row, String normalizedSearch) {

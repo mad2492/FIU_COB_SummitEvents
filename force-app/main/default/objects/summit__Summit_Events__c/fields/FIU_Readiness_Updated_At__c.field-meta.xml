@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>FIU_Readiness_Updated_At__c</fullName>
+    <description>Last recalculation timestamp for FIU readiness status/reason.</description>
+    <externalId>false</externalId>
+    <label>FIU Readiness Updated At</label>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>DateTime</type>
+</CustomField>
