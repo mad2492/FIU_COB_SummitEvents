@@ -60,10 +60,14 @@ public with sharing class FIU_EventsWizardService {
         @AuraEnabled public String landingShortListingDescription;
         @AuraEnabled public String customQuestionsTitle;
         @AuraEnabled public String customQuestionsDescription;
+        @AuraEnabled public Boolean privateEvent;
         @AuraEnabled public String templateBannerImage;
         @AuraEnabled public String templateLogoImage;
         @AuraEnabled public String templateDisclaimerText;
         @AuraEnabled public String registerButtonText;
+        @AuraEnabled public String eventHomeLinkTitle;
+        @AuraEnabled public String eventHomeLinkUrl;
+        @AuraEnabled public String feedRegistrationButtonText;
         @AuraEnabled public String registrationEmailRestriction;
         @AuraEnabled public Decimal eventFee;
         @AuraEnabled public Decimal eventFeeAdditional;
@@ -332,6 +336,7 @@ public with sharing class FIU_EventsWizardService {
         String locationMapLinkField = resolveOptionalField(eventFields, new List<String>{ 'summit__Location_Map_Link__c', 'Location_Map_Link__c' });
         String buildingField = resolveOptionalField(eventFields, new List<String>{ 'summit__Building__c', 'Building__c' });
         String capacityField = resolveOptionalField(eventFields, new List<String>{ 'summit__Capacity__c', 'Capacity__c' });
+        String privateEventField = resolveOptionalField(eventFields, new List<String>{ 'summit__Private_Event__c' });
         String filterCategoryField = resolveOptionalField(eventFields, new List<String>{ 'summit__Filter_Category__c' });
         String confirmationTitleField = resolveOptionalField(eventFields, new List<String>{ 'summit__Event_Confirmation_Title__c' });
         String confirmationDescriptionField = resolveOptionalField(eventFields, new List<String>{ 'summit__Event_Confirmation_Description__c' });
@@ -344,6 +349,9 @@ public with sharing class FIU_EventsWizardService {
         String templateLogoImageField = resolveOptionalField(eventFields, new List<String>{ 'Template_Logo_Image__c', 'summit__Template_Logo_Image__c' });
         String templateDisclaimerField = resolveOptionalField(eventFields, new List<String>{ 'Template_Disclaimer_Text__c', 'summit__Template_Disclaimer_Text__c' });
         String registerButtonTextField = resolveOptionalField(eventFields, new List<String>{ 'Register_Button_Text__c', 'summit__Register_Button_Text__c' });
+        String eventHomeLinkTitleField = resolveOptionalField(eventFields, new List<String>{ 'summit__Event_Home_Link_Title__c' });
+        String eventHomeLinkUrlField = resolveOptionalField(eventFields, new List<String>{ 'summit__Event_Home_Link_URL__c' });
+        String feedRegistrationButtonTextField = resolveOptionalField(eventFields, new List<String>{ 'summit__Feed_Registration_Button_Text__c' });
         String registrationEmailRestrictionField = resolveOptionalField(eventFields, new List<String>{ 'summit__Registration_Email_Restriction__c' });
         String eventFeeField = resolveOptionalField(eventFields, new List<String>{ 'summit__Event_Fee__c' });
         String eventFeeAdditionalField = resolveOptionalField(eventFields, new List<String>{ 'summit__Event_Fee_Additional__c' });
@@ -369,6 +377,9 @@ public with sharing class FIU_EventsWizardService {
         if (eventTypeField != null && String.isBlank(req.eventType)) throw new AuraHandledException('Event Type is required.');
         if (categoryField != null && String.isBlank(req.category)) throw new AuraHandledException('Category is required.');
         if (locationTypeField != null && String.isBlank(req.locationType)) throw new AuraHandledException('Location type is required.');
+        if (capacityField != null && (req.capacity == null || req.capacity <= 0)) {
+            throw new AuraHandledException('Capacity must be greater than 0 before this Event can be previewed or created.');
+        }
         if (startDateField != null && req.eventStartDate == null) throw new AuraHandledException('Event Start Date is required.');
         if (endDateField != null && req.eventEndDate == null) throw new AuraHandledException('Event End Date is required.');
         if (startDateField != null && endDateField != null && req.eventStartDate != null && req.eventEndDate != null && req.eventEndDate < req.eventStartDate) {
@@ -467,6 +478,7 @@ public with sharing class FIU_EventsWizardService {
             if (buildingField != null) eventRecord.put(buildingField, req.building);
         }
         if (capacityField != null) eventRecord.put(capacityField, req.capacity);
+        if (privateEventField != null) eventRecord.put(privateEventField, req.isPreview == true ? true : (req.privateEvent == true));
         if (filterCategoryField != null) eventRecord.put(filterCategoryField, String.isNotBlank(req.filterCategory) ? req.filterCategory : null);
         if (confirmationTitleField != null) eventRecord.put(confirmationTitleField, req.confirmationTitle);
         if (confirmationDescriptionField != null) eventRecord.put(confirmationDescriptionField, req.confirmationDescription);
@@ -479,6 +491,9 @@ public with sharing class FIU_EventsWizardService {
         if (templateLogoImageField != null) eventRecord.put(templateLogoImageField, req.templateLogoImage);
         if (templateDisclaimerField != null) eventRecord.put(templateDisclaimerField, req.templateDisclaimerText);
         if (registerButtonTextField != null) eventRecord.put(registerButtonTextField, req.registerButtonText);
+        if (eventHomeLinkTitleField != null) eventRecord.put(eventHomeLinkTitleField, req.eventHomeLinkTitle);
+        if (eventHomeLinkUrlField != null) eventRecord.put(eventHomeLinkUrlField, req.eventHomeLinkUrl);
+        if (feedRegistrationButtonTextField != null) eventRecord.put(feedRegistrationButtonTextField, req.feedRegistrationButtonText);
         if (registrationEmailRestrictionField != null) eventRecord.put(registrationEmailRestrictionField, String.isNotBlank(req.registrationEmailRestriction) ? req.registrationEmailRestriction : null);
         if (eventFeeField != null) eventRecord.put(eventFeeField, req.eventFee);
         if (eventFeeAdditionalField != null) eventRecord.put(eventFeeAdditionalField, req.eventFeeAdditional);
@@ -509,9 +524,9 @@ public with sharing class FIU_EventsWizardService {
         if (String.isNotBlank(workingEventId)) update eventRecord;
         else insert eventRecord;
 
-        // Final guardrail: require at least one Program/Plan selection persisted on the Event.
-        if (!hasPersistedProgramSelection(eventObject, (Id) eventRecord.get('Id'), programConfig)) {
-            throw new AuraHandledException('Program/Plan selection is required. Please choose Business Unit and Program(s).');
+        // Final guardrail: require Program/Plan selection only when registrations should create Opportunities.
+        if (req.createOppsFromRegs == true && !hasPersistedProgramSelection(eventObject, (Id) eventRecord.get('Id'), programConfig)) {
+            throw new AuraHandledException('Program/Plan selection is required when registrations create Opportunities. Please choose Business Unit and Program(s).');
         }
 
         CreateResult out = new CreateResult();
@@ -528,12 +543,14 @@ public with sharing class FIU_EventsWizardService {
             if (instType == null) throw new AuraHandledException('Instance object could not be resolved.');
             Map<String, Schema.SObjectField> instFields = instType.getDescribe().fields.getMap();
 
-            String instEventField = resolveOptionalField(instFields, new List<String>{ 'summit__Event__c' });
-            String instTitleField = resolveOptionalField(instFields, new List<String>{ 'summit__Instance_Title__c' });
-            String instStartField = resolveOptionalField(instFields, new List<String>{ 'summit__Instance_Start_Date__c', 'summit__Start_Date__c' });
-            String instEndField = resolveOptionalField(instFields, new List<String>{ 'summit__Instance_End_Date__c', 'summit__End_Date__c' });
-            String instActiveStatusField = resolveOptionalField(instFields, new List<String>{ 'summit__Active_Status__c' });
-            String instOpenRegField = resolveOptionalField(instFields, new List<String>{ 'summit__Open_Registration__c' });
+            String instEventField = resolveWritableField(instFields, new List<String>{ 'summit__Event__c', 'summit__Summit_Event__c', 'Event__c' }, true);
+            String instTitleField = resolveWritableField(instFields, new List<String>{ 'summit__Instance_Title__c', 'Instance_Title__c' }, true);
+            String instStartField = resolveWritableField(instFields, new List<String>{ 'summit__Instance_Start_Date__c', 'summit__Start_Date__c', 'Start_Date__c' }, true);
+            String instEndField = resolveWritableField(instFields, new List<String>{ 'summit__Instance_End_Date__c', 'summit__End_Date__c', 'End_Date__c' }, true);
+            String instActiveStatusField = resolveWritableField(instFields, new List<String>{ 'summit__Active_Status__c', 'Active_Status__c' }, true);
+            String instOpenRegField = resolveWritableField(instFields, new List<String>{ 'summit__Open_Registration__c', 'Open_Registration__c' }, true);
+            String instCapacityField = resolveWritableField(instFields, new List<String>{ 'summit__Capacity__c', 'Capacity__c' }, true);
+            if (instEventField == null) throw new AuraHandledException('Instance event lookup field is not writable in this org.');
 
             SObject instanceRecord = instType.newSObject();
             instanceRecord.put(instEventField, (Id) eventRecord.get('Id'));
@@ -541,7 +558,10 @@ public with sharing class FIU_EventsWizardService {
             else instanceRecord.put('Name', String.isBlank(req.instanceTitle) ? req.eventName : req.instanceTitle);
             instanceRecord.put(instStartField, req.instanceStart);
             instanceRecord.put(instEndField, req.instanceEnd);
-            if (instOpenRegField != null) instanceRecord.put(instOpenRegField, req.instanceOpenRegistration == null ? false : req.instanceOpenRegistration);
+            if (instCapacityField != null) instanceRecord.put(instCapacityField, req.capacity);
+            if (isWritableField(instFields, instOpenRegField, true)) {
+                instanceRecord.put(instOpenRegField, req.instanceOpenRegistration == null ? false : req.instanceOpenRegistration);
+            }
             if (instActiveStatusField != null) {
                 if (String.isNotBlank(req.instanceActiveStatus)) instanceRecord.put(instActiveStatusField, req.instanceActiveStatus);
                 else instanceRecord.put(instActiveStatusField, 'Inactive');
@@ -582,9 +602,11 @@ public with sharing class FIU_EventsWizardService {
         System.debug(LoggingLevel.WARN, 'FIU_PREVIEW_RT_RESOLVED req.recordTypeId=' + req.recordTypeId);
         if (String.isBlank(req.recordTypeId)) throw new AuraHandledException('Select a Record Type first. ' + previewTrace);
 
+        Id currentUserId = UserInfo.getUserId();
+        Id previewRecordTypeId = (Id) req.recordTypeId;
         String q = 'SELECT Id FROM ' + eventObject +
-            ' WHERE CreatedById = :UserInfo.getUserId()' +
-            ' AND RecordTypeId = :req.recordTypeId' +
+            ' WHERE CreatedById = :currentUserId' +
+            ' AND RecordTypeId = :previewRecordTypeId' +
             ' AND (' + previewField + ' = true)' +
             ' ORDER BY LastModifiedDate DESC LIMIT 1';
         List<SObject> existing = Database.query(q);
@@ -597,6 +619,9 @@ public with sharing class FIU_EventsWizardService {
         CreateResult previewResult = createEventAndFirstInstance(req);
         if (previewResult != null && previewResult.eventId != null) {
             previewResult.instanceId = ensurePreviewInstance(previewResult.eventId, req);
+            if (previewResult.instanceId != null) {
+                previewResult.previewUrl = getPreviewInstanceAdminOpenUrl(previewResult.instanceId);
+            }
         }
         return previewResult;
     }
@@ -616,24 +641,36 @@ public with sharing class FIU_EventsWizardService {
         if (instType == null) return null;
         Map<String, Schema.SObjectField> instFields = instType.getDescribe().fields.getMap();
 
-        String instEventField = resolveOptionalField(instFields, new List<String>{ 'summit__Event__c', 'summit__Summit_Event__c', 'Event__c' });
-        String instTitleField = resolveOptionalField(instFields, new List<String>{ 'summit__Instance_Title__c', 'Instance_Title__c' });
-        String instStartField = resolveOptionalField(instFields, new List<String>{ 'summit__Instance_Start_Date__c', 'summit__Start_Date__c', 'Start_Date__c' });
-        String instEndField = resolveOptionalField(instFields, new List<String>{ 'summit__Instance_End_Date__c', 'summit__End_Date__c', 'End_Date__c' });
-        String instActiveStatusField = resolveOptionalField(instFields, new List<String>{ 'summit__Active_Status__c', 'Active_Status__c' });
-        String instOpenRegField = resolveOptionalField(instFields, new List<String>{ 'summit__Open_Registration__c', 'Open_Registration__c' });
+        Boolean isInsert = true;
+        String instEventQueryField = resolveOptionalField(instFields, new List<String>{ 'summit__Event__c', 'summit__Summit_Event__c', 'Event__c' });
+        String instEventField = resolveWritableField(instFields, new List<String>{ 'summit__Event__c', 'summit__Summit_Event__c', 'Event__c' }, isInsert);
+        String instTitleField = resolveWritableField(instFields, new List<String>{ 'summit__Instance_Title__c', 'Instance_Title__c' }, isInsert);
+        String instStartField = resolveWritableField(instFields, new List<String>{ 'summit__Instance_Start_Date__c', 'summit__Start_Date__c', 'Start_Date__c' }, isInsert);
+        String instEndField = resolveWritableField(instFields, new List<String>{ 'summit__Instance_End_Date__c', 'summit__End_Date__c', 'End_Date__c' }, isInsert);
+        String instActiveStatusField = resolveWritableField(instFields, new List<String>{ 'summit__Active_Status__c', 'Active_Status__c' }, isInsert);
+        String instOpenRegField = resolveWritableField(instFields, new List<String>{ 'summit__Open_Registration__c', 'Open_Registration__c' }, isInsert);
         String instPreviewField = FiuEventsAccessService.resolveInstancePreviewField();
-        if (instEventField == null) return null;
+        if (instEventQueryField == null) return null;
 
         Id existingId;
-        String existingQ = 'SELECT Id FROM ' + instanceObject + ' WHERE ' + instEventField + ' = :eventId';
+        String existingQ = 'SELECT Id FROM ' + instanceObject + ' WHERE ' + instEventQueryField + ' = :eventId';
         if (instPreviewField != null) existingQ += ' AND ' + instPreviewField + ' = true';
         existingQ += ' ORDER BY LastModifiedDate DESC LIMIT 1';
         List<SObject> existing = Database.query(existingQ);
         if (!existing.isEmpty()) existingId = (Id) existing[0].get('Id');
 
+        isInsert = existingId == null;
+        instEventField = resolveWritableField(instFields, new List<String>{ 'summit__Event__c', 'summit__Summit_Event__c', 'Event__c' }, isInsert);
+        instTitleField = resolveWritableField(instFields, new List<String>{ 'summit__Instance_Title__c', 'Instance_Title__c' }, isInsert);
+        instStartField = resolveWritableField(instFields, new List<String>{ 'summit__Instance_Start_Date__c', 'summit__Start_Date__c', 'Start_Date__c' }, isInsert);
+        instEndField = resolveWritableField(instFields, new List<String>{ 'summit__Instance_End_Date__c', 'summit__End_Date__c', 'End_Date__c' }, isInsert);
+        instActiveStatusField = resolveWritableField(instFields, new List<String>{ 'summit__Active_Status__c', 'Active_Status__c' }, isInsert);
+        instOpenRegField = resolveWritableField(instFields, new List<String>{ 'summit__Open_Registration__c', 'Open_Registration__c' }, isInsert);
+        String instCapacityField = resolveWritableField(instFields, new List<String>{ 'summit__Capacity__c', 'Capacity__c' }, isInsert);
+        if (existingId == null && instEventField == null) return null;
+
         SObject previewInst = existingId == null ? instType.newSObject() : instType.newSObject(existingId);
-        previewInst.put(instEventField, eventId);
+        if (instEventField != null) previewInst.put(instEventField, eventId);
         // Reset common override/config fields so previous preview values do not leak.
         for (String resetField : new List<String>{
             'summit__Location_Title_Override__c',
@@ -645,18 +682,101 @@ public with sharing class FIU_EventsWizardService {
             'summit__Virtual_Meeting_Phone__c',
             'Parking_info__c'
         }) {
-            if (instFields.containsKey(resetField)) previewInst.put(resetField, null);
+            if (isWritableField(instFields, resetField, isInsert)) previewInst.put(resetField, null);
         }
-        if (instPreviewField != null) previewInst.put(instPreviewField, true);
+        if (isWritableField(instFields, instPreviewField, isInsert)) previewInst.put(instPreviewField, true);
         if (instTitleField != null) previewInst.put(instTitleField, 'Preview - ' + req.eventName);
         if (instActiveStatusField != null) previewInst.put(instActiveStatusField, 'Active');
         if (instOpenRegField != null) previewInst.put(instOpenRegField, true);
+        if (instCapacityField != null) previewInst.put(instCapacityField, req.capacity);
         applyTemporalValue(previewInst, instFields, instStartField, req.instanceStart, req.eventStartDate);
         applyTemporalValue(previewInst, instFields, instEndField, req.instanceEnd, req.eventEndDate);
 
         if (existingId == null) insert previewInst;
         else update previewInst;
         return (Id) previewInst.get('Id');
+    }
+
+    private static String getPreviewInstanceAdminOpenUrl(Id instanceId) {
+        if (instanceId == null) return null;
+        String instanceObject = FiuEventsAccessService.resolveInstanceObject();
+        if (String.isBlank(instanceObject)) return null;
+        Schema.SObjectType instType = Schema.getGlobalDescribe().get(instanceObject);
+        if (instType == null) return null;
+        Map<String, Schema.SObjectField> instFields = instType.getDescribe().fields.getMap();
+        String adminOpenField = resolveOptionalField(instFields, new List<String>{
+            'summit__Admin_Open_Registration__c',
+            'Admin_Open_Registration__c'
+        });
+        String instEventField = resolveOptionalField(instFields, new List<String>{ 'summit__Event__c', 'summit__Summit_Event__c', 'Event__c' });
+
+        List<String> selectFields = new List<String>{ 'Id' };
+        if (String.isNotBlank(adminOpenField)) selectFields.add(adminOpenField);
+        if (String.isNotBlank(instEventField)) selectFields.add(instEventField);
+        String q = 'SELECT ' + String.join(selectFields, ', ') + ' FROM ' + instanceObject + ' WHERE Id = :instanceId LIMIT 1';
+        SObject instanceRecord = Database.query(q);
+        if (instanceRecord == null) return null;
+
+        if (String.isNotBlank(adminOpenField)) {
+            Object rawUrl = instanceRecord.get(adminOpenField);
+            if (rawUrl != null && String.isNotBlank(String.valueOf(rawUrl))) {
+                return String.valueOf(rawUrl);
+            }
+        }
+
+        Id eventId = String.isBlank(instEventField) ? null : (Id) instanceRecord.get(instEventField);
+        return buildAdminOpenRegistrationUrl(eventId, instanceId);
+    }
+
+    private static String buildAdminOpenRegistrationUrl(Id eventId, Id instanceId) {
+        if (eventId == null || instanceId == null) return null;
+        String eventObject = FiuEventsAccessService.resolveEventObject();
+        if (String.isBlank(eventObject)) return null;
+        Schema.SObjectType eventType = Schema.getGlobalDescribe().get(eventObject);
+        if (eventType == null) return null;
+        Map<String, Schema.SObjectField> eventFields = eventType.getDescribe().fields.getMap();
+        String communityBaseUrlField = resolveOptionalField(eventFields, new List<String>{
+            'summit__Community_Base_URL__c',
+            'Community_Base_URL__c'
+        });
+        if (String.isBlank(communityBaseUrlField)) return null;
+
+        String eventQ = 'SELECT ' + communityBaseUrlField + ' FROM ' + eventObject + ' WHERE Id = :eventId LIMIT 1';
+        SObject eventRecord = Database.query(eventQ);
+        String baseUrl = eventRecord == null ? null : String.valueOf(eventRecord.get(communityBaseUrlField));
+        if (String.isBlank(baseUrl)) return null;
+
+        Boolean isManagedPackage = isManagedPackageEnabled();
+        String path = isManagedPackage ? 'summit__SummitEventsRegister' : 'SummitEventsRegister';
+        String normalizedBase = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+        return normalizedBase + path + '?instanceID=' + String.valueOf(instanceId) + '&adminopen=1';
+    }
+
+    private static Boolean isManagedPackageEnabled() {
+        try {
+            Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+            String settingsObject = gd.containsKey('summit__Summit_Events_Settings__c')
+                ? 'summit__Summit_Events_Settings__c'
+                : (gd.containsKey('Summit_Events_Settings__c') ? 'Summit_Events_Settings__c' : null);
+            if (String.isBlank(settingsObject)) return true;
+
+            Schema.SObjectType settingsType = gd.get(settingsObject);
+            if (settingsType == null) return true;
+            Map<String, Schema.SObjectField> settingsFields = settingsType.getDescribe().fields.getMap();
+            String managedPackageField = resolveOptionalField(settingsFields, new List<String>{
+                'summit__Managed_Package__c',
+                'Managed_Package__c'
+            });
+            if (String.isBlank(managedPackageField)) return true;
+
+            String q = 'SELECT ' + managedPackageField + ' FROM ' + settingsObject + ' LIMIT 1';
+            List<SObject> rows = Database.query(q);
+            if (rows.isEmpty()) return true;
+            Object rawValue = rows[0].get(managedPackageField);
+            return rawValue == null ? true : (Boolean) rawValue;
+        } catch (Exception ex) {
+            return true;
+        }
     }
 
     private static void applyTemporalValue(
@@ -681,6 +801,28 @@ public with sharing class FIU_EventsWizardService {
             if (outDate == null) outDate = Date.today();
             target.put(fieldApi, outDate);
         }
+    }
+
+    private static Boolean isWritableField(
+        Map<String, Schema.SObjectField> fieldMap,
+        String fieldApi,
+        Boolean isInsert
+    ) {
+        if (fieldMap == null || String.isBlank(fieldApi) || !fieldMap.containsKey(fieldApi)) return false;
+        Schema.DescribeFieldResult d = fieldMap.get(fieldApi).getDescribe();
+        return isInsert ? d.isCreateable() : d.isUpdateable();
+    }
+
+    private static String resolveWritableField(
+        Map<String, Schema.SObjectField> fieldMap,
+        List<String> candidates,
+        Boolean isInsert
+    ) {
+        if (fieldMap == null || candidates == null) return null;
+        for (String api : candidates) {
+            if (isWritableField(fieldMap, api, isInsert)) return api;
+        }
+        return null;
     }
 
     private static List<String> splitProgramCodes(List<String> codes) {

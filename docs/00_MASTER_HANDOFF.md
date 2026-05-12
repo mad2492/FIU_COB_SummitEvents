@@ -62,6 +62,7 @@ Each option must explain in plain language when to use it.
 | Summit Event | `summit__Payment_Gateway__c` | Required when payment is needed |
 | Summit Event | `Accounting_Department__c` | Required when payment is needed |
 | Summit Event | `summit__Account__c` | If blank, external users can hit authorization errors |
+| Summit Event | `summit__Capacity__c` | Must be populated and greater than zero; blank/zero capacity breaks public registration behavior and must block preview/create |
 | Summit Event | `FIU_Create_Opps_From_Regs__c` | Controls whether registrations should create Opportunities |
 | Summit Event | `Send_Registration_Confirmation_Email__c` | Controls whether FIU’s dynamic confirmation email flow should run |
 

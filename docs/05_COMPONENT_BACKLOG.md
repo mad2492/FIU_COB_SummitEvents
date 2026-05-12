@@ -24,6 +24,7 @@
 - `fiuInstanceReadinessPanel`
 - surfaces missing required fields and operational warnings
 - quick-view readiness callouts and public registration-link actions for instances
+- wizard, preview gating, and readiness surfaces must treat blank/zero `summit__Capacity__c` as a showstopper because it breaks public registration
 
 ## Attendance / Registration Ops
 - `fiuInstanceRosterManager`
