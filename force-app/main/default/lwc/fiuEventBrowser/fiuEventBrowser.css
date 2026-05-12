@@ -166,11 +166,12 @@
 }
 
 .table-scroll {
-    overflow-x: auto;
+    overflow-x: hidden;
 }
 
 .event-table {
-    min-width: 1040px;
+    width: 100%;
+    table-layout: fixed;
 }
 
 .event-table thead th {
@@ -187,6 +188,9 @@
     vertical-align: middle;
     padding-top: .75rem;
     padding-bottom: .75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .checkbox-col {
@@ -196,6 +200,12 @@
 .quick-view-col {
     width: 3.25rem;
     text-align: center;
+}
+
+.event-table tbody td.quick-view-col {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
 }
 
 .instances-col {
@@ -234,6 +244,11 @@
     border: 0;
     background: none;
     padding: 0;
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     color: #3e65ad;
     font: inherit;
     text-align: left;
@@ -248,6 +263,9 @@
 
 .issues-cell {
     color: #181818;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
 }
 
 .quick-view-button {
@@ -317,85 +335,170 @@
 
 .quick-view {
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .quick-view__header {
     display: flex;
+    align-items: flex-start;
     justify-content: space-between;
-    align-items: center;
     gap: .75rem;
-    padding: .85rem 1rem;
+    padding: .9rem 1rem;
     background: #fafafa;
     border-bottom: 1px solid #e5e5e5;
 }
 
-.quick-view__header h2 {
-    margin: 0;
-    font-size: 1rem;
+.quick-view__header-text {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.quick-view__eyebrow {
+    margin: 0 0 .15rem;
+    color: #747474;
+    font-size: .72rem;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.quick-view__title {
+    margin: 0;
     color: #181818;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.quick-view__title:focus {
+    outline: none;
+    box-shadow: 0 0 3px 1px #0176d3;
+    border-radius: .15rem;
+}
+
+.quick-view__subhead {
+    margin: .2rem 0 0;
+    color: #747474;
+    font-size: .85rem;
+}
+
+.quick-view__status-bar {
+    padding: .75rem 1rem;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.quick-view__dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: .35rem .75rem;
+    align-items: center;
+}
+
+.quick-view__dt {
+    margin: 0;
+    color: #747474;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.quick-view__dd {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+}
+
+.quick-view__action-bar {
+    padding: .75rem 1rem;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e5e5;
 }
 
 .quick-view__body {
     padding: 1rem;
 }
 
-.quick-view__body h3 {
-    margin: 0;
-    font-size: 1.05rem;
-    color: #181818;
-    font-weight: 700;
-}
-
-.quick-view__subhead {
-    margin: .2rem 0 1rem;
-    color: #747474;
-    font-size: .86rem;
-}
-
-.quick-view__stats {
+.quick-view__meta {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: .85rem .75rem;
+    gap: .65rem .85rem;
+    margin-bottom: .95rem;
 }
 
-.stat-label {
-    display: block;
-    margin-bottom: .2rem;
+.meta-row {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+}
+
+.meta-label {
     color: #747474;
-    font-size: .75rem;
+    font-size: .72rem;
     text-transform: uppercase;
     letter-spacing: .04em;
+    font-weight: 700;
 }
 
-.stat-value {
+.meta-value {
     color: #181818;
-    font-weight: 700;
+    font-size: 1rem;
+    font-weight: 600;
 }
 
 .issue-callout {
     display: flex;
     gap: .45rem;
     align-items: flex-start;
-    margin-top: 1rem;
-    padding: .75rem;
-    border: 1px solid #f39191;
+    padding: .7rem .75rem;
+    border: 1px solid #fdc28e;
     border-radius: .35rem;
-    background: #feded7;
-    color: #8e030f;
+    background: #fef1ee;
+    color: #8a4e00;
     font-size: .85rem;
 }
 
 .issue-callout lightning-icon {
-    --slds-c-icon-color-foreground-default: #ba0517;
+    --slds-c-icon-color-foreground-default: #dd7a01;
 }
 
-.quick-view__actions {
+.issue-callout__text {
     display: flex;
-    flex-wrap: wrap;
-    gap: .5rem;
-    padding: 1rem;
-    border-top: 1px solid #e5e5e5;
+    flex-direction: column;
+    gap: .2rem;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.issue-callout__title,
+.issue-callout__body {
+    margin: 0;
+}
+
+.issue-callout__title {
+    color: #8a4e00;
+    font-size: .87rem;
+    font-weight: 700;
+}
+
+.issue-callout__body {
+    color: #5c3a00;
+    font-size: .8rem;
+}
+
+.issue-callout__action {
+    margin-top: .35rem;
+}
+
+.event-row--selected > td {
+    background-color: #f3f9ff;
+}
+
+.event-row--selected > td:first-child {
+    box-shadow: inset 3px 0 0 #0176d3;
 }
 
 @media (max-width: 1100px) {
@@ -428,7 +531,7 @@
         width: 96vw;
     }
 
-    .quick-view__stats {
+    .quick-view__meta {
         grid-template-columns: 1fr;
     }
 }

@@ -80,11 +80,6 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
         this.loadRows();
     }
 
-    connectedCallback() {
-        this.restoreViewState();
-        this.loadRows();
-    }
-
     @wire(getProgramOptions)
     wiredPrograms({ data }) {
         if (data) this.programOptions = [{ label: 'All Programs', value: '' }, ...data];
@@ -102,6 +97,39 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
     get showInstancesColumn() { return this.visibleColumnKeys.includes('instanceCount'); }
     get showStartDateColumn() { return this.visibleColumnKeys.includes('startDate'); }
     get selectedEvent() { return this.rows.find((row) => row.id === this.selectedEventId); }
+    get quickViewStatusLabel() { return this.selectedEvent?.status || 'Unknown'; }
+    get quickViewReadinessLabel() {
+        if (!this.selectedEvent) return 'Unknown';
+        if (this.selectedEvent.readiness === 'Active w/ Issues') return 'Setup Incomplete';
+        return this.selectedEvent.readiness || 'Unknown';
+    }
+    get quickViewStatusTheme() {
+        return this.selectedEvent ? this.getStatusTheme(this.selectedEvent) : 'neutral';
+    }
+    get quickViewReadinessTheme() {
+        return this.selectedEvent ? this.getReadinessTheme(this.selectedEvent) : 'neutral';
+    }
+    get showQuickViewIssuePanel() {
+        return !!(this.selectedEvent?.issueReason || this.selectedEvent?.readiness === 'Active w/ Issues');
+    }
+    get quickViewIssueTitle() {
+        const issue = (this.selectedEvent?.issueReason || '').toLowerCase();
+        if (issue.includes('missing selected program')) return 'Program selection required';
+        return 'Setup action required';
+    }
+    get quickViewIssueBody() {
+        const issue = (this.selectedEvent?.issueReason || '').toLowerCase();
+        if (issue.includes('missing selected program')) {
+            return 'A program must be selected before this event can be marked ready.';
+        }
+        if (this.selectedEvent?.issueReason) return this.selectedEvent.issueReason;
+        return 'This event needs additional setup before it can be marked ready.';
+    }
+    get quickViewIssueActionLabel() {
+        const issue = (this.selectedEvent?.issueReason || '').toLowerCase();
+        if (issue.includes('missing selected program')) return 'Select a program';
+        return null;
+    }
     get browserLayoutClass() {
         return this.selectedEvent ? 'browser-layout browser-layout--panel-open' : 'browser-layout';
     }
@@ -219,12 +247,16 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
                 eventUrl: `/lightning/r/summit__Summit_Events__c/${row.id}/view`,
                 statusTheme: this.getStatusTheme(row),
                 readinessTheme: this.getReadinessTheme(row),
+                quickViewIcon: row.id === this.selectedEventId ? 'utility:chevrondown' : 'utility:chevronright',
+                rowClass: row.id === this.selectedEventId ? 'event-row event-row--selected' : 'event-row',
                 isSelected: this.selectedRowIds.includes(row.id)
             }));
             this.totalCount = data?.totalCount || 0;
             const currentIds = new Set(this.rows.map((r) => r.id));
             this.selectedRowIds = this.selectedRowIds.filter((id) => currentIds.has(id));
+            if (this.selectedEventId && !currentIds.has(this.selectedEventId)) this.selectedEventId = null;
             this.rows = this.rows.map((row) => ({ ...row, isSelected: this.selectedRowIds.includes(row.id) }));
+            this.refreshQuickViewIcons();
             this.persistViewState();
         } finally {
             this.isLoading = false;
@@ -327,6 +359,7 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
 
     closeQuickView() {
         this.selectedEventId = null;
+        this.refreshQuickViewIcons();
     }
 
     handleExportMenuSelect(event) {
@@ -415,6 +448,21 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
         });
     }
 
+    cloneSelectedEvent() {
+        if (!this.selectedEvent) return;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__component',
+            attributes: { componentName: 'c__fiuEventCloneWizard' },
+            state: { c__sourceEventId: this.selectedEvent.id }
+        });
+    }
+
+    handleQuickViewMoreSelect(event) {
+        const action = event.detail.value;
+        if (action === 'instances') this.openSelectedEventInstances();
+        if (action === 'clone') this.cloneSelectedEvent();
+    }
+
     closeCreateModal() {
         this.isCreateModalOpen = false;
         this.loadRows();
@@ -422,11 +470,54 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
 
     openQuickViewFromButton(event) {
         const rowId = event.currentTarget?.dataset?.id;
-        if (rowId) this.selectedEventId = rowId;
+        if (!rowId) return;
+        if (this.selectedEventId === rowId) {
+            this.closeQuickView();
+            return;
+        }
+        this.selectedEventId = rowId;
+        this.refreshQuickViewIcons();
+    }
+
+    refreshQuickViewIcons() {
+        this.rows = this.rows.map((row) => ({
+            ...row,
+            quickViewIcon: row.id === this.selectedEventId ? 'utility:chevrondown' : 'utility:chevronright',
+            rowClass: row.id === this.selectedEventId ? 'event-row event-row--selected' : 'event-row'
+        }));
     }
 
     getSortIcon(fieldName) {
         if (this.sortField1 !== fieldName) return 'utility:chevrondown';
         return this.sortDir1 === 'ASC' ? 'utility:arrowup' : 'utility:arrowdown';
+    }
+
+    handleQuickViewKeydown(event) {
+        if (event.key === 'Escape') {
+            event.stopPropagation();
+            this.closeQuickView();
+        }
+    }
+
+    handleQuickViewIssueAction() {
+        const issue = (this.selectedEvent?.issueReason || '').toLowerCase();
+        if (issue.includes('missing selected program')) {
+            this.openFilterModal();
+            return;
+        }
+        this.openSelectedEventRecord();
+    }
+
+    renderedCallback() {
+        if (this.selectedEventId && this._lastFocusedEventId !== this.selectedEventId) {
+            const heading = this.template.querySelector('[data-quick-view-heading]');
+            if (heading) {
+                heading.focus();
+                this._lastFocusedEventId = this.selectedEventId;
+            }
+        }
+        if (!this.selectedEventId) {
+            this._lastFocusedEventId = null;
+        }
     }
 }

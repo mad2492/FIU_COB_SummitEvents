@@ -130,7 +130,7 @@
                             </thead>
                             <tbody>
                                 <template for:each={rows} for:item="row">
-                                    <tr key={row.id}>
+                                    <tr key={row.id} class={row.rowClass} data-id={row.id}>
                                         <td class="checkbox-col">
                                             <lightning-input
                                                 type="checkbox"
@@ -143,7 +143,7 @@
                                         </td>
                                         <template if:true={showNameColumn}>
                                             <td>
-                                                <button class="name-button" data-id={row.id} onclick={openQuickViewFromButton}>{row.name}</button>
+                                                <button class="name-button" data-id={row.id} onclick={openQuickViewFromButton} title={row.name}>{row.name}</button>
                                             </td>
                                         </template>
                                         <template if:true={showRecordTypeColumn}>
@@ -171,8 +171,8 @@
                                             </td>
                                         </template>
                                         <td class="quick-view-col">
-                                            <button class="quick-view-button" data-id={row.id} onclick={openQuickViewFromButton} title="Quick view">
-                                                <lightning-icon icon-name="utility:preview" size="xx-small" alternative-text="Quick view"></lightning-icon>
+                                            <button class="quick-view-button" data-id={row.id} onclick={openQuickViewFromButton} title="Open quick view">
+                                                <lightning-icon icon-name={row.quickViewIcon} size="xx-small" alternative-text="Open quick view"></lightning-icon>
                                             </button>
                                         </td>
                                     </tr>
@@ -203,45 +203,102 @@
         </section>
 
         <template if:true={selectedEvent}>
-            <aside class="panel quick-view">
-                <div class="quick-view__header">
-                    <h2>Quick view</h2>
-                    <lightning-button-icon icon-name="utility:close" alternative-text="Close quick view" title="Close quick view" onclick={closeQuickView}></lightning-button-icon>
-                </div>
-                <div class="quick-view__body">
-                    <h3>{selectedEvent.name}</h3>
-                    <p class="quick-view__subhead">{selectedEvent.recordType}</p>
+            <aside
+                class="panel quick-view"
+                role="complementary"
+                aria-label="Event quick view"
+                onkeydown={handleQuickViewKeydown}>
+                <header class="quick-view__header">
+                    <div class="quick-view__header-text">
+                        <p class="quick-view__eyebrow">Quick view</p>
+                        <h2 class="quick-view__title" tabindex="-1" data-quick-view-heading>{selectedEvent.name}</h2>
+                        <p class="quick-view__subhead">{selectedEvent.recordType}</p>
+                    </div>
+                    <lightning-button-icon
+                        variant="bare"
+                        size="small"
+                        icon-name="utility:close"
+                        alternative-text="Close quick view"
+                        title="Close quick view"
+                        onclick={closeQuickView}>
+                    </lightning-button-icon>
+                </header>
 
-                    <div class="quick-view__stats">
-                        <div>
-                            <span class="stat-label">Status</span>
-                            <span class={selectedEvent.statusClass}>{selectedEvent.status}</span>
+                <div class="quick-view__status-bar">
+                    <dl class="quick-view__dl">
+                        <dt class="quick-view__dt">Status</dt>
+                        <dd class="quick-view__dd">
+                            <c-fiu-datatable-pill-cell
+                                label={quickViewStatusLabel}
+                                theme={quickViewStatusTheme}>
+                            </c-fiu-datatable-pill-cell>
+                        </dd>
+                        <dt class="quick-view__dt">Readiness</dt>
+                        <dd class="quick-view__dd">
+                            <c-fiu-datatable-pill-cell
+                                label={quickViewReadinessLabel}
+                                theme={quickViewReadinessTheme}>
+                            </c-fiu-datatable-pill-cell>
+                        </dd>
+                    </dl>
+                </div>
+
+                <div class="quick-view__action-bar">
+                    <lightning-button-group>
+                        <lightning-button
+                            label="Open"
+                            variant="brand"
+                            onclick={openSelectedEventRecord}>
+                        </lightning-button>
+                        <lightning-button
+                            label="Add Instance"
+                            variant="neutral"
+                            onclick={addInstanceForSelectedEvent}>
+                        </lightning-button>
+                        <lightning-button-menu
+                            alternative-text="More actions"
+                            menu-alignment="right"
+                            icon-size="x-small"
+                            variant="border-filled"
+                            onselect={handleQuickViewMoreSelect}>
+                            <lightning-menu-item value="instances" label="View Instances"></lightning-menu-item>
+                            <lightning-menu-item value="clone" label="Clone Event"></lightning-menu-item>
+                        </lightning-button-menu>
+                    </lightning-button-group>
+                </div>
+
+                <div class="quick-view__body">
+                    <div class="quick-view__meta">
+                        <div class="meta-row">
+                            <span class="meta-label">Instances</span>
+                            <span class="meta-value">{selectedEvent.instanceCount}</span>
                         </div>
-                        <div>
-                            <span class="stat-label">Readiness</span>
-                            <span class={selectedEvent.readinessClass}>{selectedEvent.readiness}</span>
-                        </div>
-                        <div>
-                            <span class="stat-label">Instances</span>
-                            <span class="stat-value">{selectedEvent.instanceCount}</span>
-                        </div>
-                        <div>
-                            <span class="stat-label">Start Date</span>
-                            <lightning-formatted-date-time value={selectedEvent.startDate}></lightning-formatted-date-time>
+                        <div class="meta-row">
+                            <span class="meta-label">Start date</span>
+                            <span class="meta-value">
+                                <lightning-formatted-date-time value={selectedEvent.startDate}></lightning-formatted-date-time>
+                            </span>
                         </div>
                     </div>
 
-                    <template if:true={selectedEvent.issueReason}>
-                        <div class="issue-callout">
+                    <template if:true={showQuickViewIssuePanel}>
+                        <div class="issue-callout" role="status" aria-live="polite">
                             <lightning-icon icon-name="utility:warning" size="x-small" alternative-text="Issue"></lightning-icon>
-                            <span>{selectedEvent.issueReason}</span>
+                            <div class="issue-callout__text">
+                                <p class="issue-callout__title">{quickViewIssueTitle}</p>
+                                <p class="issue-callout__body">{quickViewIssueBody}</p>
+                                <template if:true={quickViewIssueActionLabel}>
+                                    <div class="issue-callout__action">
+                                        <lightning-button
+                                            variant="base"
+                                            label={quickViewIssueActionLabel}
+                                            onclick={handleQuickViewIssueAction}>
+                                        </lightning-button>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
                     </template>
-                </div>
-                <div class="quick-view__actions">
-                    <lightning-button label="Open Event" onclick={openSelectedEventRecord}></lightning-button>
-                    <lightning-button label="View Instances" onclick={openSelectedEventInstances}></lightning-button>
-                    <lightning-button variant="brand" label="Add Instance" onclick={addInstanceForSelectedEvent}></lightning-button>
                 </div>
             </aside>
         </template>

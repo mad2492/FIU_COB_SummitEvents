@@ -14,6 +14,8 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
     programCode = '';
     programOptions = [{ label: 'All Programs', value: '' }];
     showWelcome = true;
+    isRefreshing = false;
+    hasLoadedDashboardOnce = false;
 
     connectedCallback() {
         try {
@@ -26,7 +28,13 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
     @wire(loadDashboard, { programCode: '$programCode' })
     wiredDashboard(value) {
         this.dashboardWire = value;
-        if (value.data) this.dashboard = value.data;
+        if (value.data) {
+            this.dashboard = value.data;
+            this.hasLoadedDashboardOnce = true;
+        }
+        if (value.data || value.error) {
+            this.isRefreshing = false;
+        }
     }
 
     @wire(getProgramOptions)
@@ -43,6 +51,38 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
     get kpiNotReady() { return this.dashboard?.notReadyInstances ?? 0; }
     get kpiNotReadyEvents() { return this.dashboard?.notReadyEvents ?? 0; }
     get kpiActiveEvents() { return this.dashboard?.activeEvents ?? 0; }
+    get dashboardReady() { return this.hasLoadedDashboardOnce; }
+    get isFirstRun() {
+        return this.dashboardReady &&
+            this.kpiActiveEvents === 0 &&
+            this.kpiUpcoming === 0 &&
+            this.kpiOpenRegs === 0 &&
+            this.kpiStartedRegs === 0 &&
+            this.kpiNotReady === 0 &&
+            this.kpiNotReadyEvents === 0;
+    }
+    get showOperationalDashboard() {
+        return this.dashboardReady && !this.isFirstRun;
+    }
+    get hasUrgentWork() {
+        return this.kpiNotReady > 0 || this.kpiStartedRegs > 0 || this.kpiNotReadyEvents > 0;
+    }
+    get heroTitle() {
+        if (!this.dashboardReady) return 'Pulling your latest event activity';
+        if (this.hasUrgentWork) {
+            const count = this.kpiNotReady + this.kpiStartedRegs + this.kpiNotReadyEvents;
+            return `${count} item${count === 1 ? '' : 's'} need attention`;
+        }
+        return 'Everything looks steady';
+    }
+    get heroBody() {
+        if (!this.dashboardReady) return 'Checking readiness, registrations, and upcoming event activity for this scope.';
+        if (this.hasUrgentWork) return 'Start with the specific Needs Attention rows and any started registrations before opening new setup work.';
+        return 'No urgent readiness or registration follow-up is showing for this scope.';
+    }
+    get heroClass() {
+        return `hero-panel ${this.hasUrgentWork ? 'hero-panel--attention' : 'hero-panel--steady'}`;
+    }
 
     get attentionRows() {
         const rows = this.dashboard?.attentionRows ?? [];
@@ -50,6 +90,8 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
     }
 
     get upcomingRows() { return this.dashboard?.upcomingRows ?? []; }
+    get hasAttentionRows() { return this.attentionRows.length > 0; }
+    get hasUpcomingRows() { return this.upcomingRows.length > 0; }
 
     get selectedProgramLabel() {
         const selected = this.programOptions.find((opt) => opt.value === this.programCode);
@@ -71,8 +113,14 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
         }
     }
 
-    refreshDashboard() {
-        if (this.dashboardWire) refreshApex(this.dashboardWire);
+    async refreshDashboard() {
+        if (!this.dashboardWire || this.isRefreshing) return;
+        this.isRefreshing = true;
+        try {
+            await refreshApex(this.dashboardWire);
+        } catch (e) {
+            this.isRefreshing = false;
+        }
     }
 
     handleProgram(event) {
@@ -87,14 +135,6 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
         });
     }
 
-    resolveIssues() {
-        this[NavigationMixin.Navigate]({
-            type: 'standard__navItemPage',
-            attributes: { apiName: 'fiuInstanceBrowser' },
-            state: { c__bucket: 'Unpublished', c__program: this.programCode || '' }
-        });
-    }
-
     openEvents() {
         this[NavigationMixin.Navigate]({ type: 'standard__navItemPage', attributes: { apiName: 'fiuEventBrowser' } });
     }
@@ -103,6 +143,13 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
         this[NavigationMixin.Navigate]({
             type: 'standard__navItemPage',
             attributes: { apiName: 'fiuEventCreateWizard' }
+        });
+    }
+
+    openCloneWizard() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__component',
+            attributes: { componentName: 'c__fiuEventCloneWizard' }
         });
     }
 
@@ -139,9 +186,10 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
     }
 
     openGuide() {
+        // Use navItemPage for in-app Lightning tabs; webPage is for external URLs.
         this[NavigationMixin.Navigate]({
-            type: 'standard__webPage',
-            attributes: { url: '/lightning/n/fiuEventsGuide' }
+            type: 'standard__navItemPage',
+            attributes: { apiName: 'fiuEventsGuide' }
         });
     }
 
@@ -166,8 +214,17 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
     handleGuidedAction(event) {
         const action = event.currentTarget?.dataset?.action;
         if (action === 'create') this.openCreateWizard();
-        if (action === 'clone') this.openEvents();
+        if (action === 'clone') this.openCloneWizard();
         if (action === 'instance') this.openInstances();
         if (action === 'bulk') this.openRegistrationsMassUpdate();
+    }
+
+    handleKpiClick(event) {
+        const action = event.currentTarget?.dataset?.action;
+        if (action === 'events') this.openEvents();
+        if (action === 'instances') this.openInstances();
+        if (action === 'registrations') this.openRegistrations();
+        if (action === 'notReadyEvents') this.reviewNotReadyEvents();
+        if (action === 'startedRegistrations') this.openStartedRegistrations();
     }
 }
