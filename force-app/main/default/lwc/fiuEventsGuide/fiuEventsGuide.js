@@ -22,4 +22,13 @@ export default class FiuEventsGuide extends NavigationMixin(LightningElement) {
             attributes: { apiName: 'fiuEventCreateWizard' }
         });
     }
+
+    handleTocClick(event) {
+        const anchor = event.currentTarget?.dataset?.anchor;
+        if (!anchor) return;
+        const target = this.template.querySelector(`[data-section="${anchor}"]`);
+        if (target && typeof target.scrollIntoView === 'function') {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
 }

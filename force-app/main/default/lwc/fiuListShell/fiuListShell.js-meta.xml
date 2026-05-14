@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>FIU List Shell</masterLabel>
+    <description>Shared list-shell layout used by Event/Instance/Registration browsers. Owns header, toolbar, table chrome, pager, and quick-view rail with keyboard navigation.</description>
+</LightningComponentBundle>

@@ -1,39 +1,26 @@
 import { LightningElement, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
-import { refreshApex } from '@salesforce/apex';
 import { getRecord, getFieldValue } from 'lightning/uiRecordApi';
 import USER_ID from '@salesforce/user/Id';
 import USER_FIRST_NAME_FIELD from '@salesforce/schema/User.FirstName';
 import loadDashboard from '@salesforce/apex/FiuHomeDashboardService.loadDashboard';
 import getProgramOptions from '@salesforce/apex/FiuProgramFilterService.getProgramOptions';
 
+const ATTENTION_PREVIEW_LIMIT = 5;
+const UPCOMING_PREVIEW_LIMIT = 5;
+
 export default class FiuEventsHome extends NavigationMixin(LightningElement) {
     dashboard;
-    dashboardWire;
     userId = USER_ID;
     programCode = '';
     programOptions = [{ label: 'All Programs', value: '' }];
-    showWelcome = true;
-    isRefreshing = false;
     hasLoadedDashboardOnce = false;
 
-    connectedCallback() {
-        try {
-            this.showWelcome = window.localStorage.getItem('fiuEventsHomeWelcomeDismissed') !== '1';
-        } catch (e) {
-            this.showWelcome = true;
-        }
-    }
-
     @wire(loadDashboard, { programCode: '$programCode' })
-    wiredDashboard(value) {
-        this.dashboardWire = value;
-        if (value.data) {
-            this.dashboard = value.data;
+    wiredDashboard({ data }) {
+        if (data) {
+            this.dashboard = data;
             this.hasLoadedDashboardOnce = true;
-        }
-        if (value.data || value.error) {
-            this.isRefreshing = false;
         }
     }
 
@@ -45,84 +32,146 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
     @wire(getRecord, { recordId: '$userId', fields: [USER_FIRST_NAME_FIELD] })
     wiredUser;
 
+    get currentUserFirstName() {
+        return getFieldValue(this.wiredUser?.data, USER_FIRST_NAME_FIELD) || 'there';
+    }
+
+    get greetingTitle() {
+        return `Welcome back, ${this.currentUserFirstName}`;
+    }
+
+    get greetingSubtitle() {
+        return 'Here\'s what needs your attention today.';
+    }
+
+    get dashboardReady() { return this.hasLoadedDashboardOnce; }
+
     get kpiUpcoming() { return this.dashboard?.upcomingInstances ?? 0; }
     get kpiOpenRegs() { return this.dashboard?.openRegistrations ?? 0; }
     get kpiStartedRegs() { return this.dashboard?.startedRegistrations ?? 0; }
     get kpiNotReady() { return this.dashboard?.notReadyInstances ?? 0; }
     get kpiNotReadyEvents() { return this.dashboard?.notReadyEvents ?? 0; }
     get kpiActiveEvents() { return this.dashboard?.activeEvents ?? 0; }
-    get dashboardReady() { return this.hasLoadedDashboardOnce; }
-    get isFirstRun() {
-        return this.dashboardReady &&
-            this.kpiActiveEvents === 0 &&
-            this.kpiUpcoming === 0 &&
-            this.kpiOpenRegs === 0 &&
-            this.kpiStartedRegs === 0 &&
-            this.kpiNotReady === 0 &&
-            this.kpiNotReadyEvents === 0;
+
+    get attentionCount() {
+        return this.kpiNotReady + this.kpiNotReadyEvents;
     }
+
+    get hasAttention() { return this.attentionCount > 0; }
+    get hasFollowUp() { return this.kpiStartedRegs > 0; }
+    get hasOpenRegs() { return this.kpiOpenRegs > 0; }
+    get hasUpcoming() { return this.kpiUpcoming > 0; }
+
+    get isFirstRun() {
+        // Surface the first-setup state whenever the org has no active events,
+        // regardless of stray registrations or readiness issues from past activity.
+        return this.dashboardReady && this.kpiActiveEvents === 0;
+    }
+
     get showOperationalDashboard() {
         return this.dashboardReady && !this.isFirstRun;
     }
-    get readinessIssueCount() {
-        return this.kpiNotReady + this.kpiNotReadyEvents;
-    }
-    get hasReadinessIssues() {
-        return this.readinessIssueCount > 0;
-    }
-    get hasStartedFollowUp() {
-        return this.kpiStartedRegs > 0;
+
+    get showSkeleton() {
+        return !this.dashboardReady;
     }
 
-    get attentionRows() {
-        const rows = this.dashboard?.attentionRows ?? [];
-        return rows.map((row, idx) => ({ ...row, rowKey: row.instanceId || row.eventId || `row-${idx}` }));
-    }
-
-    get upcomingRows() { return this.dashboard?.upcomingRows ?? []; }
-    get hasAttentionRows() { return this.attentionRows.length > 0; }
-    get hasUpcomingRows() { return this.upcomingRows.length > 0; }
-
-    get selectedProgramLabel() {
+    get scopeLabel() {
         const selected = this.programOptions.find((opt) => opt.value === this.programCode);
         return selected ? selected.label : 'All Programs';
     }
 
-    get attentionCount() { return this.readinessIssueCount; }
-    get upcomingCount() { return this.upcomingRows.length; }
-    get registrationFollowUpClass() {
-        return this.hasStartedFollowUp ? 'kpi-tile kpi-tile--follow-up' : 'kpi-tile';
-    }
-    get readinessKpiClass() {
-        return this.hasReadinessIssues ? 'kpi-tile kpi-tile--warn' : 'kpi-tile';
-    }
-    get registrationFollowUpHint() {
-        return this.hasStartedFollowUp ? 'Review started' : 'No follow-up';
-    }
-    get readinessKpiHint() {
-        return this.hasReadinessIssues ? 'Review list' : 'All clear';
-    }
-    get currentUserFirstName() {
-        return getFieldValue(this.wiredUser?.data, USER_FIRST_NAME_FIELD) || 'there';
+    get scopeIsAll() {
+        return !this.programCode;
     }
 
-    dismissWelcome() {
-        this.showWelcome = false;
-        try {
-            window.localStorage.setItem('fiuEventsHomeWelcomeDismissed', '1');
-        } catch (e) {
-            // no-op
-        }
+    get scopeChipLabel() {
+        return this.scopeIsAll ? 'All Programs' : this.scopeLabel;
     }
 
-    async refreshDashboard() {
-        if (!this.dashboardWire || this.isRefreshing) return;
-        this.isRefreshing = true;
-        try {
-            await refreshApex(this.dashboardWire);
-        } catch (e) {
-            this.isRefreshing = false;
-        }
+    get attentionRows() {
+        const rows = this.dashboard?.attentionRows ?? [];
+        return rows.slice(0, ATTENTION_PREVIEW_LIMIT).map((row, idx) => ({
+            ...row,
+            rowKey: row.instanceId || row.eventId || `row-${idx}`
+        }));
+    }
+
+    get hasAttentionRows() { return this.attentionRows.length > 0; }
+
+    get attentionOverflowCount() {
+        const total = this.dashboard?.attentionRows?.length ?? 0;
+        const extra = total - ATTENTION_PREVIEW_LIMIT;
+        return extra > 0 ? extra : 0;
+    }
+
+    get hasAttentionOverflow() {
+        return this.attentionOverflowCount > 0;
+    }
+
+    get attentionOverflowLabel() {
+        return `View all ${this.attentionCount} →`;
+    }
+
+    get upcomingRows() {
+        const rows = this.dashboard?.upcomingRows ?? [];
+        return rows.slice(0, UPCOMING_PREVIEW_LIMIT);
+    }
+
+    get hasUpcomingRows() { return this.upcomingRows.length > 0; }
+
+    get upcomingOverflowCount() {
+        const total = this.dashboard?.upcomingRows?.length ?? 0;
+        const extra = total - UPCOMING_PREVIEW_LIMIT;
+        return extra > 0 ? extra : 0;
+    }
+
+    get hasUpcomingOverflow() {
+        return this.upcomingOverflowCount > 0;
+    }
+
+    get upcomingOverflowLabel() {
+        return `View all ${this.kpiUpcoming} →`;
+    }
+
+    get upcomingPanelSubtitle() {
+        return this.scopeIsAll ? 'Next on the calendar' : `Next on the calendar · ${this.scopeLabel}`;
+    }
+
+    get attentionPanelSubtitle() {
+        const base = 'Events and instances with readiness issues';
+        return this.scopeIsAll ? base : `${base} · ${this.scopeLabel}`;
+    }
+
+    // KPI tile styling and hints
+    get upcomingKpiClass() {
+        return 'kpi-tile' + (this.hasUpcoming ? '' : ' kpi-tile--muted');
+    }
+    get upcomingKpiHint() {
+        return this.hasUpcoming ? 'View calendar →' : 'Nothing scheduled';
+    }
+
+    get openRegsKpiClass() {
+        return 'kpi-tile' + (this.hasOpenRegs ? '' : ' kpi-tile--muted');
+    }
+    get openRegsKpiHint() {
+        return this.hasOpenRegs ? 'View registrants →' : 'None yet';
+    }
+
+    get followUpKpiClass() {
+        if (this.hasFollowUp) return 'kpi-tile kpi-tile--warn';
+        return 'kpi-tile kpi-tile--success';
+    }
+    get followUpKpiHint() {
+        return this.hasFollowUp ? 'Recover started →' : 'All caught up ✓';
+    }
+
+    get attentionKpiClass() {
+        if (this.hasAttention) return 'kpi-tile kpi-tile--warn';
+        return 'kpi-tile kpi-tile--success';
+    }
+    get attentionKpiHint() {
+        return this.hasAttention ? 'Review issues →' : 'All clear ✓';
     }
 
     handleProgram(event) {
@@ -155,7 +204,14 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
         });
     }
 
-    reviewNotReadyEvents() {
+    openInstanceCreate() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__navItemPage',
+            attributes: { apiName: 'fiuInstanceCreateWizard' }
+        });
+    }
+
+    openNotReadyEvents() {
         this[NavigationMixin.Navigate]({
             type: 'standard__navItemPage',
             attributes: { apiName: 'fiuEventBrowser' },
@@ -188,7 +244,6 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
     }
 
     openGuide() {
-        // Use navItemPage for in-app Lightning tabs; webPage is for external URLs.
         this[NavigationMixin.Navigate]({
             type: 'standard__navItemPage',
             attributes: { apiName: 'fiuEventsGuide' }
@@ -213,24 +268,28 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
         }
     }
 
+    openUpcomingRow(event) {
+        const instanceId = event.currentTarget?.dataset?.instanceId;
+        if (!instanceId) return;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: { recordId: instanceId, objectApiName: 'summit__Summit_Events_Instance__c', actionName: 'view' }
+        });
+    }
+
     handleGuidedAction(event) {
         const action = event.currentTarget?.dataset?.action;
+        if (action === 'instance') this.openInstanceCreate();
         if (action === 'create') this.openCreateWizard();
         if (action === 'clone') this.openCloneWizard();
-        if (action === 'instance') this.openInstances();
-        if (action === 'bulk') this.openRegistrationsMassUpdate();
+        if (action === 'manage') this.openRegistrationsMassUpdate();
     }
 
     handleKpiClick(event) {
         const action = event.currentTarget?.dataset?.action;
-        if (action === 'events') this.openEvents();
-        if (action === 'instances') this.openInstances();
-        if (action === 'registrationFollowUp') this.openStartedRegistrations();
-        if (action === 'readinessIssues') this.focusReadinessIssues();
-    }
-
-    focusReadinessIssues() {
-        const panel = this.template.querySelector('.attention-panel');
-        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (action === 'upcoming') this.openInstances();
+        if (action === 'openRegs') this.openRegistrations();
+        if (action === 'followUp') this.openStartedRegistrations();
+        if (action === 'attention') this.openNotReadyEvents();
     }
 }

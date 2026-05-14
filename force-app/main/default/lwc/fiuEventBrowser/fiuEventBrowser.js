@@ -5,19 +5,20 @@ import getProgramOptions from '@salesforce/apex/FiuProgramFilterService.getProgr
 
 const VIEW_STATE_KEY = 'fiuEventBrowserViewStateV1';
 
-const ALL_COLUMNS = [
-    { key: 'name', label: 'Event Name', sortable: true },
-    { key: 'recordType', label: 'Record Type', sortable: true },
-    { key: 'status', label: 'Status', sortable: true },
-    { key: 'readiness', label: 'Readiness' },
-    { key: 'issueReason', label: 'Issues' },
-    { key: 'instanceCount', label: 'Instances' },
-    { key: 'startDate', label: 'Start Date', sortable: true }
+const COLUMN_DEFS = [
+    { key: 'name', label: 'Event Name', type: 'link', sortable: true, defaultVisible: true },
+    { key: 'recordType', label: 'Record Type', type: 'text', sortable: true, defaultVisible: true },
+    { key: 'status', label: 'Status', type: 'badge', themeKey: 'statusTheme', sortable: true, defaultVisible: true },
+    { key: 'readiness', label: 'Readiness', type: 'badge', themeKey: 'readinessTheme', sortable: false, defaultVisible: true },
+    { key: 'issueReason', label: 'Issues', type: 'multiline', sortable: false, defaultVisible: true },
+    { key: 'instanceCount', label: 'Instances', type: 'count-link', action: 'viewInstances', actionTooltip: 'View instances for this event', sortable: false, defaultVisible: true },
+    { key: 'startDate', label: 'Start Date', type: 'date', sortable: true, defaultVisible: true }
 ];
 
-const DEFAULT_VISIBLE_COLUMN_KEYS = ['name', 'recordType', 'status', 'readiness', 'issueReason', 'instanceCount', 'startDate'];
+const DEFAULT_VISIBLE_COLUMN_KEYS = COLUMN_DEFS.filter((c) => c.defaultVisible).map((c) => c.key);
 
 export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
+    columns = COLUMN_DEFS;
     rows = [];
     selectedRowIds = [];
     selectedEventId;
@@ -85,18 +86,24 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
         if (data) this.programOptions = [{ label: 'All Programs', value: '' }, ...data];
     }
 
-    get hasRows() { return this.rows.length > 0; }
-    get allRowsSelected() {
-        return this.rows.length > 0 && this.rows.every((row) => row.isSelected);
-    }
-    get showNameColumn() { return this.visibleColumnKeys.includes('name'); }
-    get showRecordTypeColumn() { return this.visibleColumnKeys.includes('recordType'); }
-    get showStatusColumn() { return this.visibleColumnKeys.includes('status'); }
-    get showReadinessColumn() { return this.visibleColumnKeys.includes('readiness'); }
-    get showIssuesColumn() { return this.visibleColumnKeys.includes('issueReason'); }
-    get showInstancesColumn() { return this.visibleColumnKeys.includes('instanceCount'); }
-    get showStartDateColumn() { return this.visibleColumnKeys.includes('startDate'); }
+    // ---- derived state shared with the shell + quick-view body
     get selectedEvent() { return this.rows.find((row) => row.id === this.selectedEventId); }
+
+    get activeFilterPills() {
+        const pills = [];
+        if (this.searchKey) pills.push({ key: 'search', label: `Search: "${this.searchKey}"` });
+        if (this.statusFilter) pills.push({ key: 'status', label: `Status: ${this.statusOptions.find((o) => o.value === this.statusFilter)?.label || this.statusFilter}` });
+        if (this.readinessFilter) pills.push({ key: 'readiness', label: `Readiness: ${this.readinessOptions.find((o) => o.value === this.readinessFilter)?.label || this.readinessFilter}` });
+        if (this.programCode) pills.push({ key: 'program', label: `Program: ${this.programOptions.find((o) => o.value === this.programCode)?.label || this.programCode}` });
+        return pills;
+    }
+
+    get fieldChooserOptions() {
+        return COLUMN_DEFS.map((c) => ({ label: c.label, value: c.key }));
+    }
+
+    get quickViewTitle() { return this.selectedEvent?.name || ''; }
+    get quickViewSubhead() { return this.selectedEvent?.recordType || ''; }
     get quickViewStatusLabel() { return this.selectedEvent?.status || 'Unknown'; }
     get quickViewReadinessLabel() {
         if (!this.selectedEvent) return 'Unknown';
@@ -130,68 +137,8 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
         if (issue.includes('missing selected program')) return 'Select a program';
         return null;
     }
-    get browserLayoutClass() {
-        return this.selectedEvent ? 'browser-layout browser-layout--panel-open' : 'browser-layout';
-    }
-    get sortedDirection() { return (this.sortDir1 || 'ASC').toLowerCase(); }
-    get nameSortIcon() { return this.getSortIcon('name'); }
-    get recordTypeSortIcon() { return this.getSortIcon('recordType'); }
-    get statusSortIcon() { return this.getSortIcon('status'); }
-    get startDateSortIcon() { return this.getSortIcon('startDate'); }
-    get hasActiveFilters() {
-        return !!(this.statusFilter || this.readinessFilter || this.programCode || this.searchKey);
-    }
-    get activeFilterPills() {
-        const pills = [];
-        if (this.searchKey) pills.push({ key: 'search', label: `Search: "${this.searchKey}"` });
-        if (this.statusFilter) pills.push({ key: 'status', label: `Status: ${this.statusOptions.find((o) => o.value === this.statusFilter)?.label || this.statusFilter}` });
-        if (this.readinessFilter) pills.push({ key: 'readiness', label: `Readiness: ${this.readinessOptions.find((o) => o.value === this.readinessFilter)?.label || this.readinessFilter}` });
-        if (this.programCode) pills.push({ key: 'program', label: `Program: ${this.programOptions.find((o) => o.value === this.programCode)?.label || this.programCode}` });
-        return pills;
-    }
 
-    handleRemovePill(event) {
-        const key = event.target.name;
-        if (key === 'search') this.searchKey = '';
-        if (key === 'status') this.statusFilter = '';
-        if (key === 'readiness') this.readinessFilter = '';
-        if (key === 'program') this.programCode = '';
-        this.pageNumber = 1;
-        this.loadRows();
-    }
-
-    handleSort(event) {
-        const fieldName = event.detail.fieldName;
-        const direction = (event.detail.sortDirection || 'asc').toUpperCase();
-        this.sortField1 = fieldName;
-        this.sortDir1 = direction;
-        this.sortField2 = '';
-        this.sortDir2 = 'ASC';
-        this.pageNumber = 1;
-        this.loadRows();
-    }
-
-    handleSortClick(event) {
-        const fieldName = event.currentTarget?.dataset?.field;
-        if (!fieldName) return;
-        const direction = this.sortField1 === fieldName && this.sortDir1 === 'ASC' ? 'DESC' : 'ASC';
-        this.sortField1 = fieldName;
-        this.sortDir1 = direction;
-        this.sortField2 = '';
-        this.sortDir2 = 'ASC';
-        this.pageNumber = 1;
-        this.loadRows();
-    }
-
-    get fieldChooserOptions() {
-        return ALL_COLUMNS.map((c) => ({ label: c.label, value: c.key }));
-    }
-
-    get totalPages() { return Math.max(1, Math.ceil((this.totalCount || 0) / this.pageSize)); }
-    get disablePrev() { return this.pageNumber <= 1; }
-    get disableNext() { return this.pageNumber >= this.totalPages; }
-    get pageSizeValue() { return String(this.pageSize); }
-
+    // ---- view state persistence
     restoreViewState() {
         try {
             const raw = window.sessionStorage.getItem(VIEW_STATE_KEY);
@@ -244,27 +191,22 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
             const rawRows = data?.rows || [];
             this.rows = rawRows.map((row) => ({
                 ...row,
-                eventUrl: `/lightning/r/summit__Summit_Events__c/${row.id}/view`,
                 statusTheme: this.getStatusTheme(row),
-                readinessTheme: this.getReadinessTheme(row),
-                quickViewIcon: row.id === this.selectedEventId ? 'utility:chevrondown' : 'utility:chevronright',
-                rowClass: row.id === this.selectedEventId ? 'event-row event-row--selected' : 'event-row',
-                isSelected: this.selectedRowIds.includes(row.id)
+                readinessTheme: this.getReadinessTheme(row)
             }));
             this.totalCount = data?.totalCount || 0;
             const currentIds = new Set(this.rows.map((r) => r.id));
             this.selectedRowIds = this.selectedRowIds.filter((id) => currentIds.has(id));
             if (this.selectedEventId && !currentIds.has(this.selectedEventId)) this.selectedEventId = null;
-            this.rows = this.rows.map((row) => ({ ...row, isSelected: this.selectedRowIds.includes(row.id) }));
-            this.refreshQuickViewIcons();
             this.persistViewState();
         } finally {
             this.isLoading = false;
         }
     }
 
+    // ---- shell events
     handleSearch(event) {
-        const value = event.target.value;
+        const value = event.detail.value;
         this.searchKey = value;
         if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
         this.searchDebounceTimer = setTimeout(() => {
@@ -272,27 +214,107 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
             this.loadRows();
         }, 300);
     }
-    handlePageSize(event) { this.pageSize = Number(event.detail.value); this.pageNumber = 1; this.loadRows(); }
-    handlePrevPage() { if (!this.disablePrev) { this.pageNumber -= 1; this.loadRows(); } }
-    handleNextPage() { if (!this.disableNext) { this.pageNumber += 1; this.loadRows(); } }
 
-    handleSelectAllRows(event) {
-        const checked = event.target.checked;
-        this.selectedRowIds = checked ? this.rows.map((row) => row.id) : [];
-        this.rows = this.rows.map((row) => ({ ...row, isSelected: checked }));
+    handleSortChange(event) {
+        this.sortField1 = event.detail.field;
+        this.sortDir1 = event.detail.direction;
+        this.sortField2 = '';
+        this.sortDir2 = 'ASC';
+        this.pageNumber = 1;
+        this.loadRows();
     }
 
-    handleRowSelection(event) {
-        const rowId = event.currentTarget?.dataset?.id;
-        const checked = event.target.checked;
-        if (!rowId) return;
+    handlePageChange(event) {
+        this.pageNumber = event.detail.pageNumber;
+        this.loadRows();
+    }
+
+    handlePageSizeChange(event) {
+        this.pageSize = event.detail.pageSize;
+        this.pageNumber = 1;
+        this.loadRows();
+    }
+
+    handleRowClick(event) {
+        const rowId = event.detail.rowId;
+        this.selectedEventId = this.selectedEventId === rowId ? null : rowId;
+    }
+
+    handleRowSelect(event) {
+        const { rowId, checked } = event.detail;
         const ids = new Set(this.selectedRowIds);
         if (checked) ids.add(rowId);
         else ids.delete(rowId);
         this.selectedRowIds = [...ids];
-        this.rows = this.rows.map((row) => (row.id === rowId ? { ...row, isSelected: checked } : row));
     }
 
+    handleRowSelectAll(event) {
+        const checked = event.detail.checked;
+        this.selectedRowIds = checked ? this.rows.map((r) => r.id) : [];
+    }
+
+    handleRemovePill(event) {
+        const key = event.detail.key;
+        if (key === 'search') this.searchKey = '';
+        if (key === 'status') this.statusFilter = '';
+        if (key === 'readiness') this.readinessFilter = '';
+        if (key === 'program') this.programCode = '';
+        this.pageNumber = 1;
+        this.loadRows();
+    }
+
+    handleClearFilters() {
+        this.resetToDefaultView();
+    }
+
+    handleClearSelection() {
+        this.selectedRowIds = [];
+    }
+
+    handleInlineStatus(event) {
+        this.statusFilter = event.detail.value || '';
+        this.pageNumber = 1;
+        this.loadRows();
+    }
+
+    handleInlineReadiness(event) {
+        this.readinessFilter = event.detail.value || '';
+        this.pageNumber = 1;
+        this.loadRows();
+    }
+
+    handleCellAction(event) {
+        const { rowId, action } = event.detail;
+        if (action === 'viewInstances') {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__navItemPage',
+                attributes: { apiName: 'fiuInstanceBrowser' },
+                state: { c__eventId: rowId }
+            });
+        }
+    }
+
+    handleOpenFilters() {
+        this.openFilterModal();
+    }
+
+    handleOpenSettings() {
+        this.openFieldModal();
+    }
+
+    handleResetView() {
+        this.resetToDefaultView();
+    }
+
+    handleQuickViewClose() {
+        this.selectedEventId = null;
+    }
+
+    handleBreadcrumbHome() {
+        this.navigateHome();
+    }
+
+    // ---- filter modal
     openFilterModal() {
         this.draftStatusFilter = this.statusFilter;
         this.draftReadinessFilter = this.readinessFilter;
@@ -314,6 +336,7 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
         this.loadRows();
     }
 
+    // ---- field picker modal
     openFieldModal() {
         this.draftVisibleColumnKeys = [...this.visibleColumnKeys];
         this.isFieldModalOpen = true;
@@ -329,12 +352,6 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
         this.visibleColumnKeys = this.draftVisibleColumnKeys.length ? [...this.draftVisibleColumnKeys] : [...DEFAULT_VISIBLE_COLUMN_KEYS];
         this.isFieldModalOpen = false;
         this.persistViewState();
-    }
-
-    handleGearSelect(event) {
-        const action = event.detail.value;
-        if (action === 'fields') this.openFieldModal();
-        if (action === 'reset') this.resetToDefaultView();
     }
 
     resetToDefaultView() {
@@ -353,15 +370,7 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
         this.loadRows();
     }
 
-    refreshView() {
-        this.loadRows();
-    }
-
-    closeQuickView() {
-        this.selectedEventId = null;
-        this.refreshQuickViewIcons();
-    }
-
+    // ---- export
     handleExportMenuSelect(event) {
         const action = event.detail.value;
         if (action === 'selected') this.handleExportSelected();
@@ -396,10 +405,17 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
         window.open(`/apex/ExportCsv?${params.toString()}`, '_blank');
     }
 
+    // ---- create modal
     handleCreateNew() {
         this.isCreateModalOpen = true;
     }
 
+    closeCreateModal() {
+        this.isCreateModalOpen = false;
+        this.loadRows();
+    }
+
+    // ---- themes
     getStatusTheme(row) {
         if (row.status === 'Active' && row.issueReason) return 'warning';
         if (row.status === 'Active') return 'success';
@@ -415,6 +431,7 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
         return 'neutral';
     }
 
+    // ---- navigation
     navigateHome() {
         this[NavigationMixin.Navigate]({
             type: 'standard__navItemPage',
@@ -463,42 +480,6 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
         if (action === 'clone') this.cloneSelectedEvent();
     }
 
-    closeCreateModal() {
-        this.isCreateModalOpen = false;
-        this.loadRows();
-    }
-
-    openQuickViewFromButton(event) {
-        const rowId = event.currentTarget?.dataset?.id;
-        if (!rowId) return;
-        if (this.selectedEventId === rowId) {
-            this.closeQuickView();
-            return;
-        }
-        this.selectedEventId = rowId;
-        this.refreshQuickViewIcons();
-    }
-
-    refreshQuickViewIcons() {
-        this.rows = this.rows.map((row) => ({
-            ...row,
-            quickViewIcon: row.id === this.selectedEventId ? 'utility:chevrondown' : 'utility:chevronright',
-            rowClass: row.id === this.selectedEventId ? 'event-row event-row--selected' : 'event-row'
-        }));
-    }
-
-    getSortIcon(fieldName) {
-        if (this.sortField1 !== fieldName) return 'utility:chevrondown';
-        return this.sortDir1 === 'ASC' ? 'utility:arrowup' : 'utility:arrowdown';
-    }
-
-    handleQuickViewKeydown(event) {
-        if (event.key === 'Escape') {
-            event.stopPropagation();
-            this.closeQuickView();
-        }
-    }
-
     handleQuickViewIssueAction() {
         const issue = (this.selectedEvent?.issueReason || '').toLowerCase();
         if (issue.includes('missing selected program')) {
@@ -506,18 +487,5 @@ export default class FiuEventBrowser extends NavigationMixin(LightningElement) {
             return;
         }
         this.openSelectedEventRecord();
-    }
-
-    renderedCallback() {
-        if (this.selectedEventId && this._lastFocusedEventId !== this.selectedEventId) {
-            const heading = this.template.querySelector('[data-quick-view-heading]');
-            if (heading) {
-                heading.focus();
-                this._lastFocusedEventId = this.selectedEventId;
-            }
-        }
-        if (!this.selectedEventId) {
-            this._lastFocusedEventId = null;
-        }
     }
 }

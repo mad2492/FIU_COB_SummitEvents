@@ -1,0 +1,279 @@
+<template>
+    <div class="fls-root" onkeydown={handleShellKeydown}>
+        <section class="fls-page-header panel">
+            <div class="fls-page-header__main">
+                <div class="fls-breadcrumbs">
+                    <button class="fls-breadcrumb-link" type="button" onclick={handleNavigateHome}>{breadcrumbLabel}</button>
+                    <span class="fls-breadcrumb-separator" aria-hidden="true">&gt;</span>
+                    <span class="fls-breadcrumb-current">{pageHeaderCrumbLabel}</span>
+                </div>
+                <h1>{pageTitle}</h1>
+            </div>
+            <div class="fls-page-header__actions">
+                <slot name="header-actions"></slot>
+            </div>
+        </section>
+
+        <div class={layoutClass}>
+            <section class="panel fls-list-shell">
+                <div class="fls-list-shell__header">
+                    <div class="fls-list-shell__title">
+                        <span class="fls-list-shell__icon" style={listIconStyle}>
+                            <lightning-icon icon-name={iconName} size="x-small" alternative-text={listTitle}></lightning-icon>
+                        </span>
+                        <div>
+                            <h2>{listTitle}</h2>
+                            <p class="fls-count-line">
+                                <span>{countLabel}</span>
+                                <template if:true={hasSelection}>
+                                    <span class="fls-selection-chip">
+                                        <span>{selectionLabel}</span>
+                                        <button type="button" class="fls-selection-clear" title="Clear selection" aria-label="Clear selection" onclick={handleClearSelection}>Clear</button>
+                                    </span>
+                                </template>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <template if:true={showHint}>
+                    <div class="fls-hint">
+                        <lightning-icon icon-name={hintIcon} size="xx-small" alternative-text="Info"></lightning-icon>
+                        <span>{hintText}</span>
+                    </div>
+                </template>
+
+                <div class="fls-toolbar">
+                    <lightning-input
+                        class="fls-search"
+                        type="search"
+                        variant="label-hidden"
+                        label="Search this list"
+                        placeholder={searchPlaceholder}
+                        value={searchValue}
+                        onchange={handleSearch}>
+                    </lightning-input>
+                    <div class="fls-toolbar__inline-filters">
+                        <slot name="inline-filters"></slot>
+                    </div>
+                    <div class="fls-toolbar__actions">
+                        <template if:true={enableRefresh}>
+                            <lightning-button-icon
+                                icon-name="utility:refresh"
+                                alternative-text="Refresh"
+                                title="Refresh"
+                                onclick={handleRefresh}>
+                            </lightning-button-icon>
+                        </template>
+                        <lightning-button
+                            label={filtersButtonLabel}
+                            icon-name="utility:filterList"
+                            onclick={handleOpenFilters}>
+                        </lightning-button>
+                        <template if:true={showSettingsMenu}>
+                            <lightning-button-menu
+                                alternative-text="View Settings"
+                                icon-name="utility:settings"
+                                menu-alignment="right"
+                                onselect={handleGearSelect}>
+                                <lightning-menu-item value="fields" label="Select Fields to Display"></lightning-menu-item>
+                                <lightning-menu-item value="reset" label="Reset to Default View"></lightning-menu-item>
+                            </lightning-button-menu>
+                        </template>
+                    </div>
+                </div>
+
+                <template if:true={showFilterBand}>
+                    <div class="fls-filter-pills">
+                        <template if:true={scopeLabel}>
+                            <span class="fls-scope-pill" title={scopeLabel}>
+                                <lightning-icon icon-name="utility:filterList" size="xx-small" alternative-text=""></lightning-icon>
+                                <span>{scopeLabel}</span>
+                                <template if:true={scopeClearable}>
+                                    <button type="button" class="fls-scope-clear" title="Clear scope" aria-label="Clear scope" onclick={handleClearScope}>
+                                        <lightning-icon icon-name="utility:close" size="xx-small" alternative-text=""></lightning-icon>
+                                    </button>
+                                </template>
+                            </span>
+                        </template>
+                        <template for:each={activeFilterPills} for:item="pill">
+                            <lightning-pill key={pill.key} label={pill.label} name={pill.key} onremove={handleRemovePill}></lightning-pill>
+                        </template>
+                        <template if:true={hasActiveFilters}>
+                            <button class="fls-clear-link" type="button" onclick={handleClearFilters}>Clear all</button>
+                        </template>
+                    </div>
+                </template>
+
+                <template if:true={hasError}>
+                    <div class="fls-error" role="alert">
+                        <lightning-icon icon-name="utility:error" size="x-small" alternative-text="Error"></lightning-icon>
+                        <span>{errorMessage}</span>
+                    </div>
+                </template>
+
+                <template if:true={isLoading}>
+                    <div class="fls-loading">
+                        <div class="fls-sk fls-sk--row"></div>
+                        <div class="fls-sk fls-sk--row"></div>
+                        <div class="fls-sk fls-sk--row"></div>
+                        <div class="fls-sk fls-sk--row"></div>
+                        <div class="fls-sk fls-sk--row"></div>
+                    </div>
+                </template>
+
+                <template if:true={hasRows}>
+                    <div class="fls-table-scroll">
+                        <table class="slds-table slds-table_bordered fls-table">
+                            <thead>
+                                <tr class="slds-line-height_reset">
+                                    <template if:true={showBulkSelection}>
+                                        <th class="fls-checkbox-col" scope="col">
+                                            <lightning-input
+                                                type="checkbox"
+                                                variant="label-hidden"
+                                                label="Select all"
+                                                checked={allRowsSelected}
+                                                onchange={handleSelectAllRows}>
+                                            </lightning-input>
+                                        </th>
+                                    </template>
+                                    <template for:each={visibleColumns} for:item="col">
+                                        <th key={col.key} class={col.headerClass} scope="col">
+                                            <template if:true={col.isSortable}>
+                                                <button class="fls-sort-button" type="button" data-field={col.key} onclick={handleSortHeader}>
+                                                    <span class="slds-truncate">{col.label}</span>
+                                                    <lightning-icon class="fls-sort-icon" icon-name={col.sortIcon} size="xx-small" alternative-text=""></lightning-icon>
+                                                </button>
+                                            </template>
+                                            <template if:false={col.isSortable}>
+                                                <span class="fls-header-label">{col.label}</span>
+                                            </template>
+                                        </th>
+                                    </template>
+                                    <th class="fls-quick-view-col" scope="col"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={displayRows} for:item="row">
+                                    <tr key={row.id} class={row.rowClass} data-id={row.id} onclick={handleRowClick}>
+                                        <template if:true={showBulkSelection}>
+                                            <td class="fls-checkbox-col" onclick={stopRowClick}>
+                                                <lightning-input
+                                                    type="checkbox"
+                                                    variant="label-hidden"
+                                                    label="Select row"
+                                                    checked={row.isSelected}
+                                                    data-id={row.id}
+                                                    onchange={handleRowSelectionChange}>
+                                                </lightning-input>
+                                            </td>
+                                        </template>
+                                        <template for:each={row.cells} for:item="cell">
+                                            <td key={cell.key} class={cell.cellClass}>
+                                                <template if:true={cell.isText}>
+                                                    <span class="slds-truncate" title={cell.value}>{cell.value}</span>
+                                                </template>
+                                                <template if:true={cell.isDate}>
+                                                    <lightning-formatted-date-time value={cell.value}></lightning-formatted-date-time>
+                                                </template>
+                                                <template if:true={cell.isDateTime}>
+                                                    <lightning-formatted-date-time value={cell.value} year="numeric" month="short" day="numeric" hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                                                </template>
+                                                <template if:true={cell.isNumber}>
+                                                    <span class="fls-num">{cell.value}</span>
+                                                </template>
+                                                <template if:true={cell.isBadge}>
+                                                    <c-fiu-datatable-pill-cell label={cell.value} theme={cell.theme}></c-fiu-datatable-pill-cell>
+                                                </template>
+                                                <template if:true={cell.isLink}>
+                                                    <button class="fls-name-button" type="button" data-id={row.id} onclick={handleNameClick} title={cell.value}>{cell.value}</button>
+                                                </template>
+                                                <template if:true={cell.isMultiline}>
+                                                    <span class="fls-wrap">{cell.value}</span>
+                                                </template>
+                                                <template if:true={cell.isCapacity}>
+                                                    <div class="fls-capacity">
+                                                        <div class="fls-capacity__label">{cell.capacitySummary}</div>
+                                                        <div class="fls-capacity__track">
+                                                            <div class={cell.capacityFillClass} style={cell.capacityFillStyle}></div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <template if:true={cell.isCountLink}>
+                                                    <button class="fls-count-link" type="button" data-id={row.id} data-action={cell.action} title={cell.actionTooltip} onclick={handleCellAction}>
+                                                        <span class="fls-num">{cell.value}</span>
+                                                        <lightning-icon icon-name="utility:chevronright" size="xx-small" alternative-text=""></lightning-icon>
+                                                    </button>
+                                                </template>
+                                            </td>
+                                        </template>
+                                        <td class="fls-quick-view-col" onclick={stopRowClick}>
+                                            <button class="fls-chevron" type="button" data-id={row.id} onclick={handleQuickViewToggle} title="Open quick view">
+                                                <lightning-icon icon-name={row.quickViewIcon} size="xx-small" alternative-text="Open quick view"></lightning-icon>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </template>
+
+                <template if:true={showEmptyState}>
+                    <div class="fls-empty">
+                        <p class="fls-empty__title">{emptyTitle}</p>
+                        <p class="fls-empty__body">{emptyBody}</p>
+                        <template if:true={showEmptyClear}>
+                            <lightning-button class="slds-m-top_small" variant="base" label="Clear filters" onclick={handleClearFilters}></lightning-button>
+                        </template>
+                    </div>
+                </template>
+
+                <div class="fls-pager">
+                    <span class="fls-pager__summary">{pagerSummary}</span>
+                    <div class="fls-pager__actions">
+                        <lightning-combobox
+                            class="fls-rows-per-page"
+                            label="Rows per page"
+                            variant="label-hidden"
+                            value={pageSizeValue}
+                            options={pageSizeOptions}
+                            onchange={handlePageSize}>
+                        </lightning-combobox>
+                        <lightning-button label="Previous" onclick={handlePrevPage} disabled={disablePrev}></lightning-button>
+                        <lightning-button class="slds-m-left_x-small" label="Next" onclick={handleNextPage} disabled={disableNext}></lightning-button>
+                    </div>
+                </div>
+            </section>
+
+            <template if:true={hasRail}>
+                <aside class="panel fls-rail" role="complementary" aria-label={quickViewAriaLabel} onkeydown={handleQuickViewKeydown}>
+                    <header class="fls-rail__header">
+                        <div class="fls-rail__header-top">
+                            <p class="fls-rail__eyebrow">{quickViewEyebrow}</p>
+                            <div class="fls-rail__header-controls">
+                                <button class="fls-rail__nav" type="button" title="Previous record" aria-label="Previous record" disabled={disableQuickViewPrev} onclick={handleQuickViewPrev}>
+                                    <lightning-icon icon-name="utility:chevronleft" size="xx-small" alternative-text=""></lightning-icon>
+                                </button>
+                                <button class="fls-rail__nav" type="button" title="Next record" aria-label="Next record" disabled={disableQuickViewNext} onclick={handleQuickViewNext}>
+                                    <lightning-icon icon-name="utility:chevronright" size="xx-small" alternative-text=""></lightning-icon>
+                                </button>
+                                <button class="fls-rail__close" type="button" title="Close" aria-label="Close quick view" onclick={handleQuickViewClose}>
+                                    <lightning-icon icon-name="utility:close" size="xx-small" alternative-text=""></lightning-icon>
+                                </button>
+                            </div>
+                        </div>
+                        <h2 class="fls-rail__title" tabindex="-1" data-quick-view-heading>{quickViewTitle}</h2>
+                        <template if:true={quickViewSubhead}>
+                            <p class="fls-rail__subhead">{quickViewSubhead}</p>
+                        </template>
+                    </header>
+                    <div class="fls-rail__body">
+                        <slot name="quick-view-body"></slot>
+                    </div>
+                </aside>
+            </template>
+        </div>
+    </div>
+</template>

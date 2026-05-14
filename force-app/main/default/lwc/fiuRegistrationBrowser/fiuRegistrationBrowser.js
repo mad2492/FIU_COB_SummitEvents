@@ -10,21 +10,22 @@ import getProgramOptions from '@salesforce/apex/FiuProgramFilterService.getProgr
 
 const VIEW_STATE_KEY = 'fiuRegBrowserViewStateV1';
 
-const ALL_COLUMNS = [
-    { key: 'name', label: 'Registration', sortable: true },
-    { key: 'contact', label: 'Contact' },
-    { key: 'email', label: 'Email', sortable: true },
-    { key: 'eventName', label: 'Event', sortable: true },
-    { key: 'instanceName', label: 'Instance', sortable: true },
-    { key: 'instanceStartDate', label: 'Instance Start', sortable: true },
-    { key: 'instanceEndDate', label: 'Instance End', sortable: true },
-    { key: 'locationTypeOverride', label: 'Location Type', sortable: true },
-    { key: 'processStatus', label: 'Status', sortable: true }
+const COLUMN_DEFS = [
+    { key: 'name', label: 'Registration', type: 'link', sortable: true, defaultVisible: true },
+    { key: 'contact', label: 'Contact', type: 'text', valueKey: 'contactDisplayName', warnKey: 'contactIssue', sortable: false, defaultVisible: true },
+    { key: 'email', label: 'Email', type: 'text', sortable: true, defaultVisible: true },
+    { key: 'eventName', label: 'Event', type: 'text', sortable: true, defaultVisible: true },
+    { key: 'instanceName', label: 'Instance', type: 'text', sortable: true, defaultVisible: true },
+    { key: 'instanceStartDate', label: 'Instance Start', type: 'date', sortable: true, defaultVisible: true },
+    { key: 'instanceEndDate', label: 'Instance End', type: 'date', sortable: true, defaultVisible: false },
+    { key: 'locationTypeOverride', label: 'Location Type', type: 'text', sortable: true, defaultVisible: false },
+    { key: 'processStatus', label: 'Status', type: 'badge', themeKey: 'processStatusTheme', sortable: true, defaultVisible: true }
 ];
 
-const DEFAULT_VISIBLE_COLUMN_KEYS = ['name', 'contact', 'email', 'eventName', 'instanceName', 'instanceStartDate', 'processStatus'];
+const DEFAULT_VISIBLE_COLUMN_KEYS = COLUMN_DEFS.filter((c) => c.defaultVisible).map((c) => c.key);
 
 export default class FiuRegistrationBrowser extends NavigationMixin(LightningElement) {
+    columns = COLUMN_DEFS;
     rows = [];
     selectedRowIds = [];
     selectedRegistrationId;
@@ -55,7 +56,7 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
     visibleColumnKeys = [...DEFAULT_VISIBLE_COLUMN_KEYS];
 
     isLoading = false;
-    loadError;
+    loadError = '';
 
     isFilterModalOpen = false;
     draftStatusFilter = '';
@@ -94,96 +95,13 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         { label: 'Cancelled', value: 'Cancelled' }
     ];
 
-    get hasRows() {
-        return this.rows.length > 0;
-    }
-
-    get allRowsSelected() {
-        return this.rows.length > 0 && this.rows.every((row) => row.isSelected);
-    }
-
+    // ---- derived state
     get selectedRegistration() {
         return this.rows.find((row) => row.id === this.selectedRegistrationId);
     }
 
-    get browserLayoutClass() {
-        return this.selectedRegistration ? 'browser-layout browser-layout--panel-open' : 'browser-layout';
-    }
-
-    get showNameColumn() {
-        return this.visibleColumnKeys.includes('name');
-    }
-
-    get showContactColumn() {
-        return this.visibleColumnKeys.includes('contact');
-    }
-
-    get showEmailColumn() {
-        return this.visibleColumnKeys.includes('email');
-    }
-
-    get showEventColumn() {
-        return this.visibleColumnKeys.includes('eventName');
-    }
-
-    get showInstanceColumn() {
-        return this.visibleColumnKeys.includes('instanceName');
-    }
-
-    get showInstanceStartDateColumn() {
-        return this.visibleColumnKeys.includes('instanceStartDate');
-    }
-
-    get showInstanceEndDateColumn() {
-        return this.visibleColumnKeys.includes('instanceEndDate');
-    }
-
-    get showLocationTypeOverrideColumn() {
-        return this.visibleColumnKeys.includes('locationTypeOverride');
-    }
-
-    get showProcessStatusColumn() {
-        return this.visibleColumnKeys.includes('processStatus');
-    }
-
-    get nameSortIcon() {
-        return this.getSortIcon('name');
-    }
-
-    get emailSortIcon() {
-        return this.getSortIcon('email');
-    }
-
-    get eventNameSortIcon() {
-        return this.getSortIcon('eventName');
-    }
-
-    get instanceNameSortIcon() {
-        return this.getSortIcon('instanceName');
-    }
-
-    get instanceStartDateSortIcon() {
-        return this.getSortIcon('instanceStartDate');
-    }
-
-    get instanceEndDateSortIcon() {
-        return this.getSortIcon('instanceEndDate');
-    }
-
-    get locationTypeOverrideSortIcon() {
-        return this.getSortIcon('locationTypeOverride');
-    }
-
-    get processStatusSortIcon() {
-        return this.getSortIcon('processStatus');
-    }
-
     get hasActiveFilters() {
         return !!(this.searchKey || this.statusFilter || this.programCode || this.locationTypeOverrideFilter);
-    }
-
-    get showFilterBand() {
-        return !!(this.instanceScopeLabel || this.hasActiveFilters);
     }
 
     get activeFilterPills() {
@@ -196,40 +114,32 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
     }
 
     get fieldChooserOptions() {
-        return ALL_COLUMNS.map((column) => ({ label: column.label, value: column.key }));
+        return COLUMN_DEFS.map((column) => ({ label: column.label, value: column.key }));
+    }
+
+    get scopeIsClearable() {
+        return !!this.instanceId;
+    }
+
+    get quickViewTitle() {
+        return this.selectedRegistration?.contactDisplayName || '';
+    }
+
+    get quickViewSubhead() {
+        if (!this.selectedRegistration) return '';
+        const parts = [];
+        if (this.selectedRegistration.email) parts.push(this.selectedRegistration.email);
+        if (this.selectedRegistration.name) parts.push(this.selectedRegistration.name);
+        return parts.join(' · ');
     }
 
     get selectedCount() {
         return this.selectedRowIds.length;
     }
 
-    get totalPages() {
-        return Math.max(1, Math.ceil((this.totalCount || 0) / this.pageSize));
-    }
-
-    get disablePrev() {
-        return this.pageNumber <= 1;
-    }
-
-    get disableNext() {
-        return this.pageNumber >= this.totalPages;
-    }
-
-    get pageSizeValue() {
-        return String(this.pageSize);
-    }
-
-    get statusInputDisabled() {
-        return !this.updateStatusEnabled;
-    }
-
-    get eventInputDisabled() {
-        return !this.updateEventEnabled;
-    }
-
-    get instanceInputDisabled() {
-        return !this.updateInstanceEnabled;
-    }
+    get statusInputDisabled() { return !this.updateStatusEnabled; }
+    get eventInputDisabled() { return !this.updateEventEnabled; }
+    get instanceInputDisabled() { return !this.updateInstanceEnabled; }
 
     get massSummary() {
         const updates = [];
@@ -297,7 +207,7 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
             if (typeof savedState.sortField2 === 'string') this.sortField2 = savedState.sortField2;
             if (typeof savedState.sortDir2 === 'string') this.sortDir2 = savedState.sortDir2;
         } catch (error) {
-            // Ignore malformed view state.
+            // ignore malformed view state
         }
     }
 
@@ -318,7 +228,7 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
 
     async loadRows() {
         this.isLoading = true;
-        this.loadError = undefined;
+        this.loadError = '';
         try {
             const data = await queryRegistrations({
                 searchKey: this.searchKey,
@@ -339,9 +249,7 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
                 ...row,
                 contactDisplayName: row.contactName || 'Missing Contact',
                 processStatusTheme: this.getProcessStatusTheme(row.processStatus),
-                isStarted: row.processStatus === 'Started',
-                quickViewIcon: row.id === this.selectedRegistrationId ? 'utility:chevrondown' : 'utility:chevronright',
-                isSelected: this.selectedRowIds.includes(row.id)
+                isStarted: row.processStatus === 'Started'
             }));
             if (this.instanceId && this.rows.length > 0 && this.rows[0].instanceName) {
                 this.instanceScopeLabel = `Scoped to: ${this.rows[0].instanceName}`;
@@ -350,11 +258,9 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
             }
             const currentIds = new Set(this.rows.map((row) => row.id));
             this.selectedRowIds = this.selectedRowIds.filter((id) => currentIds.has(id));
-            this.rows = this.rows.map((row) => ({ ...row, isSelected: this.selectedRowIds.includes(row.id) }));
             if (this.selectedRegistrationId && !currentIds.has(this.selectedRegistrationId)) {
                 this.selectedRegistrationId = null;
             }
-            this.refreshQuickViewIcons();
             this.persistViewState();
         } catch (error) {
             this.rows = [];
@@ -365,9 +271,9 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         }
     }
 
+    // ---- shell events
     handleSearch(event) {
-        const value = event.target.value;
-        this.searchKey = value;
+        this.searchKey = event.detail.value;
         if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
         this.searchDebounceTimer = setTimeout(() => {
             this.pageNumber = 1;
@@ -375,45 +281,46 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         }, 300);
     }
 
-    handlePageSize(event) {
-        this.pageSize = Number(event.detail.value);
+    handleSortChange(event) {
+        this.sortField1 = event.detail.field;
+        this.sortDir1 = event.detail.direction;
+        this.sortField2 = '';
+        this.sortDir2 = 'ASC';
         this.pageNumber = 1;
         this.loadRows();
     }
 
-    handlePrevPage() {
-        if (!this.disablePrev) {
-            this.pageNumber -= 1;
-            this.loadRows();
-        }
+    handlePageChange(event) {
+        this.pageNumber = event.detail.pageNumber;
+        this.loadRows();
     }
 
-    handleNextPage() {
-        if (!this.disableNext) {
-            this.pageNumber += 1;
-            this.loadRows();
-        }
+    handlePageSizeChange(event) {
+        this.pageSize = event.detail.pageSize;
+        this.pageNumber = 1;
+        this.loadRows();
     }
 
-    handleSelectAllRows(event) {
-        const checked = event.target.checked;
-        this.selectedRowIds = checked ? this.rows.map((row) => row.id) : [];
-        this.rows = this.rows.map((row) => ({ ...row, isSelected: checked }));
+    handleRowClick(event) {
+        const rowId = event.detail.rowId;
+        this.selectedRegistrationId = this.selectedRegistrationId === rowId ? null : rowId;
     }
 
-    handleRowSelection(event) {
-        const rowId = event.currentTarget?.dataset?.id;
-        const checked = event.target.checked;
-        if (!rowId) return;
+    handleRowSelect(event) {
+        const { rowId, checked } = event.detail;
         const ids = new Set(this.selectedRowIds);
         if (checked) ids.add(rowId);
         else ids.delete(rowId);
         this.selectedRowIds = [...ids];
-        this.rows = this.rows.map((row) => (row.id === rowId ? { ...row, isSelected: checked } : row));
+    }
+
+    handleRowSelectAll(event) {
+        const checked = event.detail.checked;
+        this.selectedRowIds = checked ? this.rows.map((r) => r.id) : [];
     }
 
     handleRemovePill(event) {
-        const key = event.target.name;
+        const key = event.detail.key;
         if (key === 'search') this.searchKey = '';
         if (key === 'status') this.statusFilter = '';
         if (key === 'program') this.programCode = '';
@@ -422,58 +329,56 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         this.loadRows();
     }
 
-    handleSortClick(event) {
-        const fieldName = event.currentTarget?.dataset?.field;
-        if (!fieldName) return;
-        const direction = this.sortField1 === fieldName && this.sortDir1 === 'ASC' ? 'DESC' : 'ASC';
-        this.sortField1 = fieldName;
-        this.sortDir1 = direction;
-        this.sortField2 = '';
-        this.sortDir2 = 'ASC';
+    handleClearFilters() {
+        this.resetToDefaultView();
+    }
+
+    handleClearSelection() {
+        this.selectedRowIds = [];
+    }
+
+    handleInlineStatus(event) {
+        this.statusFilter = event.detail.value || '';
         this.pageNumber = 1;
         this.loadRows();
     }
 
-    openQuickViewFromButton(event) {
-        const rowId = event.currentTarget?.dataset?.id;
-        if (!rowId) return;
-        if (this.selectedRegistrationId === rowId) {
-            this.closeQuickView();
-            return;
-        }
-        this.selectedRegistrationId = rowId;
-        this.refreshQuickViewIcons();
+    handleInlineLocationType(event) {
+        this.locationTypeOverrideFilter = event.detail.value || '';
+        this.pageNumber = 1;
+        this.loadRows();
     }
 
-    closeQuickView() {
-        this.selectedRegistrationId = null;
-        this.refreshQuickViewIcons();
-    }
-
-    refreshQuickViewIcons() {
-        this.rows = this.rows.map((row) => ({
-            ...row,
-            quickViewIcon: row.id === this.selectedRegistrationId ? 'utility:chevrondown' : 'utility:chevronright'
-        }));
-    }
-
-    openSelectedRegistrationRecord() {
-        if (!this.selectedRegistration) return;
+    handleClearScope() {
+        // Drop the instance scope by re-navigating to the bare browser nav item.
+        // The CurrentPageReference wire fires with no state and rebuilds clean.
         this[NavigationMixin.Navigate]({
-            type: 'standard__recordPage',
-            attributes: { recordId: this.selectedRegistration.id, objectApiName: 'summit__Summit_Events_Registration__c', actionName: 'view' }
+            type: 'standard__navItemPage',
+            attributes: { apiName: 'fiuRegistrationBrowser' }
         });
     }
 
-    editSelectedRegistrationStatus() {
-        if (!this.selectedRegistration) return;
-        this.selectedRowIds = [this.selectedRegistration.id];
-        this.rows = this.rows.map((row) => ({ ...row, isSelected: row.id === this.selectedRegistration.id }));
-        this.openMassModal();
-        this.updateStatusEnabled = true;
-        this.massStatus = this.selectedRegistration.processStatus || '';
+    handleOpenFilters() {
+        this.openFilterModal();
     }
 
+    handleOpenSettings() {
+        this.openFieldModal();
+    }
+
+    handleResetView() {
+        this.resetToDefaultView();
+    }
+
+    handleQuickViewClose() {
+        this.selectedRegistrationId = null;
+    }
+
+    handleBreadcrumbHome() {
+        this.navigateHome();
+    }
+
+    // ---- filter modal
     openFilterModal() {
         this.draftStatusFilter = this.statusFilter;
         this.draftProgramCode = this.programCode;
@@ -485,17 +390,9 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         this.isFilterModalOpen = false;
     }
 
-    handleDraftStatus(event) {
-        this.draftStatusFilter = event.detail.value;
-    }
-
-    handleDraftProgram(event) {
-        this.draftProgramCode = event.detail.value;
-    }
-
-    handleDraftLocationTypeOverride(event) {
-        this.draftLocationTypeOverrideFilter = event.detail.value;
-    }
+    handleDraftStatus(event) { this.draftStatusFilter = event.detail.value; }
+    handleDraftProgram(event) { this.draftProgramCode = event.detail.value; }
+    handleDraftLocationTypeOverride(event) { this.draftLocationTypeOverrideFilter = event.detail.value; }
 
     applyFilters() {
         this.statusFilter = this.draftStatusFilter || '';
@@ -506,6 +403,7 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         this.loadRows();
     }
 
+    // ---- field picker modal
     openFieldModal() {
         this.draftVisibleColumnKeys = [...this.visibleColumnKeys];
         this.isFieldModalOpen = true;
@@ -525,12 +423,6 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         this.persistViewState();
     }
 
-    handleGearSelect(event) {
-        const action = event.detail.value;
-        if (action === 'fields') this.openFieldModal();
-        if (action === 'reset') this.resetToDefaultView();
-    }
-
     resetToDefaultView() {
         this.visibleColumnKeys = [...DEFAULT_VISIBLE_COLUMN_KEYS];
         this.statusFilter = '';
@@ -548,10 +440,7 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         this.loadRows();
     }
 
-    refreshView() {
-        this.loadRows();
-    }
-
+    // ---- navigation
     navigateHome() {
         this[NavigationMixin.Navigate]({
             type: 'standard__navItemPage',
@@ -559,6 +448,23 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         });
     }
 
+    openSelectedRegistrationRecord() {
+        if (!this.selectedRegistration) return;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: { recordId: this.selectedRegistration.id, objectApiName: 'summit__Summit_Events_Registration__c', actionName: 'view' }
+        });
+    }
+
+    editSelectedRegistrationStatus() {
+        if (!this.selectedRegistration) return;
+        this.selectedRowIds = [this.selectedRegistration.id];
+        this.openMassModal();
+        this.updateStatusEnabled = true;
+        this.massStatus = this.selectedRegistration.processStatus || '';
+    }
+
+    // ---- export / import
     handleExportMenuSelect(event) {
         const action = event.detail.value;
         if (action === 'selected') this.handleExportSelected();
@@ -606,6 +512,7 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         window.open(`/apex/ExportCsv?${params.toString()}`, '_blank');
     }
 
+    // ---- mass update modal
     openMassModal() {
         if (!this.selectedCount) {
             this.showToast('No rows selected', 'Select one or more rows before mass update.', 'warning');
@@ -640,17 +547,9 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         if (!this.updateInstanceEnabled) this.massInstanceId = undefined;
     }
 
-    handleMassStatus(event) {
-        this.massStatus = event.detail.value;
-    }
-
-    handleMassEvent(event) {
-        this.massEventId = event.detail.recordId;
-    }
-
-    handleMassInstance(event) {
-        this.massInstanceId = event.detail.recordId;
-    }
+    handleMassStatus(event) { this.massStatus = event.detail.value; }
+    handleMassEvent(event) { this.massEventId = event.detail.recordId; }
+    handleMassInstance(event) { this.massInstanceId = event.detail.recordId; }
 
     async applyMassUpdate() {
         const newStatus = this.updateStatusEnabled ? this.massStatus : '';
@@ -665,7 +564,6 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
             this.isMassModalOpen = false;
             this.inlineErrorMessage = undefined;
             this.selectedRowIds = [];
-            this.rows = this.rows.map((row) => ({ ...row, isSelected: false }));
             this.showToast('Mass update complete', `${result.updatedCount} registration(s) updated.`, 'success');
             await this.loadRows();
         } catch (error) {
@@ -673,15 +571,11 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         }
     }
 
+    // ---- themes
     getProcessStatusTheme(status) {
         if (status === 'Started') return 'warning';
         if (status === 'Cancelled') return 'neutral';
         if (!status) return 'neutral';
         return 'success';
-    }
-
-    getSortIcon(fieldName) {
-        if (this.sortField1 !== fieldName) return 'utility:chevrondown';
-        return this.sortDir1 === 'ASC' ? 'utility:arrowup' : 'utility:arrowdown';
     }
 }

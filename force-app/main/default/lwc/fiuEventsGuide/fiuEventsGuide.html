@@ -1,93 +1,179 @@
 <template>
     <div class="guide-shell">
-        <section class="guide-header">
-            <div class="breadcrumbs">
-                <button class="breadcrumb-link" onclick={navigateHome}>Home</button>
-                <span class="breadcrumb-separator" aria-hidden="true">&gt;</span>
+        <section class="guide-header panel">
+            <nav class="breadcrumbs" aria-label="Breadcrumb">
+                <button class="breadcrumb-link" type="button" onclick={navigateHome}>Home</button>
+                <span class="breadcrumb-separator" aria-hidden="true">&rsaquo;</span>
                 <span class="breadcrumb-current">Guide</span>
-            </div>
-            <h1>FIU Events - How it works</h1>
+            </nav>
+            <h1>FIU Events Guide</h1>
+            <p class="guide-subtitle">Quick answers, the mental model, and what to do next.</p>
         </section>
 
         <div class="guide-layout">
-            <section class="guide-main panel">
-                <h2>How FIU Events fit together</h2>
-                <p class="intro-copy">
-                    Start with the parent Event, add one or more dated Instances underneath it, and then track the
-                    Registrations that come in for each Instance.
-                </p>
-
-                <article class="concept-card concept-card--event">
-                    <div class="concept-number">1</div>
-                    <div class="concept-copy">
-                        <h3>Event</h3>
-                        <p>
-                            The parent. A reusable concept like "MBA Spring Open House" or "MS Finance Webinar Series".
-                            Set up branding, audience, and location type once.
-                        </p>
-                    </div>
-                </article>
-
-                <article class="concept-card concept-card--instance">
-                    <div class="concept-number">2</div>
-                    <div class="concept-copy">
-                        <h3>Instance</h3>
-                        <p>
-                            A specific date/time of an Event. People register for instances, not events. One Event can
-                            have many Instances - that's how you run the same Open House at three different dates.
-                        </p>
-                    </div>
-                </article>
-
-                <article class="concept-card concept-card--registration">
-                    <div class="concept-number">3</div>
-                    <div class="concept-copy">
-                        <h3>Registration</h3>
-                        <p>
-                            A single contact signing up for one Instance. Status moves from Started to Registered to
-                            Attended, or Cancelled. Started means they bailed mid-form, so it is worth a follow-up.
-                        </p>
-                    </div>
-                </article>
-
-                <section class="content-block">
-                    <h3>Readiness - the most important concept</h3>
-                    <p>
-                        Every Event and Instance has a Readiness flag. <strong>Not Ready</strong> means a record cannot
-                        go live yet. The system checks for required fields, payment setup, location details, and related
-                        configuration gaps. Your dashboard surfaces those blockers - fix the specific blocker before launch,
-                        not just the status label.
+            <main class="guide-main panel">
+                <section class="guide-section" data-section="mental-model" id="mental-model">
+                    <h2>Mental model</h2>
+                    <p class="section-lead">
+                        Start with the parent Event, add one or more dated Instances underneath it, and then track the
+                        Registrations that come in for each Instance.
                     </p>
+
+                    <div class="concept-cards">
+                        <article class="concept-card concept-card--event">
+                            <div class="concept-number">1</div>
+                            <div class="concept-copy">
+                                <h3>Event</h3>
+                                <p>
+                                    The parent. A reusable concept like "MBA Spring Open House" or "MS Finance Webinar Series".
+                                    Set up branding, audience, and location type once.
+                                </p>
+                            </div>
+                        </article>
+
+                        <article class="concept-card concept-card--instance">
+                            <div class="concept-number">2</div>
+                            <div class="concept-copy">
+                                <h3>Instance</h3>
+                                <p>
+                                    A specific date and time of an Event. People register for instances, not events. One Event can
+                                    have many Instances — that's how you run the same Open House at three different dates.
+                                </p>
+                            </div>
+                        </article>
+
+                        <article class="concept-card concept-card--registration">
+                            <div class="concept-number">3</div>
+                            <div class="concept-copy">
+                                <h3>Registration</h3>
+                                <p>
+                                    A single contact signing up for one Instance. Status moves from Started to Registered to
+                                    Attended, or Cancelled. Started means they bailed mid-form, so it's worth a follow-up.
+                                </p>
+                            </div>
+                        </article>
+                    </div>
                 </section>
 
-                <section class="content-block">
-                    <h3>Choose the right workflow first</h3>
-                    <ul class="pitfall-list">
-                        <li><strong>Create New Event</strong> when this is a brand-new concept with its own branding, program targeting, or setup.</li>
-                        <li><strong>Clone Existing Event</strong> when the setup is mostly the same and you want to reuse a proven configuration.</li>
-                        <li><strong>Add another Instance</strong> when the event already exists and you just need a new date or occurrence.</li>
+                <section class="guide-section" data-section="workflows" id="workflows">
+                    <h2>Which workflow?</h2>
+                    <p class="section-lead">Pick the right entry point based on what you're trying to do.</p>
+                    <ul class="workflow-list">
+                        <li>
+                            <strong>Create New Event</strong> — when this is a brand-new concept with its own branding,
+                            program targeting, or setup.
+                        </li>
+                        <li>
+                            <strong>Clone Existing Event</strong> — when the setup is mostly the same and you want to reuse
+                            a proven configuration.
+                        </li>
+                        <li>
+                            <strong>Add another Instance</strong> — when the event already exists and you just need a new date
+                            or occurrence.
+                        </li>
                     </ul>
                 </section>
 
-                <section class="content-block">
+                <section class="guide-section" data-section="readiness" id="readiness">
+                    <h2>Readiness</h2>
+
+                    <div class="callout callout--warn" role="note">
+                        <div class="callout__icon">
+                            <lightning-icon icon-name="utility:warning" size="small" alternative-text="Important"></lightning-icon>
+                        </div>
+                        <div class="callout__body">
+                            <p class="callout__title">The most important concept.</p>
+                            <p>
+                                Every Event and Instance has a Readiness flag. <strong>Not Ready</strong> means a record cannot
+                                go live yet. The system checks for required fields, payment setup, location details, and related
+                                configuration gaps. Your dashboard surfaces those blockers — fix the specific blocker before launch,
+                                not just the status label.
+                            </p>
+                        </div>
+                    </div>
+
                     <h3>What actually makes an event work</h3>
-                    <ul class="pitfall-list">
-                        <li><strong>Program selection matters.</strong> Program values drive recruiter routing, website/API visibility, and downstream Opportunity behavior.</li>
-                        <li><strong>Every Event needs an Account.</strong> If the Account is missing, the public registration experience can fail or become unavailable.</li>
-                        <li><strong>Paid events need full setup.</strong> If payment is required, set both Payment Gateway and Accounting Department.</li>
-                        <li><strong>Instances carry the public experience.</strong> Location, map link, parking, active status, and registration-open settings live there.</li>
+                    <ul class="essentials-list">
+                        <li>
+                            <strong>Program selection matters.</strong>
+                            Program values drive recruiter routing, website/API visibility, and downstream Opportunity behavior.
+                        </li>
+                        <li>
+                            <strong>Every Event needs an Account.</strong>
+                            If the Account is missing, the public registration experience can fail or become unavailable.
+                        </li>
+                        <li>
+                            <strong>Paid events need full setup.</strong>
+                            If payment is required, set both Payment Gateway and Accounting Department.
+                        </li>
+                        <li>
+                            <strong>Instances carry the public experience.</strong>
+                            Location, map link, parking, active status, and registration-open settings live there.
+                        </li>
                     </ul>
                 </section>
 
-                <section class="content-block">
-                    <h3>Common pitfalls</h3>
-                    <ul class="pitfall-list">
-                        <li><strong>My event is not visible publicly.</strong> The Event must be Active, and it needs at least one Active, Ready Instance.</li>
-                        <li><strong>Payment is not working.</strong> Paid events need both a Payment Gateway and an Accounting Department.</li>
-                        <li><strong>I cannot change the Record Type.</strong> Record Type is locked after creation, so clone instead.</li>
-                        <li><strong>Started registrations are piling up.</strong> Those are abandoned forms, not completed registrations. Follow up or bulk-cancel them.</li>
-                        <li><strong>Reminder sends are struggling.</strong> Large-volume reminder runs may need MCAE/Pardot support instead of relying only on the reminder layer.</li>
-                    </ul>
+                <section class="guide-section" data-section="faq" id="faq">
+                    <h2>Common questions</h2>
+                    <p class="section-lead">Click a question to see the fix.</p>
+
+                    <details class="faq-item">
+                        <summary>My event isn't visible publicly</summary>
+                        <div class="faq-answer">
+                            <p>
+                                The Event must be Active, and it needs at least one Active, Ready Instance. Check both:
+                            </p>
+                            <ul>
+                                <li>Event status is Active</li>
+                                <li>At least one Instance is Active and Ready</li>
+                                <li>The Instance has registration open</li>
+                            </ul>
+                        </div>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary>Payment isn't working</summary>
+                        <div class="faq-answer">
+                            <p>
+                                Paid events need <strong>both</strong> a Payment Gateway and an Accounting Department.
+                                Open the Event record and confirm both are set. Missing either one will block transactions.
+                            </p>
+                        </div>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary>I can't change the Record Type</summary>
+                        <div class="faq-answer">
+                            <p>
+                                Record Type is locked after creation. If you need a different layout or routing, clone the
+                                Event into the correct Record Type instead.
+                            </p>
+                        </div>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary>Started registrations are piling up</summary>
+                        <div class="faq-answer">
+                            <p>
+                                Those are abandoned forms, not completed registrations. Two ways to handle them:
+                            </p>
+                            <ul>
+                                <li>Follow up with the registrant to complete the form</li>
+                                <li>Bulk-cancel from the Registrations browser using <strong>Mass Update</strong></li>
+                            </ul>
+                        </div>
+                    </details>
+
+                    <details class="faq-item">
+                        <summary>Reminder sends are struggling</summary>
+                        <div class="faq-answer">
+                            <p>
+                                Large-volume reminder runs may need MCAE/Pardot support instead of relying only on the reminder
+                                layer. For modest volumes, the built-in reminders work fine. For mailings of hundreds to thousands,
+                                coordinate with the marketing automation team.
+                            </p>
+                        </div>
+                    </details>
                 </section>
 
                 <div class="guide-actions">
@@ -104,16 +190,37 @@
                         onclick={navigateEvents}>
                     </lightning-button>
                 </div>
-            </section>
+            </main>
 
             <aside class="guide-rail">
-                <section class="panel glossary-panel">
-                    <h2>Glossary</h2>
+                <section class="rail-panel panel rail-toc">
+                    <p class="rail-eyebrow">On this page</p>
+                    <nav aria-label="On this page">
+                        <button class="toc-link" type="button" data-anchor="mental-model" onclick={handleTocClick}>
+                            <span class="toc-link__num">1</span>
+                            <span>Mental model</span>
+                        </button>
+                        <button class="toc-link" type="button" data-anchor="workflows" onclick={handleTocClick}>
+                            <span class="toc-link__num">2</span>
+                            <span>Which workflow?</span>
+                        </button>
+                        <button class="toc-link" type="button" data-anchor="readiness" onclick={handleTocClick}>
+                            <span class="toc-link__num">3</span>
+                            <span>Readiness</span>
+                        </button>
+                        <button class="toc-link" type="button" data-anchor="faq" onclick={handleTocClick}>
+                            <span class="toc-link__num">4</span>
+                            <span>Common questions</span>
+                        </button>
+                    </nav>
+                </section>
 
+                <section class="rail-panel panel rail-glossary">
+                    <p class="rail-eyebrow">Glossary</p>
                     <dl class="glossary-list">
                         <div class="glossary-item">
                             <dt>Record Type</dt>
-                            <dd>Layout and approval routing - Chapman / EPE / OGI.</dd>
+                            <dd>Layout and approval routing — Chapman / EPE / OGI.</dd>
                         </div>
                         <div class="glossary-item">
                             <dt>Business Unit</dt>
@@ -142,17 +249,17 @@
                     </dl>
                 </section>
 
-                <section class="panel support-panel">
-                    <h2>Need help?</h2>
-                    <p>
-                        Email
-                        <a href="mailto:cobsf@fiu.edu"> cobsf@fiu.edu</a>
-                        for admin help or process questions.
+                <section class="rail-panel panel rail-support">
+                    <p class="rail-eyebrow">Need help?</p>
+                    <p class="rail-support__lead">
+                        Email <a href="mailto:cobsf@fiu.edu">cobsf@fiu.edu</a> for admin help or process questions.
                     </p>
-                    <p class="support-note">
-                        Best first check: Home for readiness blockers, Instances for live-date setup, Registrations for
-                        Started follow-up and attendance cleanup.
-                    </p>
+                    <p class="rail-support__check-title">Best first checks:</p>
+                    <ul class="rail-support__checks">
+                        <li>Home → readiness blockers</li>
+                        <li>Instances → live-date setup</li>
+                        <li>Registrations → Started follow-up</li>
+                    </ul>
                 </section>
             </aside>
         </div>

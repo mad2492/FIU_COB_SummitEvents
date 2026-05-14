@@ -1,12 +1,17 @@
 <template>
     <div class="home-shell">
-        <section class="panel command-strip">
-            <div>
-                <p class="eyebrow">FIU Events</p>
-                <h1>Command Center</h1>
-                <p class="scope-line">Scope: <strong>{selectedProgramLabel}</strong></p>
+        <section class="page-header">
+            <div class="page-header__title">
+                <h1>{greetingTitle}</h1>
+                <p class="page-header__subtitle">
+                    <span>{greetingSubtitle}</span>
+                    <span class="scope-chip" title="Program scope">
+                        <lightning-icon icon-name="utility:filterList" size="xx-small" alternative-text="Scope"></lightning-icon>
+                        <span>{scopeChipLabel}</span>
+                    </span>
+                </p>
             </div>
-            <div class="command-strip__actions">
+            <div class="page-header__actions">
                 <lightning-combobox
                     class="scope-picker"
                     variant="label-hidden"
@@ -21,66 +26,21 @@
                     icon-name="utility:info"
                     onclick={openGuide}>
                 </lightning-button>
-                <lightning-button-icon
-                    class="refresh-button"
-                    icon-name="utility:refresh"
-                    variant="border-filled"
-                    alternative-text="Refresh"
-                    title="Refresh"
-                    disabled={isRefreshing}
-                    onclick={refreshDashboard}>
-                </lightning-button-icon>
             </div>
         </section>
 
-        <template if:true={showWelcome}>
-            <section class="welcome-banner">
-                <div class="welcome-mark">
-                    <lightning-icon icon-name="utility:lightbulb" size="small" alternative-text="Welcome"></lightning-icon>
-                </div>
-                <div class="welcome-copy">
-                    <h2>Welcome back, {currentUserFirstName}</h2>
-                    <template if:true={dashboardReady}>
-                        <p>Events contain Instances; people register for Instances. Use this page to spot follow-up work and jump into the right workflow.</p>
-                    </template>
-                    <template if:false={dashboardReady}>
-                        <p>Pulling your latest event activity...</p>
-                    </template>
-                </div>
-                <div class="welcome-actions">
-                    <button class="welcome-guide-button" onclick={openGuide} type="button">
-                        <lightning-icon icon-name="utility:info" size="x-small" alternative-text="Guide"></lightning-icon>
-                        <span>Read the guide</span>
-                    </button>
-                    <lightning-button-icon
-                        icon-name="utility:close"
-                        variant="bare"
-                        alternative-text="Dismiss welcome"
-                        title="Dismiss welcome"
-                        onclick={dismissWelcome}>
-                    </lightning-button-icon>
-                </div>
+        <template if:true={showSkeleton}>
+            <section class="kpi-strip" aria-hidden="true">
+                <div class="kpi-tile kpi-tile--skeleton"><span class="sk sk--label"></span><span class="sk sk--value"></span><span class="sk sk--hint"></span></div>
+                <div class="kpi-tile kpi-tile--skeleton"><span class="sk sk--label"></span><span class="sk sk--value"></span><span class="sk sk--hint"></span></div>
+                <div class="kpi-tile kpi-tile--skeleton"><span class="sk sk--label"></span><span class="sk sk--value"></span><span class="sk sk--hint"></span></div>
+                <div class="kpi-tile kpi-tile--skeleton"><span class="sk sk--label"></span><span class="sk sk--value"></span><span class="sk sk--hint"></span></div>
             </section>
+            <div class="workspace-layout">
+                <section class="panel panel--skeleton"><div class="sk sk--head"></div><div class="sk sk--row"></div><div class="sk sk--row"></div><div class="sk sk--row"></div></section>
+                <section class="panel panel--skeleton"><div class="sk sk--head"></div><div class="sk sk--row"></div><div class="sk sk--row"></div><div class="sk sk--row"></div></section>
+            </div>
         </template>
-
-        <section class="quick-actions" aria-label="Quick actions">
-            <button class="quick-action quick-action--primary" data-action="create" onclick={handleGuidedAction} type="button">
-                <lightning-icon icon-name="utility:add" size="x-small" alternative-text=""></lightning-icon>
-                <span>New Event</span>
-            </button>
-            <button class="quick-action" data-action="instance" onclick={handleGuidedAction} type="button">
-                <lightning-icon icon-name="utility:event" size="x-small" alternative-text=""></lightning-icon>
-                <span>New Instance</span>
-            </button>
-            <button class="quick-action" data-action="clone" onclick={handleGuidedAction} type="button">
-                <lightning-icon icon-name="utility:copy" size="x-small" alternative-text=""></lightning-icon>
-                <span>Clone Event</span>
-            </button>
-            <button class="quick-action" data-action="bulk" onclick={handleGuidedAction} type="button">
-                <lightning-icon icon-name="utility:people" size="x-small" alternative-text=""></lightning-icon>
-                <span>Bulk Update Regs</span>
-            </button>
-        </section>
 
         <template if:true={isFirstRun}>
             <section class="panel first-run">
@@ -120,87 +80,161 @@
         </template>
 
         <template if:true={showOperationalDashboard}>
+            <section class="kpi-strip" aria-label="Key metrics">
+                <button class={upcomingKpiClass} data-action="upcoming" onclick={handleKpiClick} type="button"
+                    aria-label="Upcoming instances, view calendar">
+                    <span class="kpi-tile__label">Upcoming</span>
+                    <span class="kpi-tile__value">{kpiUpcoming}</span>
+                    <span class="kpi-tile__hint">{upcomingKpiHint}</span>
+                </button>
+                <button class={openRegsKpiClass} data-action="openRegs" onclick={handleKpiClick} type="button"
+                    aria-label="Expected attendees, view registrants">
+                    <span class="kpi-tile__label">Expected Attendees</span>
+                    <span class="kpi-tile__value">{kpiOpenRegs}</span>
+                    <span class="kpi-tile__hint">{openRegsKpiHint}</span>
+                </button>
+                <button class={followUpKpiClass} data-action="followUp" onclick={handleKpiClick} type="button"
+                    aria-label="Follow-up needed, view started registrations">
+                    <span class="kpi-tile__label">Follow-Up Needed</span>
+                    <span class="kpi-tile__value">{kpiStartedRegs}</span>
+                    <span class="kpi-tile__hint">{followUpKpiHint}</span>
+                </button>
+                <button class={attentionKpiClass} data-action="attention" onclick={handleKpiClick} type="button"
+                    aria-label="Needs attention, review readiness issues">
+                    <span class="kpi-tile__label">Needs Attention</span>
+                    <span class="kpi-tile__value">{attentionCount}</span>
+                    <span class="kpi-tile__hint">{attentionKpiHint}</span>
+                </button>
+            </section>
+
             <div class="workspace-layout">
                 <section class="panel attention-panel">
                     <div class="panel-head">
                         <div class="panel-head__title">
-                            <lightning-icon icon-name="utility:warning" size="small" alternative-text="Readiness issues"></lightning-icon>
-                            <h2>Readiness Issues</h2>
+                            <h2>Needs Attention</h2>
                             <span class="panel-count">{attentionCount}</span>
                         </div>
+                        <p class="panel-head__subtitle">{attentionPanelSubtitle}</p>
                     </div>
                     <template if:true={hasAttentionRows}>
                         <ul class="panel-list">
                             <template for:each={attentionRows} for:item="row">
                                 <li key={row.rowKey} class="attention-row">
                                     <div class="attention-row__copy">
-                                        <p class="attention-row__title">{row.instanceTitle}<span> &middot; {row.eventName}</span></p>
-                                        <p class="attention-row__meta">{row.reason}</p>
+                                        <p class="row-title">{row.instanceTitle}<span class="row-title__meta"> · {row.eventName}</span></p>
+                                        <p class="row-reason">{row.reason}</p>
                                     </div>
-                                    <lightning-button
-                                        label="Fix"
+                                    <button class="row-action"
+                                        type="button"
                                         data-event-id={row.eventId}
                                         data-instance-id={row.instanceId}
                                         onclick={openAttentionFix}>
-                                    </lightning-button>
+                                        Review
+                                        <lightning-icon icon-name="utility:chevronright" size="xx-small" alternative-text=""></lightning-icon>
+                                    </button>
                                 </li>
                             </template>
                         </ul>
+                        <template if:true={hasAttentionOverflow}>
+                            <button class="panel-footer-link" type="button" onclick={openNotReadyEvents}>
+                                {attentionOverflowLabel}
+                            </button>
+                        </template>
                     </template>
                     <template if:false={hasAttentionRows}>
-                        <p class="panel-empty">No event or instance readiness issues detected.</p>
+                        <div class="panel-empty panel-empty--good">
+                            <lightning-icon icon-name="utility:success" size="small" alternative-text=""></lightning-icon>
+                            <div>
+                                <strong>Everything's in order.</strong>
+                                <p>No readiness issues across your active events.</p>
+                            </div>
+                        </div>
                     </template>
                 </section>
 
-                <section class="panel">
+                <section class="panel upcoming-panel">
                     <div class="panel-head">
                         <div class="panel-head__title">
-                            <lightning-icon icon-name="utility:date_time" size="small" alternative-text="Upcoming"></lightning-icon>
-                            <h2>Upcoming This Week</h2>
-                            <span class="panel-count">{upcomingCount}</span>
+                            <h2>Upcoming</h2>
+                            <span class="panel-count">{kpiUpcoming}</span>
                         </div>
-                        <lightning-button variant="base" label="View instances" onclick={openInstances}></lightning-button>
+                        <p class="panel-head__subtitle">{upcomingPanelSubtitle}</p>
                     </div>
                     <template if:true={hasUpcomingRows}>
                         <ul class="panel-list">
                             <template for:each={upcomingRows} for:item="row">
-                                <li key={row.instanceId} class="upcoming-row">
-                                    <p class="upcoming-row__title">{row.instanceTitle}<span> &middot; {row.eventName}</span></p>
-                                    <p class="upcoming-row__meta">
-                                        <lightning-formatted-date-time value={row.startDate}></lightning-formatted-date-time>
-                                        <span> &middot; {row.status}</span>
-                                    </p>
+                                <li key={row.instanceId}>
+                                    <button class="upcoming-row" type="button" data-instance-id={row.instanceId} onclick={openUpcomingRow}>
+                                        <div class="upcoming-row__copy">
+                                            <p class="row-title">{row.instanceTitle}<span class="row-title__meta"> · {row.eventName}</span></p>
+                                            <p class="row-meta">
+                                                <lightning-formatted-date-time value={row.startDate}></lightning-formatted-date-time>
+                                                <span> · {row.status}</span>
+                                            </p>
+                                        </div>
+                                        <lightning-icon icon-name="utility:chevronright" size="xx-small" alternative-text=""></lightning-icon>
+                                    </button>
                                 </li>
                             </template>
                         </ul>
+                        <template if:true={hasUpcomingOverflow}>
+                            <button class="panel-footer-link" type="button" onclick={openInstances}>
+                                {upcomingOverflowLabel}
+                            </button>
+                        </template>
                     </template>
                     <template if:false={hasUpcomingRows}>
-                        <p class="panel-empty">No upcoming instances found.</p>
+                        <div class="panel-empty">
+                            <lightning-icon icon-name="utility:date_time" size="small" alternative-text=""></lightning-icon>
+                            <div>
+                                <strong>Nothing on the calendar.</strong>
+                                <p>Add an instance to publish the next date and time people can register for.</p>
+                            </div>
+                        </div>
                     </template>
                 </section>
             </div>
 
-            <section class="kpi-strip" aria-label="Dashboard reference metrics">
-                <button class="kpi-tile" data-action="events" onclick={handleKpiClick} type="button">
-                    <span class="kpi-tile__label">Active Events</span>
-                    <span class="kpi-tile__value">{kpiActiveEvents}</span>
-                    <span class="kpi-tile__hint">Browse events</span>
-                </button>
-                <button class="kpi-tile" data-action="instances" onclick={handleKpiClick} type="button">
-                    <span class="kpi-tile__label">Upcoming Instances</span>
-                    <span class="kpi-tile__value">{kpiUpcoming}</span>
-                    <span class="kpi-tile__hint">View instances</span>
-                </button>
-                <button class={registrationFollowUpClass} data-action="registrationFollowUp" onclick={handleKpiClick} type="button">
-                    <span class="kpi-tile__label">Registration Follow-Up</span>
-                    <span class="kpi-tile__value">{kpiStartedRegs}</span>
-                    <span class="kpi-tile__hint">{registrationFollowUpHint}</span>
-                </button>
-                <button class={readinessKpiClass} data-action="readinessIssues" onclick={handleKpiClick} type="button">
-                    <span class="kpi-tile__label">Readiness Issues</span>
-                    <span class="kpi-tile__value">{attentionCount}</span>
-                    <span class="kpi-tile__hint">{readinessKpiHint}</span>
-                </button>
+            <section class="quick-actions-section" aria-label="Quick actions">
+                <h2 class="quick-actions-heading">Start something new</h2>
+                <div class="quick-actions">
+                    <button class="quick-action quick-action--primary" data-action="instance" onclick={handleGuidedAction} type="button">
+                        <span class="quick-action__icon">
+                            <lightning-icon icon-name="utility:event" size="small" alternative-text=""></lightning-icon>
+                        </span>
+                        <span class="quick-action__copy">
+                            <strong>Add Instance</strong>
+                            <span>A new date and time on an existing event</span>
+                        </span>
+                    </button>
+                    <button class="quick-action" data-action="manage" onclick={handleGuidedAction} type="button">
+                        <span class="quick-action__icon">
+                            <lightning-icon icon-name="utility:people" size="small" alternative-text=""></lightning-icon>
+                        </span>
+                        <span class="quick-action__copy">
+                            <strong>Manage Registrations</strong>
+                            <span>Update attendance and other bulk actions</span>
+                        </span>
+                    </button>
+                    <button class="quick-action" data-action="create" onclick={handleGuidedAction} type="button">
+                        <span class="quick-action__icon">
+                            <lightning-icon icon-name="utility:add" size="small" alternative-text=""></lightning-icon>
+                        </span>
+                        <span class="quick-action__copy">
+                            <strong>New Event</strong>
+                            <span>Set up a new parent event from scratch</span>
+                        </span>
+                    </button>
+                    <button class="quick-action" data-action="clone" onclick={handleGuidedAction} type="button">
+                        <span class="quick-action__icon">
+                            <lightning-icon icon-name="utility:copy" size="small" alternative-text=""></lightning-icon>
+                        </span>
+                        <span class="quick-action__copy">
+                            <strong>Clone Event</strong>
+                            <span>Copy a previous event as a starting point</span>
+                        </span>
+                    </button>
+                </div>
             </section>
         </template>
     </div>

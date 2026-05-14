@@ -1,14 +1,53 @@
 <template>
-    <section class="page-header panel">
-        <div class="page-header__main">
-            <div class="breadcrumbs">
-                <button class="breadcrumb-link" onclick={navigateHome}>Home</button>
-                <span class="breadcrumb-separator" aria-hidden="true">&gt;</span>
-                <span class="breadcrumb-current">Registrations</span>
-            </div>
-            <h1>Registrations</h1>
-        </div>
-        <div class="page-header__actions">
+    <c-fiu-list-shell
+        page-title="Registrations"
+        breadcrumb-label="Home"
+        current-crumb="Registrations"
+        icon-name="utility:people"
+        icon-color="#16325c"
+        list-title="Registrations"
+        total-count={totalCount}
+        object-label="Registration"
+        hint-text='Each registration is one person signing up for one Instance. "Started" means they began but did not finish, so these need follow-up.'
+        search-value={searchKey}
+        columns={columns}
+        rows={rows}
+        visible-column-keys={visibleColumnKeys}
+        selected-row-id={selectedRegistrationId}
+        selected-row-ids={selectedRowIds}
+        sort-field={sortField1}
+        sort-dir={sortDir1}
+        is-loading={isLoading}
+        error-message={loadError}
+        page-number={pageNumber}
+        page-size={pageSize}
+        page-size-options={pageSizeOptions}
+        active-filter-pills={activeFilterPills}
+        scope-label={instanceScopeLabel}
+        scope-clearable={scopeIsClearable}
+        empty-title="No registrations match these filters."
+        empty-body="Try adjusting your search or filters, or clear all to start over."
+        quick-view-title={quickViewTitle}
+        quick-view-subhead={quickViewSubhead}
+        onsearch={handleSearch}
+        onsortchange={handleSortChange}
+        onpagechange={handlePageChange}
+        onpagesizechange={handlePageSizeChange}
+        onrowclick={handleRowClick}
+        onrowselect={handleRowSelect}
+        onrowselectall={handleRowSelectAll}
+        onremovepill={handleRemovePill}
+        onclearfilters={handleClearFilters}
+        onopenfilters={handleOpenFilters}
+        onopensettings={handleOpenSettings}
+        onresetview={handleResetView}
+        onquickviewclose={handleQuickViewClose}
+        onclearselection={handleClearSelection}
+        onclearscope={handleClearScope}
+        onbreadcrumbhome={handleBreadcrumbHome}>
+
+        <!-- page header actions -->
+        <div slot="header-actions" class="header-actions-group">
             <lightning-button-menu alternative-text="Export Options" label="Export" menu-alignment="right" onselect={handleExportMenuSelect}>
                 <lightning-menu-item value="selected" label="Selected Rows"></lightning-menu-item>
                 <lightning-menu-item value="filtered" label="Current Filtered View"></lightning-menu-item>
@@ -18,291 +57,86 @@
                 <lightning-button label="Import" variant="brand" icon-name="utility:add" onclick={handleImport}></lightning-button>
             </template>
         </div>
-    </section>
 
-    <div class={browserLayoutClass}>
-        <section class="panel list-shell">
-            <div class="list-shell__header">
-                <div class="list-shell__title">
-                    <span class="list-shell__icon list-shell__icon--registration">
-                        <lightning-icon icon-name="utility:people" size="x-small" alternative-text="Registrations"></lightning-icon>
-                    </span>
-                    <div>
-                        <h2>Registrations</h2>
-                        <p>{totalCount} records</p>
+        <!-- inline filters: Status, Location Type -->
+        <div slot="inline-filters" class="inline-filters">
+            <lightning-combobox
+                class="inline-filter inline-filter--status"
+                variant="label-hidden"
+                label="Registration Status"
+                placeholder="Status"
+                value={statusFilter}
+                options={statusOptions}
+                onchange={handleInlineStatus}>
+            </lightning-combobox>
+            <lightning-combobox
+                class="inline-filter inline-filter--location"
+                variant="label-hidden"
+                label="Location Type"
+                placeholder="Location Type"
+                value={locationTypeOverrideFilter}
+                options={locationTypeOverrideOptions}
+                onchange={handleInlineLocationType}>
+            </lightning-combobox>
+        </div>
+
+        <!-- quick-view body -->
+        <div slot="quick-view-body" class="qv-body">
+            <template if:true={selectedRegistration}>
+                <div class="qv-action-bar">
+                    <lightning-button-group>
+                        <lightning-button label="View Record" variant="brand" onclick={openSelectedRegistrationRecord}></lightning-button>
+                        <lightning-button label="Edit Status" variant="neutral" onclick={editSelectedRegistrationStatus}></lightning-button>
+                    </lightning-button-group>
+                </div>
+
+                <div class="qv-stack">
+                    <div class="qv-stack-row">
+                        <span class="qv-stack__label">Event</span>
+                        <span class="qv-stack__value">{selectedRegistration.eventName}</span>
                     </div>
-                </div>
-            </div>
-
-            <div class="hint-banner">
-                <lightning-icon icon-name="utility:info" size="xx-small" alternative-text="Info"></lightning-icon>
-                <span>Each registration is one person signing up for one Instance. "Started" means they began but did not finish, so these need follow-up.</span>
-            </div>
-
-            <div class="toolbar">
-                <lightning-input class="search" type="search" variant="label-hidden" label="Search this list" placeholder="Search this list..." value={searchKey} onchange={handleSearch}></lightning-input>
-                <div class="toolbar__actions">
-                    <lightning-button-icon icon-name="utility:refresh" alternative-text="Refresh" title="Refresh" onclick={refreshView}></lightning-button-icon>
-                    <lightning-button label="Filters" icon-name="utility:filterList" onclick={openFilterModal}></lightning-button>
-                    <lightning-button-menu alternative-text="View Settings" icon-name="utility:settings" menu-alignment="right" onselect={handleGearSelect}>
-                        <lightning-menu-item value="fields" label="Select Fields to Display"></lightning-menu-item>
-                        <lightning-menu-item value="reset" label="Reset to Default View"></lightning-menu-item>
-                    </lightning-button-menu>
-                </div>
-            </div>
-
-            <template if:true={showFilterBand}>
-                <div class="filter-pills">
-                    <template if:true={instanceScopeLabel}>
-                        <span class="scope-pill">{instanceScopeLabel}</span>
-                    </template>
-                    <template for:each={activeFilterPills} for:item="pill">
-                        <lightning-pill key={pill.key} label={pill.label} name={pill.key} onremove={handleRemovePill}></lightning-pill>
-                    </template>
-                    <template if:true={hasActiveFilters}>
-                        <lightning-button class="slds-m-left_x-small" variant="base" label="Clear all" onclick={resetToDefaultView}></lightning-button>
-                    </template>
-                </div>
-            </template>
-
-            <template if:true={inlineErrorMessage}>
-                <div class="error-region slds-text-color_error">{inlineErrorMessage}</div>
-            </template>
-
-            <template if:true={loadError}>
-                <div class="error-region slds-text-color_error">{loadError}</div>
-            </template>
-
-            <template if:true={isLoading}>
-                <div class="loading-region">
-                    <lightning-spinner alternative-text="Loading registrations" size="small"></lightning-spinner>
-                </div>
-            </template>
-
-            <div class="table-shell">
-                <template if:true={hasRows}>
-                    <div class="table-scroll">
-                        <table class="slds-table slds-table_cell-buffer slds-table_bordered registration-table">
-                            <thead>
-                                <tr class="slds-line-height_reset">
-                                    <th class="checkbox-col" scope="col">
-                                        <lightning-input type="checkbox" variant="label-hidden" label="Select all" checked={allRowsSelected} onchange={handleSelectAllRows}></lightning-input>
-                                    </th>
-                                    <template if:true={showNameColumn}>
-                                        <th scope="col">
-                                            <button class="sort-button" data-field="name" onclick={handleSortClick}>
-                                                <span class="slds-truncate">Registration</span>
-                                                <lightning-icon class="sort-icon" icon-name={nameSortIcon} size="xx-small" alternative-text=""></lightning-icon>
-                                            </button>
-                                        </th>
-                                    </template>
-                                    <template if:true={showContactColumn}>
-                                        <th scope="col">
-                                            <span class="header-label">Contact</span>
-                                        </th>
-                                    </template>
-                                    <template if:true={showEmailColumn}>
-                                        <th scope="col">
-                                            <button class="sort-button" data-field="email" onclick={handleSortClick}>
-                                                <span class="slds-truncate">Email</span>
-                                                <lightning-icon class="sort-icon" icon-name={emailSortIcon} size="xx-small" alternative-text=""></lightning-icon>
-                                            </button>
-                                        </th>
-                                    </template>
-                                    <template if:true={showEventColumn}>
-                                        <th scope="col">
-                                            <button class="sort-button" data-field="eventName" onclick={handleSortClick}>
-                                                <span class="slds-truncate">Event</span>
-                                                <lightning-icon class="sort-icon" icon-name={eventNameSortIcon} size="xx-small" alternative-text=""></lightning-icon>
-                                            </button>
-                                        </th>
-                                    </template>
-                                    <template if:true={showInstanceColumn}>
-                                        <th scope="col">
-                                            <button class="sort-button" data-field="instanceName" onclick={handleSortClick}>
-                                                <span class="slds-truncate">Instance</span>
-                                                <lightning-icon class="sort-icon" icon-name={instanceNameSortIcon} size="xx-small" alternative-text=""></lightning-icon>
-                                            </button>
-                                        </th>
-                                    </template>
-                                    <template if:true={showInstanceStartDateColumn}>
-                                        <th scope="col">
-                                            <button class="sort-button" data-field="instanceStartDate" onclick={handleSortClick}>
-                                                <span class="slds-truncate">Instance Start</span>
-                                                <lightning-icon class="sort-icon" icon-name={instanceStartDateSortIcon} size="xx-small" alternative-text=""></lightning-icon>
-                                            </button>
-                                        </th>
-                                    </template>
-                                    <template if:true={showInstanceEndDateColumn}>
-                                        <th scope="col">
-                                            <button class="sort-button" data-field="instanceEndDate" onclick={handleSortClick}>
-                                                <span class="slds-truncate">Instance End</span>
-                                                <lightning-icon class="sort-icon" icon-name={instanceEndDateSortIcon} size="xx-small" alternative-text=""></lightning-icon>
-                                            </button>
-                                        </th>
-                                    </template>
-                                    <template if:true={showLocationTypeOverrideColumn}>
-                                        <th scope="col">
-                                            <button class="sort-button" data-field="locationTypeOverride" onclick={handleSortClick}>
-                                                <span class="slds-truncate">Location Type</span>
-                                                <lightning-icon class="sort-icon" icon-name={locationTypeOverrideSortIcon} size="xx-small" alternative-text=""></lightning-icon>
-                                            </button>
-                                        </th>
-                                    </template>
-                                    <template if:true={showProcessStatusColumn}>
-                                        <th scope="col">
-                                            <button class="sort-button" data-field="processStatus" onclick={handleSortClick}>
-                                                <span class="slds-truncate">Status</span>
-                                                <lightning-icon class="sort-icon" icon-name={processStatusSortIcon} size="xx-small" alternative-text=""></lightning-icon>
-                                            </button>
-                                        </th>
-                                    </template>
-                                    <th class="quick-view-col" scope="col"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <template for:each={rows} for:item="row">
-                                    <tr key={row.id}>
-                                        <td class="checkbox-col">
-                                            <lightning-input type="checkbox" variant="label-hidden" label="Select row" checked={row.isSelected} data-id={row.id} onchange={handleRowSelection}></lightning-input>
-                                        </td>
-                                        <template if:true={showNameColumn}>
-                                            <td>
-                                                <button class="name-button" data-id={row.id} onclick={openQuickViewFromButton}>{row.name}</button>
-                                            </td>
-                                        </template>
-                                        <template if:true={showContactColumn}>
-                                            <td>
-                                                <template if:true={row.contactIssue}>
-                                                    <span class="contact-warning">{row.contactDisplayName}</span>
-                                                </template>
-                                                <template if:false={row.contactIssue}>
-                                                    {row.contactDisplayName}
-                                                </template>
-                                            </td>
-                                        </template>
-                                        <template if:true={showEmailColumn}>
-                                            <td>{row.email}</td>
-                                        </template>
-                                        <template if:true={showEventColumn}>
-                                            <td>{row.eventName}</td>
-                                        </template>
-                                        <template if:true={showInstanceColumn}>
-                                            <td>{row.instanceName}</td>
-                                        </template>
-                                        <template if:true={showInstanceStartDateColumn}>
-                                            <td>
-                                                <lightning-formatted-date-time value={row.instanceStartDate} year="numeric" month="short" day="numeric"></lightning-formatted-date-time>
-                                            </td>
-                                        </template>
-                                        <template if:true={showInstanceEndDateColumn}>
-                                            <td>
-                                                <lightning-formatted-date-time value={row.instanceEndDate} year="numeric" month="short" day="numeric"></lightning-formatted-date-time>
-                                            </td>
-                                        </template>
-                                        <template if:true={showLocationTypeOverrideColumn}>
-                                            <td>{row.locationTypeOverride}</td>
-                                        </template>
-                                        <template if:true={showProcessStatusColumn}>
-                                            <td>
-                                                <c-fiu-datatable-pill-cell label={row.processStatus} theme={row.processStatusTheme}></c-fiu-datatable-pill-cell>
-                                            </td>
-                                        </template>
-                                        <td class="quick-view-col">
-                                            <button class="quick-view-button" data-id={row.id} onclick={openQuickViewFromButton} title="Open quick view">
-                                                <lightning-icon icon-name={row.quickViewIcon} size="xx-small" alternative-text="Open quick view"></lightning-icon>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
+                    <div class="qv-stack-row">
+                        <span class="qv-stack__label">Instance</span>
+                        <span class="qv-stack__value">{selectedRegistration.instanceName}</span>
                     </div>
-                </template>
-                <template if:false={hasRows}>
-                    <template if:false={isLoading}>
-                        <div class="empty-state">
-                            <p class="slds-text-heading_small">No registrations match these filters.</p>
-                            <p class="slds-text-body_small slds-m-top_x-small">Try adjusting your search or filters, or clear all to start over.</p>
-                            <lightning-button class="slds-m-top_small" variant="base" label="Clear filters" onclick={resetToDefaultView}></lightning-button>
-                        </div>
-                    </template>
-                </template>
-            </div>
-
-            <div class="pager">
-                <span>Page {pageNumber} of {totalPages} ({totalCount} records)</span>
-                <div class="pager-actions">
-                    <lightning-combobox class="rows-per-page slds-m-right_x-small" label="Rows per page" value={pageSizeValue} options={pageSizeOptions} onchange={handlePageSize}></lightning-combobox>
-                    <lightning-button label="Previous" onclick={handlePrevPage} disabled={disablePrev}></lightning-button>
-                    <lightning-button class="slds-m-left_x-small" label="Next" onclick={handleNextPage} disabled={disableNext}></lightning-button>
-                </div>
-            </div>
-        </section>
-
-        <template if:true={selectedRegistration}>
-            <aside class="panel quick-view">
-                <div class="quick-view__header">
-                    <h2>Quick view</h2>
-                    <lightning-button-icon icon-name="utility:close" alternative-text="Close quick view" title="Close quick view" onclick={closeQuickView}></lightning-button-icon>
-                </div>
-                <div class="quick-view__body">
-                    <h3>{selectedRegistration.contactDisplayName}</h3>
-                    <p class="quick-view__subhead">{selectedRegistration.email} · {selectedRegistration.name}</p>
-
-                    <div class="quick-view__stack">
-                        <div>
-                            <span class="stat-label">Event</span>
-                            <span class="stat-value stat-value--normal">{selectedRegistration.eventName}</span>
-                        </div>
-                        <div>
-                            <span class="stat-label">Instance</span>
-                            <span class="stat-value stat-value--normal">{selectedRegistration.instanceName}</span>
-                        </div>
-                        <div>
-                            <span class="stat-label">Instance Start</span>
+                    <div class="qv-stack-row">
+                        <span class="qv-stack__label">Instance Start</span>
+                        <span class="qv-stack__value">
                             <lightning-formatted-date-time value={selectedRegistration.instanceStartDate} year="numeric" month="short" day="numeric"></lightning-formatted-date-time>
-                        </div>
-                        <div>
-                            <span class="stat-label">Status</span>
-                            <c-fiu-datatable-pill-cell label={selectedRegistration.processStatus} theme={selectedRegistration.processStatusTheme}></c-fiu-datatable-pill-cell>
-                        </div>
+                        </span>
                     </div>
-
-                    <template if:true={selectedRegistration.isStarted}>
-                        <div class="warning-callout">
-                            <lightning-icon icon-name="utility:warning" size="x-small" alternative-text="Started"></lightning-icon>
-                            <span>This registration was started but never completed. Consider following up with the registrant.</span>
-                        </div>
-                    </template>
-
-                    <template if:true={selectedRegistration.contactIssue}>
-                        <div class="issue-callout issue-callout--warning">
-                            <lightning-icon icon-name="utility:warning" size="x-small" alternative-text="Issue"></lightning-icon>
-                            <span>{selectedRegistration.contactIssue}</span>
-                        </div>
-                    </template>
+                    <div class="qv-stack-row">
+                        <span class="qv-stack__label">Status</span>
+                        <span class="qv-stack__value">
+                            <c-fiu-datatable-pill-cell label={selectedRegistration.processStatus} theme={selectedRegistration.processStatusTheme}></c-fiu-datatable-pill-cell>
+                        </span>
+                    </div>
                 </div>
-                <div class="quick-view__actions">
-                    <lightning-button label="View Record" onclick={openSelectedRegistrationRecord}></lightning-button>
-                    <lightning-button label="Edit Status" onclick={editSelectedRegistrationStatus}></lightning-button>
-                </div>
-            </aside>
-        </template>
-    </div>
 
+                <template if:true={selectedRegistration.isStarted}>
+                    <div class="qv-callout qv-callout--warning" role="status" aria-live="polite">
+                        <lightning-icon icon-name="utility:warning" size="x-small" alternative-text="Started"></lightning-icon>
+                        <span>This registration was started but never completed. Consider following up with the registrant.</span>
+                    </div>
+                </template>
+
+                <template if:true={selectedRegistration.contactIssue}>
+                    <div class="qv-callout qv-callout--issue" role="status" aria-live="polite">
+                        <lightning-icon icon-name="utility:warning" size="x-small" alternative-text="Issue"></lightning-icon>
+                        <span>{selectedRegistration.contactIssue}</span>
+                    </div>
+                </template>
+            </template>
+        </div>
+    </c-fiu-list-shell>
+
+    <!-- Filter modal: Program only (Status & Location Type are inline) -->
     <template if:true={isFilterModalOpen}>
         <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open">
             <div class="slds-modal__container">
                 <header class="slds-modal__header"><h2 class="slds-text-heading_medium">Filters</h2></header>
                 <div class="slds-modal__content slds-p-around_medium">
-                    <lightning-combobox label="Registration Status" value={draftStatusFilter} options={statusOptions} onchange={handleDraftStatus}></lightning-combobox>
-                    <div class="slds-m-top_medium">
-                        <lightning-combobox label="Program" value={draftProgramCode} options={programOptions} onchange={handleDraftProgram}></lightning-combobox>
-                    </div>
-                    <div class="slds-m-top_medium">
-                        <lightning-combobox label="Location Type" value={draftLocationTypeOverrideFilter} options={locationTypeOverrideOptions} onchange={handleDraftLocationTypeOverride}></lightning-combobox>
-                    </div>
+                    <lightning-combobox label="Program" value={draftProgramCode} options={programOptions} onchange={handleDraftProgram}></lightning-combobox>
                 </div>
                 <footer class="slds-modal__footer">
                     <lightning-button label="Cancel" onclick={closeFilterModal}></lightning-button>
@@ -313,6 +147,7 @@
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
 
+    <!-- Field picker modal -->
     <template if:true={isFieldModalOpen}>
         <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open">
             <div class="slds-modal__container field-modal-container">
@@ -338,6 +173,7 @@
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
 
+    <!-- Mass update modal -->
     <template if:true={isMassModalOpen}>
         <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open">
             <div class="slds-modal__container">
@@ -348,6 +184,9 @@
                     <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_warning slds-m-bottom_medium" role="alert">
                         <span>{massSummary}</span>
                     </div>
+                    <template if:true={inlineErrorMessage}>
+                        <div class="slds-text-color_error slds-m-bottom_small">{inlineErrorMessage}</div>
+                    </template>
                     <lightning-input type="checkbox" label="Update Registration Status" checked={updateStatusEnabled} onchange={handleToggleStatus}></lightning-input>
                     <lightning-combobox class="slds-m-top_x-small" label="Set Registration Status" value={massStatus} options={massStatusOptions} onchange={handleMassStatus} disabled={statusInputDisabled}></lightning-combobox>
                     <div class="slds-m-top_medium">

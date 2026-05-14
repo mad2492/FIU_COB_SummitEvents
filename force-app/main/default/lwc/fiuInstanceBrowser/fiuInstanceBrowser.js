@@ -6,19 +6,20 @@ import getProgramOptions from '@salesforce/apex/FiuProgramFilterService.getProgr
 
 const VIEW_STATE_KEY = 'fiuInstanceBrowserViewStateV1';
 
-const ALL_COLUMNS = [
-    { key: 'title', label: 'Instance', sortable: true },
-    { key: 'eventName', label: 'Event', sortable: true },
-    { key: 'startDate', label: 'Start', sortable: true },
-    { key: 'activeStatus', label: 'Status', sortable: true },
-    { key: 'readiness', label: 'Readiness' },
-    { key: 'registrationProgress', label: 'Registered' },
-    { key: 'unpublishedReason', label: 'Reason (if Not Ready)' }
+const COLUMN_DEFS = [
+    { key: 'title', label: 'Instance', type: 'link', sortable: true, defaultVisible: true },
+    { key: 'eventName', label: 'Event', type: 'text', sortable: true, defaultVisible: true },
+    { key: 'startDate', label: 'Start', type: 'datetime', sortable: true, defaultVisible: true },
+    { key: 'activeStatus', label: 'Status', type: 'badge', themeKey: 'statusTheme', sortable: true, defaultVisible: true },
+    { key: 'readiness', label: 'Readiness', type: 'badge', themeKey: 'readinessTheme', sortable: false, defaultVisible: true },
+    { key: 'registrationProgress', label: 'Registered', type: 'capacity', sortable: false, defaultVisible: true },
+    { key: 'unpublishedReason', label: 'Reason', type: 'multiline', sortable: false, defaultVisible: true }
 ];
 
-const DEFAULT_VISIBLE_COLUMN_KEYS = ['title', 'eventName', 'startDate', 'activeStatus', 'readiness', 'registrationProgress', 'unpublishedReason'];
+const DEFAULT_VISIBLE_COLUMN_KEYS = COLUMN_DEFS.filter((c) => c.defaultVisible).map((c) => c.key);
 
 export default class FiuInstanceBrowser extends NavigationMixin(LightningElement) {
+    columns = COLUMN_DEFS;
     rows = [];
     selectedRowIds = [];
     selectedInstanceId;
@@ -27,7 +28,7 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
     eventId;
     programCode = '';
     programOptions = [{ label: 'All Programs', value: '' }];
-    loadError;
+    loadError = '';
     isLoading = false;
     totalCount = 0;
     pageNumber = 1;
@@ -48,7 +49,6 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
     visibleColumnKeys = [...DEFAULT_VISIBLE_COLUMN_KEYS];
 
     isFilterModalOpen = false;
-    draftBucketFilter = 'Upcoming';
     draftProgramCode = '';
 
     isFieldModalOpen = false;
@@ -95,68 +95,41 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         }
     }
 
-    get fieldChooserOptions() {
-        return ALL_COLUMNS.map((column) => ({ label: column.label, value: column.key }));
-    }
-
-    get hasRows() {
-        return this.rows.length > 0;
-    }
-
-    get allRowsSelected() {
-        return this.rows.length > 0 && this.rows.every((row) => row.isSelected);
-    }
-
-    get showTitleColumn() {
-        return this.visibleColumnKeys.includes('title');
-    }
-
-    get showEventNameColumn() {
-        return this.visibleColumnKeys.includes('eventName');
-    }
-
-    get showStartDateColumn() {
-        return this.visibleColumnKeys.includes('startDate');
-    }
-
-    get showActiveStatusColumn() {
-        return this.visibleColumnKeys.includes('activeStatus');
-    }
-
-    get showReadinessColumn() {
-        return this.visibleColumnKeys.includes('readiness');
-    }
-
-    get showRegistrationProgressColumn() {
-        return this.visibleColumnKeys.includes('registrationProgress');
-    }
-
-    get showReasonColumn() {
-        return this.visibleColumnKeys.includes('unpublishedReason');
-    }
-
+    // ---- derived state
     get selectedInstance() {
         return this.rows.find((row) => row.id === this.selectedInstanceId);
     }
 
     get selectedInstanceRegisterUrlDisplay() {
         const registerUrl = this.selectedInstance?.registerUrl;
-        if (!registerUrl) {
-            return '';
-        }
+        if (!registerUrl) return '';
         return registerUrl.replace(/^https?:\/\//i, '');
+    }
+
+    get selectedInstanceCapacityFillClass() {
+        const tier = this.selectedInstance?.registrationProgress?.tier || 'success';
+        return `qv-capacity__fill qv-capacity__fill--${tier}`;
+    }
+
+    get selectedInstanceCapacityFillStyle() {
+        const percent = Math.max(0, Math.min(100, Number(this.selectedInstance?.registrationProgress?.percent) || 0));
+        return `width:${percent}%;`;
+    }
+
+    get selectedInstanceIssueText() {
+        const reason = this.selectedInstance?.unpublishedReason;
+        if (!reason || reason === '—') return '';
+        return reason;
     }
 
     get registerUrlRowClass() {
         return this.selectedInstance?.activeStatus === 'Active'
-            ? 'register-url-row-shell'
-            : 'register-url-row-shell register-url-row-shell--dimmed';
+            ? 'qv-url-row'
+            : 'qv-url-row qv-url-row--dimmed';
     }
 
     get copyButtonClass() {
-        return this.hasCopiedRegisterUrl
-            ? 'register-url-action register-url-action--copied'
-            : 'register-url-action';
+        return this.hasCopiedRegisterUrl ? 'qv-url-action qv-url-action--copied' : 'qv-url-action';
     }
 
     get copyButtonIcon() {
@@ -167,30 +140,8 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         return this.hasCopiedRegisterUrl ? 'Copied' : 'Copy';
     }
 
-    get browserLayoutClass() {
-        return this.selectedInstance ? 'browser-layout browser-layout--panel-open' : 'browser-layout';
-    }
-
-    get titleSortIcon() {
-        return this.getSortIcon('title');
-    }
-
-    get eventNameSortIcon() {
-        return this.getSortIcon('eventName');
-    }
-
-    get startDateSortIcon() {
-        return this.getSortIcon('startDate');
-    }
-
-    get activeStatusSortIcon() {
-        return this.getSortIcon('activeStatus');
-    }
-
-    get hasActiveFilters() {
-        const isDefaultBucket = !this.bucketFilter || this.bucketFilter === 'Upcoming';
-        return !!(this.searchKey || this.programCode || !isDefaultBucket);
-    }
+    get quickViewTitle() { return this.selectedInstance?.title || ''; }
+    get quickViewSubhead() { return this.selectedInstance?.eventName || ''; }
 
     get activeFilterPills() {
         const pills = [];
@@ -206,78 +157,32 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         return pills;
     }
 
-    get totalPages() {
-        return Math.max(1, Math.ceil((this.totalCount || 0) / this.pageSize));
+    get fieldChooserOptions() {
+        return COLUMN_DEFS.map((column) => ({ label: column.label, value: column.key }));
     }
 
-    get disablePrev() {
-        return this.pageNumber <= 1;
-    }
-
-    get disableNext() {
-        return this.pageNumber >= this.totalPages;
-    }
-
-    get pageSizeValue() {
-        return String(this.pageSize);
-    }
-
-    handleRemovePill(event) {
-        const key = event.target.name;
-        if (key === 'search') this.searchKey = '';
-        if (key === 'bucket') this.bucketFilter = 'Upcoming';
-        if (key === 'program') this.programCode = '';
-        this.pageNumber = 1;
-        this.loadRows();
-    }
-
-    handleSortClick(event) {
-        const fieldName = event.currentTarget?.dataset?.field;
-        if (!fieldName) {
-            return;
-        }
-        const direction = this.sortField1 === fieldName && this.sortDir1 === 'ASC' ? 'DESC' : 'ASC';
-        this.sortField1 = fieldName;
-        this.sortDir1 = direction;
-        this.sortField2 = '';
-        this.sortDir2 = 'ASC';
-        this.pageNumber = 1;
-        this.loadRows();
-    }
-
+    // ---- view state persistence
     restoreViewState() {
         try {
             const raw = window.sessionStorage.getItem(VIEW_STATE_KEY);
-            if (!raw) {
-                return;
-            }
+            if (!raw) return;
             const savedState = JSON.parse(raw);
             if (Array.isArray(savedState.visibleColumnKeys) && savedState.visibleColumnKeys.length) {
                 this.visibleColumnKeys = savedState.visibleColumnKeys;
             }
-            if (typeof savedState.pageSize === 'number') {
-                this.pageSize = savedState.pageSize;
-            }
+            if (typeof savedState.pageSize === 'number') this.pageSize = savedState.pageSize;
             if (typeof savedState.bucketFilter === 'string' && !this.hasStateBucketOverride && !this.eventId) {
                 this.bucketFilter = savedState.bucketFilter;
             }
             if (typeof savedState.programCode === 'string' && !this.hasStateProgramOverride && !this.eventId) {
                 this.programCode = savedState.programCode;
             }
-            if (typeof savedState.sortField1 === 'string') {
-                this.sortField1 = savedState.sortField1;
-            }
-            if (typeof savedState.sortDir1 === 'string') {
-                this.sortDir1 = savedState.sortDir1;
-            }
-            if (typeof savedState.sortField2 === 'string') {
-                this.sortField2 = savedState.sortField2;
-            }
-            if (typeof savedState.sortDir2 === 'string') {
-                this.sortDir2 = savedState.sortDir2;
-            }
+            if (typeof savedState.sortField1 === 'string') this.sortField1 = savedState.sortField1;
+            if (typeof savedState.sortDir1 === 'string') this.sortDir1 = savedState.sortDir1;
+            if (typeof savedState.sortField2 === 'string') this.sortField2 = savedState.sortField2;
+            if (typeof savedState.sortDir2 === 'string') this.sortDir2 = savedState.sortDir2;
         } catch (error) {
-            // Ignore malformed session state.
+            // ignore malformed session state
         }
     }
 
@@ -314,26 +219,29 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
             this.rows = rawRows.map((row) => {
                 const capacity = row.capacity || 0;
                 const registrations = row.registrationCount || 0;
-                const percentFull = capacity > 0 ? Math.min(100, Math.round((registrations / capacity) * 100)) : 0;
+                const percent = capacity > 0 ? Math.min(100, (registrations / capacity) * 100) : 0;
+                const percentRounded = Math.round(percent);
+                const summary = capacity > 0
+                    ? `${registrations}/${capacity} (${this.formatPercent(percent)})`
+                    : `${registrations} registered`;
                 return {
                     ...row,
                     capacityDisplay: capacity > 0 ? String(capacity) : 'Not set',
                     statusTheme: this.getStatusTheme(row),
                     readinessTheme: this.getReadinessTheme(row),
-                    quickViewIcon: row.id === this.selectedInstanceId ? 'utility:chevrondown' : 'utility:chevronright',
-                    registrationSummary: capacity > 0 ? `${registrations}/${capacity} (${this.formatPercent(registrations, capacity)})` : `${registrations} registered`,
-                    capacityFillStyle: `width:${percentFull}%;`,
-                    capacityFillClass: `capacity-fill ${this.getCapacityFillClass(percentFull)}`,
-                    isSelected: this.selectedRowIds.includes(row.id)
+                    registrationProgress: {
+                        summary,
+                        percent: percentRounded,
+                        tier: this.getCapacityTier(percent)
+                    },
+                    unpublishedReason: row.unpublishedReason || '—'
                 };
             });
             this.totalCount = data?.totalCount || 0;
             const currentIds = new Set(this.rows.map((row) => row.id));
             this.selectedRowIds = this.selectedRowIds.filter((id) => currentIds.has(id));
             if (this.selectedInstanceId && !currentIds.has(this.selectedInstanceId)) this.selectedInstanceId = null;
-            this.rows = this.rows.map((row) => ({ ...row, isSelected: this.selectedRowIds.includes(row.id) }));
-            this.refreshQuickViewIcons();
-            this.loadError = undefined;
+            this.loadError = '';
             this.persistViewState();
         } catch (error) {
             this.rows = [];
@@ -344,62 +252,106 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         }
     }
 
+    // ---- shell events
     handleSearch(event) {
-        const value = event.target.value;
+        const value = event.detail.value;
         this.searchKey = value;
-        if (this.searchDebounceTimer) {
-            clearTimeout(this.searchDebounceTimer);
-        }
+        if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
         this.searchDebounceTimer = setTimeout(() => {
             this.pageNumber = 1;
             this.loadRows();
         }, 300);
     }
 
-    handlePageSize(event) {
-        this.pageSize = Number(event.detail.value);
+    handleSortChange(event) {
+        this.sortField1 = event.detail.field;
+        this.sortDir1 = event.detail.direction;
+        this.sortField2 = '';
+        this.sortDir2 = 'ASC';
         this.pageNumber = 1;
         this.loadRows();
     }
 
-    handlePrevPage() {
-        if (!this.disablePrev) {
-            this.pageNumber -= 1;
-            this.loadRows();
-        }
+    handlePageChange(event) {
+        this.pageNumber = event.detail.pageNumber;
+        this.loadRows();
     }
 
-    handleNextPage() {
-        if (!this.disableNext) {
-            this.pageNumber += 1;
-            this.loadRows();
-        }
+    handlePageSizeChange(event) {
+        this.pageSize = event.detail.pageSize;
+        this.pageNumber = 1;
+        this.loadRows();
     }
 
-    handleSelectAllRows(event) {
-        const checked = event.target.checked;
-        this.selectedRowIds = checked ? this.rows.map((row) => row.id) : [];
-        this.rows = this.rows.map((row) => ({ ...row, isSelected: checked }));
-    }
-
-    handleRowSelection(event) {
-        const rowId = event.currentTarget?.dataset?.id;
-        const checked = event.target.checked;
-        if (!rowId) {
-            return;
-        }
-        const ids = new Set(this.selectedRowIds);
-        if (checked) {
-            ids.add(rowId);
+    handleRowClick(event) {
+        const rowId = event.detail.rowId;
+        if (this.selectedInstanceId === rowId) {
+            this.handleQuickViewClose();
         } else {
-            ids.delete(rowId);
+            this.resetCopiedRegisterUrlState();
+            this.selectedInstanceId = rowId;
         }
-        this.selectedRowIds = [...ids];
-        this.rows = this.rows.map((row) => (row.id === rowId ? { ...row, isSelected: checked } : row));
     }
 
+    handleRowSelect(event) {
+        const { rowId, checked } = event.detail;
+        const ids = new Set(this.selectedRowIds);
+        if (checked) ids.add(rowId);
+        else ids.delete(rowId);
+        this.selectedRowIds = [...ids];
+    }
+
+    handleRowSelectAll(event) {
+        const checked = event.detail.checked;
+        this.selectedRowIds = checked ? this.rows.map((r) => r.id) : [];
+    }
+
+    handleRemovePill(event) {
+        const key = event.detail.key;
+        if (key === 'search') this.searchKey = '';
+        if (key === 'bucket') this.bucketFilter = 'Upcoming';
+        if (key === 'program') this.programCode = '';
+        this.pageNumber = 1;
+        this.loadRows();
+    }
+
+    handleClearFilters() {
+        this.resetToDefaultView();
+    }
+
+    handleClearSelection() {
+        this.selectedRowIds = [];
+    }
+
+    handleOpenFilters() {
+        this.openFilterModal();
+    }
+
+    handleOpenSettings() {
+        this.openFieldModal();
+    }
+
+    handleResetView() {
+        this.resetToDefaultView();
+    }
+
+    handleQuickViewClose() {
+        this.resetCopiedRegisterUrlState();
+        this.selectedInstanceId = null;
+    }
+
+    handleBreadcrumbHome() {
+        this.navigateHome();
+    }
+
+    handleBucketChange(event) {
+        this.bucketFilter = event.detail.value || 'Upcoming';
+        this.pageNumber = 1;
+        this.loadRows();
+    }
+
+    // ---- filter modal (Program only — Bucket is inline)
     openFilterModal() {
-        this.draftBucketFilter = this.bucketFilter;
         this.draftProgramCode = this.programCode;
         this.isFilterModalOpen = true;
     }
@@ -408,22 +360,18 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         this.isFilterModalOpen = false;
     }
 
-    handleDraftBucket(event) {
-        this.draftBucketFilter = event.detail.value;
-    }
-
     handleDraftProgram(event) {
         this.draftProgramCode = event.detail.value;
     }
 
     applyFilters() {
-        this.bucketFilter = this.draftBucketFilter || 'Upcoming';
         this.programCode = this.draftProgramCode || '';
         this.isFilterModalOpen = false;
         this.pageNumber = 1;
         this.loadRows();
     }
 
+    // ---- field picker modal
     openFieldModal() {
         this.draftVisibleColumnKeys = [...this.visibleColumnKeys];
         this.isFieldModalOpen = true;
@@ -443,16 +391,6 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         this.persistViewState();
     }
 
-    handleGearSelect(event) {
-        const action = event.detail.value;
-        if (action === 'fields') {
-            this.openFieldModal();
-        }
-        if (action === 'reset') {
-            this.resetToDefaultView();
-        }
-    }
-
     resetToDefaultView() {
         this.visibleColumnKeys = [...DEFAULT_VISIBLE_COLUMN_KEYS];
         this.bucketFilter = 'Upcoming';
@@ -468,44 +406,15 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         this.loadRows();
     }
 
-    refreshView() {
-        this.loadRows();
-    }
-
-    navigateHome() {
-        this[NavigationMixin.Navigate]({
-            type: 'standard__navItemPage',
-            attributes: { apiName: 'fiuEventsHome' }
-        });
-    }
-
-    navigateToCreateEvent() {
-        this[NavigationMixin.Navigate]({
-            type: 'standard__component',
-            attributes: { componentName: 'c__fiuInstanceCreateWizard' }
-        });
-    }
-
-    closeQuickView() {
-        this.resetCopiedRegisterUrlState();
-        this.selectedInstanceId = null;
-        this.refreshQuickViewIcons();
-    }
-
+    // ---- export
     handleExportMenuSelect(event) {
         const action = event.detail.value;
-        if (action === 'selected') {
-            this.handleExportSelected();
-        }
-        if (action === 'filtered') {
-            this.handleExportFiltered();
-        }
+        if (action === 'selected') this.handleExportSelected();
+        if (action === 'filtered') this.handleExportFiltered();
     }
 
     handleExportSelected() {
-        if (!this.selectedRowIds.length) {
-            return;
-        }
+        if (!this.selectedRowIds.length) return;
         const params = new URLSearchParams({
             action: 'launch',
             scope: 'fiuInstanceBrowser',
@@ -532,29 +441,23 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         window.open(`/apex/ExportCsv?${params.toString()}`, '_blank');
     }
 
-    openQuickViewFromButton(event) {
-        const rowId = event.currentTarget?.dataset?.id;
-        if (!rowId) return;
-        if (this.selectedInstanceId === rowId) {
-            this.closeQuickView();
-            return;
-        }
-        this.resetCopiedRegisterUrlState();
-        this.selectedInstanceId = rowId;
-        this.refreshQuickViewIcons();
+    // ---- navigation
+    navigateHome() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__navItemPage',
+            attributes: { apiName: 'fiuEventsHome' }
+        });
     }
 
-    refreshQuickViewIcons() {
-        this.rows = this.rows.map((row) => ({
-            ...row,
-            quickViewIcon: row.id === this.selectedInstanceId ? 'utility:chevrondown' : 'utility:chevronright'
-        }));
+    navigateToCreateInstance() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__component',
+            attributes: { componentName: 'c__fiuInstanceCreateWizard' }
+        });
     }
 
     openSelectedInstanceRecord() {
-        if (!this.selectedInstance) {
-            return;
-        }
+        if (!this.selectedInstance) return;
         this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',
             attributes: { recordId: this.selectedInstance.id, actionName: 'view' }
@@ -562,9 +465,7 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
     }
 
     cloneSelectedInstance() {
-        if (!this.selectedInstance) {
-            return;
-        }
+        if (!this.selectedInstance) return;
         this[NavigationMixin.Navigate]({
             type: 'standard__component',
             attributes: { componentName: 'c__fiuInstanceCreateWizard' },
@@ -577,9 +478,7 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
     }
 
     openSelectedInstanceRegistrations() {
-        if (!this.selectedInstance) {
-            return;
-        }
+        if (!this.selectedInstance) return;
         this[NavigationMixin.Navigate]({
             type: 'standard__navItemPage',
             attributes: { apiName: 'fiuRegistrationBrowser' },
@@ -587,36 +486,29 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         });
     }
 
+    // ---- clipboard
     async handleCopyRegisterUrl() {
         const registerUrl = this.selectedInstance?.registerUrl;
-        if (!registerUrl) {
-            return;
-        }
+        if (!registerUrl) return;
         try {
             await navigator.clipboard.writeText(registerUrl);
             this.hasCopiedRegisterUrl = true;
-            if (this.copyResetTimer) {
-                clearTimeout(this.copyResetTimer);
-            }
+            if (this.copyResetTimer) clearTimeout(this.copyResetTimer);
             this.copyResetTimer = setTimeout(() => {
                 this.hasCopiedRegisterUrl = false;
                 this.copyResetTimer = null;
             }, 1600);
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Copied',
-                    message: 'Registration URL copied to clipboard.',
-                    variant: 'success'
-                })
-            );
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'Copied',
+                message: 'Registration URL copied to clipboard.',
+                variant: 'success'
+            }));
         } catch (error) {
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Copy failed',
-                    message: 'Could not copy the registration URL automatically.',
-                    variant: 'error'
-                })
-            );
+            this.dispatchEvent(new ShowToastEvent({
+                title: 'Copy failed',
+                message: 'Could not copy the registration URL automatically.',
+                variant: 'error'
+            }));
         }
     }
 
@@ -632,6 +524,7 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         }
     }
 
+    // ---- themes / helpers
     getStatusTheme(row) {
         return row.activeStatus === 'Active' ? 'success' : 'neutral';
     }
@@ -640,31 +533,15 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         return row.readiness === 'Ready' ? 'success' : 'error';
     }
 
-    getCapacityFillClass(percent) {
-        if (percent >= 90) {
-            return 'capacity-fill--danger';
-        }
-        if (percent >= 70) {
-            return 'capacity-fill--warning';
-        }
-        return 'capacity-fill--success';
+    getCapacityTier(percent) {
+        if (percent >= 90) return 'danger';
+        if (percent >= 70) return 'warning';
+        return 'success';
     }
 
-    formatPercent(registrations, capacity) {
-        if (!capacity || capacity <= 0) {
-            return '0%';
-        }
-        const percent = (registrations / capacity) * 100;
-        if (percent > 0 && percent < 1) {
-            return `${percent.toFixed(1)}%`;
-        }
+    formatPercent(percent) {
+        if (!percent || percent <= 0) return '0%';
+        if (percent > 0 && percent < 1) return `${percent.toFixed(1)}%`;
         return `${Math.round(percent)}%`;
-    }
-
-    getSortIcon(fieldName) {
-        if (this.sortField1 !== fieldName) {
-            return 'utility:chevrondown';
-        }
-        return this.sortDir1 === 'ASC' ? 'utility:arrowup' : 'utility:arrowdown';
     }
 }
