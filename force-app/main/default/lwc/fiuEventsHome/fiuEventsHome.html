@@ -63,27 +63,6 @@
             </section>
         </template>
 
-        <section class={heroClass}>
-            <div class="hero-panel__copy">
-                <p class="eyebrow">Right now</p>
-                <h2>{heroTitle}</h2>
-                <p>{heroBody}</p>
-            </div>
-            <div class="hero-panel__actions">
-                <lightning-button
-                    variant="neutral"
-                    label="Review not-ready events"
-                    icon-name="utility:event"
-                    onclick={reviewNotReadyEvents}>
-                </lightning-button>
-                <lightning-button
-                    variant="neutral"
-                    label="Started registrations"
-                    onclick={openStartedRegistrations}>
-                </lightning-button>
-            </div>
-        </section>
-
         <section class="quick-actions" aria-label="Quick actions">
             <button class="quick-action quick-action--primary" data-action="create" onclick={handleGuidedAction} type="button">
                 <lightning-icon icon-name="utility:add" size="x-small" alternative-text=""></lightning-icon>
@@ -145,9 +124,9 @@
                 <section class="panel attention-panel">
                     <div class="panel-head">
                         <div class="panel-head__title">
-                            <lightning-icon icon-name="utility:warning" size="small" alternative-text="Needs attention"></lightning-icon>
-                            <h2>Needs Attention</h2>
-                            <span class="panel-count">{kpiNotReady}</span>
+                            <lightning-icon icon-name="utility:warning" size="small" alternative-text="Readiness issues"></lightning-icon>
+                            <h2>Readiness Issues</h2>
+                            <span class="panel-count">{attentionCount}</span>
                         </div>
                     </div>
                     <template if:true={hasAttentionRows}>
@@ -169,7 +148,7 @@
                         </ul>
                     </template>
                     <template if:false={hasAttentionRows}>
-                        <p class="panel-empty">No readiness issues detected.</p>
+                        <p class="panel-empty">No event or instance readiness issues detected.</p>
                     </template>
                 </section>
 
@@ -212,15 +191,15 @@
                     <span class="kpi-tile__value">{kpiUpcoming}</span>
                     <span class="kpi-tile__hint">View instances</span>
                 </button>
-                <button class="kpi-tile" data-action="registrations" onclick={handleKpiClick} type="button">
-                    <span class="kpi-tile__label">Active Registrations</span>
-                    <span class="kpi-tile__value">{kpiOpenRegs}</span>
-                    <span class="kpi-tile__hint">View active</span>
+                <button class={registrationFollowUpClass} data-action="registrationFollowUp" onclick={handleKpiClick} type="button">
+                    <span class="kpi-tile__label">Registration Follow-Up</span>
+                    <span class="kpi-tile__value">{kpiStartedRegs}</span>
+                    <span class="kpi-tile__hint">{registrationFollowUpHint}</span>
                 </button>
-                <button class="kpi-tile kpi-tile--warn" data-action="notReadyEvents" onclick={handleKpiClick} type="button">
-                    <span class="kpi-tile__label">Not Ready Events</span>
-                    <span class="kpi-tile__value">{kpiNotReadyEvents}</span>
-                    <span class="kpi-tile__hint">Review events</span>
+                <button class={readinessKpiClass} data-action="readinessIssues" onclick={handleKpiClick} type="button">
+                    <span class="kpi-tile__label">Readiness Issues</span>
+                    <span class="kpi-tile__value">{attentionCount}</span>
+                    <span class="kpi-tile__hint">{readinessKpiHint}</span>
                 </button>
             </section>
         </template>

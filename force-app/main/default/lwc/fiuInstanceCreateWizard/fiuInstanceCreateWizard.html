@@ -1,75 +1,394 @@
 <template>
-    <lightning-card title={titleText} icon-name="utility:date_time">
-        <template if:true={isLoading}>
-            <div class="slds-p-around_medium">
-                <lightning-spinner alternative-text="Loading instance wizard" size="small"></lightning-spinner>
+    <div class="wizard-page">
+        <section class="page-header panel">
+            <div class="page-header__main">
+                <div class="breadcrumbs">
+                    <button class="breadcrumb-link" type="button" onclick={handleCancel} aria-label="Back to Events">Events</button>
+                    <span class="breadcrumb-separator" aria-hidden="true">&gt;</span>
+                    <span class="breadcrumb-current">{titleText}</span>
+                </div>
+                <h1>{titleText}</h1>
+                <p class="page-subtitle">{subtitleText}</p>
+                <p class="page-context" title={eventContextLabel}>
+                    <lightning-icon icon-name="utility:event" size="xx-small" alternative-text="Event"></lightning-icon>
+                    <span>{eventContextLabel}</span>
+                </p>
             </div>
+        </section>
+
+        <template if:true={isLoading}>
+            <section class="panel loading-panel">
+                <lightning-spinner alternative-text="Loading instance wizard" size="small"></lightning-spinner>
+            </section>
         </template>
 
         <template if:false={isLoading}>
-            <div class="slds-p-around_medium wizard-wrap">
-                <p class="wizard-subtitle">{subtitleText}</p>
-                <p class="wizard-context"><strong>Event:</strong> {eventName}</p>
-                <template if:true={accountName}>
-                    <p class="wizard-context"><strong>Department:</strong> {accountName}</p>
-                </template>
+            <div class="wizard-layout">
+                <aside class="panel wizard-rail" aria-label="Wizard sections">
+                    <div class="wizard-rail__header">
+                        <p class="wizard-rail__eyebrow">{progressLabel}</p>
+                        <h2>Sections</h2>
+                    </div>
 
-                <template if:true={validationErrors.length}>
-                    <div class="slds-box slds-theme_error slds-m-bottom_small">
-                        <p class="slds-text-title_caps">Show-stoppers</p>
-                        <template for:each={validationErrors} for:item="err">
-                            <p key={err}>{err}</p>
+                    <template for:each={sectionRailItems} for:item="item">
+                        <button
+                            key={item.value}
+                            class={item.itemClass}
+                            type="button"
+                            data-section={item.value}
+                            onclick={handleSectionClick}
+                            aria-current={item.ariaCurrent}>
+                            <span class={item.circleClass}>
+                                <template if:true={item.showCheck}>
+                                    <lightning-icon icon-name="utility:check" size="xx-small" alternative-text="Complete"></lightning-icon>
+                                </template>
+                                <template if:true={item.showDash}>
+                                    <lightning-icon icon-name="utility:dash" size="xx-small" alternative-text="Optional"></lightning-icon>
+                                </template>
+                                <template if:true={item.showNumber}>{item.index}</template>
+                            </span>
+                            <span class="wizard-step__copy">
+                                <span class="wizard-step__label">{item.label}</span>
+                                <span class="wizard-step__desc">{item.description}</span>
+                            </span>
+                        </button>
+                    </template>
+                </aside>
+
+                <main class="panel wizard-main">
+                    <div class="wizard-main__header">
+                        <h2>{currentSectionMeta.label}</h2>
+                        <p class="wizard-main__subtitle">{currentSectionMeta.description}</p>
+                    </div>
+
+                    <div class="wizard-main__body">
+                        <template if:true={isCloneMode}>
+                            <div class="banner banner--info" role="note">
+                                <lightning-icon icon-name="utility:copy" size="x-small" alternative-text="Clone"></lightning-icon>
+                                <div class="banner__body">
+                                    <strong>You're cloning {eventName}.</strong>
+                                    <span> Confirm these fields for the new occurrence:</span>
+                                    <ul class="banner__list">
+                                        <template for:each={cloneVerifyChecklist} for:item="c">
+                                            <li key={c.key}>{c.label}</li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </div>
                         </template>
+
+                        <template if:true={hasValidationErrors}>
+                            <div class="banner banner--error" role="alert">
+                                <lightning-icon icon-name="utility:error" size="x-small" alternative-text="Error"></lightning-icon>
+                                <div class="banner__body">
+                                    <strong>{validationSummaryText}</strong>
+                                    <ul class="banner__list">
+                                        <template for:each={validationErrors} for:item="err">
+                                            <li key={err}>{err}</li>
+                                        </template>
+                                    </ul>
+                                    <button type="button" class="banner__link" onclick={handleJumpToFirstError}>Jump to first issue</button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template if:true={isScheduleSection}>
+                            <section class="form-section">
+                                <div class="field-row">
+                                    <lightning-input
+                                        data-field="title"
+                                        label="Instance Title"
+                                        field-level-help="Title for this specific date/time. It can match the Event or add date, city, cohort, or delivery detail."
+                                        value={form.title}
+                                        max-length="255"
+                                        onchange={handleChange}>
+                                    </lightning-input>
+                                    <template if:true={isTitleCopied}>
+                                        <span class="copied-pill" title="Copied from source instance">Copied</span>
+                                    </template>
+                                </div>
+
+                                <div class="form-grid-two top-gap">
+                                    <div class="field-row">
+                                        <lightning-input
+                                            type="datetime"
+                                            data-field="startDateTime"
+                                            label="Start Date and Time"
+                                            field-level-help="The visible start date and time for this instance."
+                                            value={form.startDateTime}
+                                            onchange={handleChange}
+                                            required>
+                                        </lightning-input>
+                                        <template if:true={isStartCopied}>
+                                            <span class="copied-pill" title="Verify this for the new occurrence">Copied — verify</span>
+                                        </template>
+                                    </div>
+                                    <div class="field-row">
+                                        <lightning-input
+                                            type="datetime"
+                                            data-field="endDateTime"
+                                            label="End Date and Time"
+                                            field-level-help="The visible end date and time for this instance."
+                                            value={form.endDateTime}
+                                            onchange={handleChange}
+                                            required>
+                                        </lightning-input>
+                                        <template if:true={isEndCopied}>
+                                            <span class="copied-pill" title="Verify this for the new occurrence">Copied — verify</span>
+                                        </template>
+                                    </div>
+                                </div>
+                                <p class="inline-help">{timeZoneInlineHelp}</p>
+
+                                <div class="form-grid-two top-gap">
+                                    <div class="field-row">
+                                        <lightning-input
+                                            type="number"
+                                            min="1"
+                                            data-field="capacity"
+                                            label="Capacity"
+                                            field-level-help="Maximum number of registrants for this occurrence."
+                                            value={form.capacity}
+                                            onchange={handleChange}
+                                            required>
+                                        </lightning-input>
+                                        <template if:true={isCapacityCopied}>
+                                            <span class="copied-pill" title="Verify this for the new occurrence">Copied — verify</span>
+                                        </template>
+                                    </div>
+                                    <lightning-input
+                                        type="toggle"
+                                        data-field="privateInstance"
+                                        label="Private Instance"
+                                        field-level-help="Use this when the instance should not behave like a normal public registration occurrence."
+                                        checked={form.privateInstance}
+                                        onchange={handleCheck}>
+                                    </lightning-input>
+                                </div>
+
+                                <lightning-textarea
+                                    class="top-gap"
+                                    data-field="shortDescription"
+                                    label="Short Description"
+                                    field-level-help="Short listing copy for this occurrence. Keep it brief; the parent Event carries the full marketing description."
+                                    max-length="255"
+                                    value={form.shortDescription}
+                                    onchange={handleChange}>
+                                </lightning-textarea>
+                            </section>
+                        </template>
+
+                        <template if:true={isWhereSection}>
+                            <section class="form-section">
+                                <lightning-combobox
+                                    data-field="locationType"
+                                    label="Delivery Mode"
+                                    field-level-help="Controls whether registrants see physical location details or virtual meeting details."
+                                    value={form.locationType}
+                                    options={locationTypeOptions}
+                                    onchange={handleChange}
+                                    required>
+                                </lightning-combobox>
+
+                                <template if:false={hasLocationType}>
+                                    <div class="empty-state top-gap">
+                                        <p>Pick a delivery mode above to see the right fields.</p>
+                                    </div>
+                                </template>
+
+                                <template if:true={hasLocationType}>
+                                    <template if:false={isLocationVirtual}>
+                                        <div class="form-grid-two top-gap">
+                                            <lightning-input
+                                                data-field="locationTitle"
+                                                label="Location Title"
+                                                field-level-help="Public-facing room, venue, or campus label."
+                                                value={form.locationTitle}
+                                                max-length="255"
+                                                onchange={handleChange}
+                                                required>
+                                            </lightning-input>
+                                            <lightning-input
+                                                data-field="buildingOverride"
+                                                label="Building Override"
+                                                field-level-help="Optional Summit building value when this instance needs a specific building override."
+                                                value={form.buildingOverride}
+                                                onchange={handleChange}>
+                                            </lightning-input>
+                                            <div class="field-row">
+                                                <lightning-input
+                                                    data-field="locationAddress"
+                                                    label="Address"
+                                                    field-level-help="Address shown to registrants and used for wayfinding."
+                                                    value={form.locationAddress}
+                                                    max-length="255"
+                                                    onchange={handleChange}
+                                                    required>
+                                                </lightning-input>
+                                                <template if:true={isLocationAddressCopied}>
+                                                    <span class="copied-pill" title="Verify this for the new occurrence">Copied — verify</span>
+                                                </template>
+                                            </div>
+                                            <lightning-input
+                                                type="url"
+                                                data-field="locationMapLink"
+                                                label="Map Link"
+                                                field-level-help="Google Maps or FIU map link."
+                                                value={form.locationMapLink}
+                                                max-length="255"
+                                                onchange={handleChange}
+                                                required>
+                                            </lightning-input>
+                                        </div>
+
+                                        <template if:false={showParking}>
+                                            <button class="link-button top-gap" type="button" onclick={expandParking}>
+                                                + Add parking and arrival notes
+                                            </button>
+                                        </template>
+                                        <template if:true={showParking}>
+                                            <lightning-textarea
+                                                class="top-gap"
+                                                data-field="parkingInfo"
+                                                label="Parking and Arrival Notes"
+                                                field-level-help="Short parking, arrival, or check-in instructions for this occurrence."
+                                                max-length="1000"
+                                                value={form.parkingInfo}
+                                                onchange={handleChange}
+                                                required>
+                                            </lightning-textarea>
+                                        </template>
+                                    </template>
+
+                                    <template if:true={isLocationVirtual}>
+                                        <div class="field-row top-gap">
+                                            <lightning-input
+                                                type="url"
+                                                data-field="virtualMeetingLink"
+                                                label="Virtual Meeting Link"
+                                                field-level-help="Current attendee link for this occurrence."
+                                                value={form.virtualMeetingLink}
+                                                max-length="255"
+                                                onchange={handleChange}
+                                                required>
+                                            </lightning-input>
+                                            <template if:true={isVirtualLinkCopied}>
+                                                <span class="copied-pill" title="Verify this for the new occurrence">Copied — verify</span>
+                                            </template>
+                                        </div>
+                                        <div class="form-grid-two top-gap">
+                                            <lightning-input
+                                                data-field="meetingId"
+                                                label="Meeting ID"
+                                                field-level-help="Optional meeting ID shown or stored with the instance."
+                                                value={form.meetingId}
+                                                max-length="100"
+                                                onchange={handleChange}>
+                                            </lightning-input>
+                                            <lightning-input
+                                                data-field="meetingPasscode"
+                                                label="Meeting Passcode"
+                                                field-level-help="Optional passcode for the virtual meeting."
+                                                value={form.meetingPasscode}
+                                                max-length="100"
+                                                onchange={handleChange}>
+                                            </lightning-input>
+                                        </div>
+                                    </template>
+                                </template>
+                            </section>
+                        </template>
+
+                        <template if:true={isReviewSection}>
+                            <section class="form-section">
+                                <p class="review-heading">Here's what will be saved.</p>
+                                <dl class="review-summary">
+                                    <template for:each={reviewSummaryRows} for:item="row">
+                                        <div key={row.key} class={row.rowClass}>
+                                            <dt class="review-row__label">{row.label}</dt>
+                                            <dd class="review-row__value">
+                                                <span>{row.value}</span>
+                                                <button class="review-row__edit" type="button" data-section={row.sectionId} onclick={handleReviewJump}>Edit</button>
+                                            </dd>
+                                        </div>
+                                    </template>
+                                </dl>
+
+                                <div class="reminders-row top-gap-lg">
+                                    <div class="reminders-row__copy">
+                                        <h3 class="reminders-row__title">Reminders</h3>
+                                        <p class="reminders-row__help">{reminderHelpText}</p>
+                                    </div>
+                                    <lightning-input
+                                        type="toggle"
+                                        data-field="createDefaultReminders"
+                                        label={reminderToggleLabel}
+                                        variant="label-hidden"
+                                        message-toggle-active="On"
+                                        message-toggle-inactive="Off"
+                                        checked={form.createDefaultReminders}
+                                        onchange={handleCheck}
+                                        disabled={reminderDisabled}>
+                                    </lightning-input>
+                                </div>
+
+                                <button class="link-button top-gap" type="button" onclick={toggleAdvanced} aria-expanded={showAdvanced}>
+                                    {showAdvancedLabel}
+                                </button>
+
+                                <template if:true={showAdvanced}>
+                                    <div class="advanced-panel top-gap">
+                                        <p class="inline-help">Use these only when this occurrence needs to differ from the parent Event.</p>
+                                        <div class="form-grid-two top-gap">
+                                            <lightning-input
+                                                type="url"
+                                                data-field="templateLogoOverride"
+                                                label="Template Logo Override"
+                                                field-level-help="Optional logo URL override for this instance only."
+                                                value={form.templateLogoOverride}
+                                                onchange={handleChange}>
+                                            </lightning-input>
+                                            <lightning-input
+                                                type="number"
+                                                step="0.01"
+                                                data-field="eventFeeOverride"
+                                                label="Event Fee Override"
+                                                field-level-help="Optional price override. Leave blank to inherit the Event fee setup."
+                                                value={form.eventFeeOverride}
+                                                onchange={handleChange}>
+                                            </lightning-input>
+                                            <lightning-input
+                                                type="number"
+                                                step="0.01"
+                                                data-field="eventFeeAdditionalOverride"
+                                                label="Additional Fee Override"
+                                                field-level-help="Optional additional fee override."
+                                                value={form.eventFeeAdditionalOverride}
+                                                onchange={handleChange}>
+                                            </lightning-input>
+                                        </div>
+                                    </div>
+                                </template>
+                            </section>
+                        </template>
+
+                        <div class="step-actions top-gap-lg">
+                            <div class="step-actions__left">
+                                <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
+                            </div>
+                            <div class="step-actions__right">
+                                <template if:true={hasPreviousSection}>
+                                    <lightning-button label="Previous" icon-name="utility:back" onclick={handlePreviousSection}></lightning-button>
+                                </template>
+                                <template if:true={hasNextSection}>
+                                    <lightning-button variant="neutral" label="Next" icon-name="utility:forward" icon-position="right" onclick={handleNextSection}></lightning-button>
+                                </template>
+                                <lightning-button variant="brand" label={saveLabel} onclick={handleSave} disabled={isSaving}></lightning-button>
+                            </div>
+                        </div>
                     </div>
-                </template>
-
-                <div class="grid">
-                    <lightning-input data-field="title" label="Instance Title" value={form.title} onchange={handleChange}></lightning-input>
-                    <lightning-input type="number" min="1" data-field="capacity" label="Capacity (required)" value={form.capacity} onchange={handleChange}></lightning-input>
-                    <lightning-input type="datetime" data-field="startDateTime" label="Start Date/Time" value={form.startDateTime} onchange={handleChange} required></lightning-input>
-                    <lightning-input type="datetime" data-field="endDateTime" label="End Date/Time" value={form.endDateTime} onchange={handleChange} required></lightning-input>
-                    <lightning-combobox data-field="locationType" label="Location Type Override" value={form.locationType} options={locationTypeOptions} onchange={handleChange}></lightning-combobox>
-                    <lightning-input type="toggle" data-field="privateInstance" label="Private Instance" checked={form.privateInstance} onchange={handleCheck}></lightning-input>
-                </div>
-
-                <lightning-textarea class="slds-m-top_small" data-field="shortDescription" label="Instance Short Description" value={form.shortDescription} onchange={handleChange}></lightning-textarea>
-
-                <template if:false={isLocationVirtual}>
-                    <div class="grid slds-m-top_small">
-                        <lightning-input data-field="locationTitle" label="Location Title Override (required)" value={form.locationTitle} onchange={handleChange}></lightning-input>
-                        <lightning-input data-field="locationAddress" label="Location Address Override (required)" value={form.locationAddress} onchange={handleChange}></lightning-input>
-                        <lightning-input data-field="locationMapLink" label="Location Map Link Override (required)" value={form.locationMapLink} onchange={handleChange}></lightning-input>
-                        <lightning-textarea data-field="parkingInfo" label="Parking Info (required)" value={form.parkingInfo} onchange={handleChange}></lightning-textarea>
-                    </div>
-                </template>
-
-                <template if:true={isLocationVirtual}>
-                    <div class="grid slds-m-top_small">
-                        <lightning-input data-field="virtualMeetingLink" label="Virtual Meeting Link (required)" value={form.virtualMeetingLink} onchange={handleChange}></lightning-input>
-                        <lightning-input data-field="meetingId" label="Meeting ID" value={form.meetingId} onchange={handleChange}></lightning-input>
-                        <lightning-input data-field="meetingPasscode" label="Meeting Passcode" value={form.meetingPasscode} onchange={handleChange}></lightning-input>
-                    </div>
-                </template>
-
-                <div class="grid slds-m-top_small">
-                    <lightning-input data-field="templateLogoOverride" label="Template Logo Override" value={form.templateLogoOverride} onchange={handleChange}></lightning-input>
-                    <lightning-input data-field="feedButtonTextOverride" label="Feed Registration Button Text Override" value={form.feedButtonTextOverride} onchange={handleChange}></lightning-input>
-                    <lightning-input type="number" step="0.01" data-field="eventFeeOverride" label="Event Fee Override" value={form.eventFeeOverride} onchange={handleChange}></lightning-input>
-                    <lightning-input type="number" step="0.01" data-field="eventFeeAdditionalOverride" label="Event Fee Additional Override" value={form.eventFeeAdditionalOverride} onchange={handleChange}></lightning-input>
-                    <lightning-input data-field="eventFeeAllocationOverrideId" label="Event Fee Allocation Override Id" value={form.eventFeeAllocationOverrideId} onchange={handleChange}></lightning-input>
-                    <lightning-input data-field="eventFeeAdditionalAllocationOverrideId" label="Event Fee Additional Allocation Override Id" value={form.eventFeeAdditionalAllocationOverrideId} onchange={handleChange}></lightning-input>
-                    <lightning-input data-field="campaignOverrideId" label="Campaign Override Id" value={form.campaignOverrideId} onchange={handleChange}></lightning-input>
-                </div>
-
-                <div class="slds-m-top_small">
-                    <lightning-input type="toggle" data-field="createDefaultReminders" label="Create Instance Reminders" message-toggle-active="On" message-toggle-inactive="Off" checked={form.createDefaultReminders} onchange={handleCheck}></lightning-input>
-                    <p class="slds-text-body_small slds-text-color_weak">{reminderHelpText}</p>
-                </div>
-
-                <div class="slds-m-top_medium">
-                    <lightning-button variant="brand" label="Create Instance" onclick={handleSave} disabled={isSaving}></lightning-button>
-                </div>
+                </main>
             </div>
         </template>
-    </lightning-card>
+    </div>
 </template>

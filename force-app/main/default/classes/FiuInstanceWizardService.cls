@@ -16,17 +16,18 @@ public with sharing class FiuInstanceWizardService {
         @AuraEnabled public String virtualMeetingLink;
         @AuraEnabled public String meetingId;
         @AuraEnabled public String meetingPasscode;
+        @AuraEnabled public String buildingOverride;
         @AuraEnabled public Decimal capacity;
         @AuraEnabled public Boolean privateInstance;
         @AuraEnabled public String templateLogoOverride;
-        @AuraEnabled public String feedButtonTextOverride;
         @AuraEnabled public Decimal eventFeeOverride;
         @AuraEnabled public Decimal eventFeeAdditionalOverride;
-        @AuraEnabled public Id eventFeeAllocationOverrideId;
-        @AuraEnabled public Id eventFeeAdditionalAllocationOverrideId;
-        @AuraEnabled public Id campaignOverrideId;
         @AuraEnabled public Boolean canCloneReminders;
         @AuraEnabled public Integer sourceReminderCount;
+        @AuraEnabled public Boolean defaultCreateReminders;
+        @AuraEnabled public String reminderMode;
+        @AuraEnabled public String reminderHelpText;
+        @AuraEnabled public String timeZoneLabel;
     }
 
     public class SaveRequest {
@@ -47,14 +48,12 @@ public with sharing class FiuInstanceWizardService {
         @AuraEnabled public String virtualMeetingLink;
         @AuraEnabled public String meetingId;
         @AuraEnabled public String meetingPasscode;
+        @AuraEnabled public String buildingOverride;
         @AuraEnabled public String templateLogoOverride;
-        @AuraEnabled public String feedButtonTextOverride;
         @AuraEnabled public Decimal eventFeeOverride;
         @AuraEnabled public Decimal eventFeeAdditionalOverride;
-        @AuraEnabled public Id eventFeeAllocationOverrideId;
-        @AuraEnabled public Id eventFeeAdditionalAllocationOverrideId;
-        @AuraEnabled public Id campaignOverrideId;
         @AuraEnabled public Boolean createDefaultReminders;
+        @AuraEnabled public String reminderMode;
     }
 
     public class SaveResult {
@@ -71,6 +70,9 @@ public with sharing class FiuInstanceWizardService {
         context.privateInstance = false;
         context.canCloneReminders = false;
         context.sourceReminderCount = 0;
+        context.defaultCreateReminders = false;
+        context.reminderMode = 'NONE';
+        context.timeZoneLabel = getEasternTimeZoneLabel();
 
         if (sourceInstanceId != null) {
             SObject source = [
@@ -79,10 +81,10 @@ public with sharing class FiuInstanceWizardService {
                        summit__Private_Instance__c, summit__Location_Type_Override__c, summit__Location_Title_Override__c,
                        summit__Location_Address_Override__c, summit__Location_Map_Link_Override__c, Parking_info__c,
                        summit__Virtual_Meeting_Link__c, Virtual_Meeting_ID__c, Virtual_Meeting_Password__c,
-                       Template_Logo_Override__c, summit__Feed_Registration_Button_Text_Override__c,
+                       summit__Building_Override__c, summit__Instance_Time_Zone__c,
+                       Template_Logo_Override__c,
                        summit__Event_Fee_Override__c, summit__Event_Fee_Additional_Override__c,
-                       summit__Event_Fee_Allocation_Override__c, summit__Event_Fee_Additional_Allocation_Override__c,
-                       Campaign_Override__c, summit__Event__r.Name, summit__Event__r.summit__Account__r.Name
+                       summit__Event__r.Name, summit__Event__r.summit__Account__r.Name
                 FROM summit__Summit_Events_Instance__c
                 WHERE Id = :sourceInstanceId
                 LIMIT 1
@@ -107,13 +109,10 @@ public with sharing class FiuInstanceWizardService {
             context.virtualMeetingLink = (String) source.get('summit__Virtual_Meeting_Link__c');
             context.meetingId = (String) source.get('Virtual_Meeting_ID__c');
             context.meetingPasscode = (String) source.get('Virtual_Meeting_Password__c');
+            context.buildingOverride = (String) source.get('summit__Building_Override__c');
             context.templateLogoOverride = (String) source.get('Template_Logo_Override__c');
-            context.feedButtonTextOverride = (String) source.get('summit__Feed_Registration_Button_Text_Override__c');
             context.eventFeeOverride = (Decimal) source.get('summit__Event_Fee_Override__c');
             context.eventFeeAdditionalOverride = (Decimal) source.get('summit__Event_Fee_Additional_Override__c');
-            context.eventFeeAllocationOverrideId = (Id) source.get('summit__Event_Fee_Allocation_Override__c');
-            context.eventFeeAdditionalAllocationOverrideId = (Id) source.get('summit__Event_Fee_Additional_Allocation_Override__c');
-            context.campaignOverrideId = (Id) source.get('Campaign_Override__c');
             String reminderLookupField = resolveReminderInstanceLookup(reminderTypeFields());
             if (reminderLookupField != null) {
                 context.sourceReminderCount = Integer.valueOf(String.valueOf(Database.countQuery(
@@ -123,6 +122,7 @@ public with sharing class FiuInstanceWizardService {
                 context.sourceReminderCount = 0;
             }
             context.canCloneReminders = context.sourceReminderCount > 0;
+            applyDepartmentDefaults(context);
         } else if (eventId != null) {
             SObject evt = [
                 SELECT Id, Name, summit__Account__r.Name
@@ -133,6 +133,7 @@ public with sharing class FiuInstanceWizardService {
             context.eventName = (String) evt.get('Name');
             SObject acct = evt.getSObject('summit__Account__r');
             context.accountName = acct == null ? null : (String) acct.get('Name');
+            applyDepartmentDefaults(context);
         }
         return context;
     }
@@ -144,6 +145,16 @@ public with sharing class FiuInstanceWizardService {
         if (req.capacity == null || req.capacity <= 0) throw new AuraHandledException('Capacity must be greater than zero.');
         if (req.startDateTime == null || req.endDateTime == null) throw new AuraHandledException('Start and end date/time are required.');
         if (req.endDateTime <= req.startDateTime) throw new AuraHandledException('End date/time must be after start date/time.');
+        validateTextLength(req.shortDescription, 255, 'Instance Short Description');
+        validateTextLength(req.meetingId, 100, 'Meeting ID');
+        validateTextLength(req.meetingPasscode, 100, 'Meeting Passcode');
+        validateTextLength(req.locationTitle, 255, 'Location Title Override');
+        validateTextLength(req.locationAddress, 255, 'Location Address Override');
+        validateTextLength(req.locationMapLink, 255, 'Location Map Link Override');
+        validateTextLength(req.virtualMeetingLink, 255, 'Virtual Meeting Link');
+        validateTextLength(req.parkingInfo, 1000, 'Parking Info');
+        validateFee(req.eventFeeOverride, 'Event Fee Override');
+        validateFee(req.eventFeeAdditionalOverride, 'Event Fee Additional Override');
 
         Boolean isOnline = req.locationType == 'Online' || req.locationType == 'Virtual';
         if (!isOnline) {
@@ -176,19 +187,19 @@ public with sharing class FiuInstanceWizardService {
         putWritable(newInstance, fields, 'summit__Virtual_Meeting_Link__c', req.virtualMeetingLink);
         putWritable(newInstance, fields, 'Virtual_Meeting_ID__c', req.meetingId);
         putWritable(newInstance, fields, 'Virtual_Meeting_Password__c', req.meetingPasscode);
+        putWritable(newInstance, fields, 'summit__Building_Override__c', req.buildingOverride);
         putWritable(newInstance, fields, 'Template_Logo_Override__c', req.templateLogoOverride);
-        putWritable(newInstance, fields, 'summit__Feed_Registration_Button_Text_Override__c', req.feedButtonTextOverride);
         putWritable(newInstance, fields, 'summit__Event_Fee_Override__c', req.eventFeeOverride);
         putWritable(newInstance, fields, 'summit__Event_Fee_Additional_Override__c', req.eventFeeAdditionalOverride);
-        putWritable(newInstance, fields, 'summit__Event_Fee_Allocation_Override__c', req.eventFeeAllocationOverrideId);
-        putWritable(newInstance, fields, 'summit__Event_Fee_Additional_Allocation_Override__c', req.eventFeeAdditionalAllocationOverrideId);
-        putWritable(newInstance, fields, 'Campaign_Override__c', req.campaignOverrideId);
         putWritable(newInstance, fields, 'summit__Capacity_Control__c', 'Individual Registrants');
+        putWritable(newInstance, fields, 'summit__Instance_Time_Zone__c', getEasternTimeZoneLabel());
+        putWritableDateTimeCompatible(newInstance, fields, 'summit__Instance_Start_Time__c', req.startDateTime);
+        putWritableDateTimeCompatible(newInstance, fields, 'summit__Instance_End_Time__c', req.endDateTime);
         insert newInstance;
 
         Integer remindersCreated = 0;
         if (req.createDefaultReminders == true) {
-            remindersCreated = createRemindersForNewInstance((Id) newInstance.get('Id'), req.sourceInstanceId);
+            remindersCreated = createRemindersForNewInstance((Id) newInstance.get('Id'), req.sourceInstanceId, req.reminderMode);
         }
 
         SaveResult result = new SaveResult();
@@ -198,11 +209,12 @@ public with sharing class FiuInstanceWizardService {
         return result;
     }
 
-    private static Integer createRemindersForNewInstance(Id newInstanceId, Id sourceInstanceId) {
+    private static Integer createRemindersForNewInstance(Id newInstanceId, Id sourceInstanceId, String reminderMode) {
         if (newInstanceId == null) return 0;
-        if (sourceInstanceId == null) {
+        if (reminderMode == 'DEFAULT' || sourceInstanceId == null) {
             return runDefaultReminderFlow(newInstanceId);
         }
+        if (reminderMode != 'SOURCE') return 0;
         Schema.SObjectType reminderType = Schema.getGlobalDescribe().get('Summit_Events_Instance_Reminder__c');
         if (reminderType == null) return 0;
         Map<String, Schema.SObjectField> reminderFields = reminderType.getDescribe().fields.getMap();
@@ -290,10 +302,87 @@ public with sharing class FiuInstanceWizardService {
         return null;
     }
 
+    private static void applyDepartmentDefaults(WizardContext context) {
+        String accountName = context.accountName == null ? '' : context.accountName;
+        Boolean isPino = accountName.contains('Pino');
+        Boolean isEpe = accountName == 'Executive and Professional Education';
+
+        if (context.sourceInstanceId != null) {
+            if (isPino) {
+                if (String.isBlank(context.parkingInfo)) context.parkingInfo = 'TBD';
+            } else {
+                context.locationTitle = null;
+                context.locationAddress = null;
+                context.locationMapLink = null;
+                context.parkingInfo = null;
+            }
+
+            if (!isEpe) {
+                context.meetingId = null;
+                context.meetingPasscode = null;
+            }
+
+            context.virtualMeetingLink = null;
+        }
+
+        if (accountName == 'Chapman Graduate School') {
+            context.defaultCreateReminders = true;
+            context.reminderMode = 'DEFAULT';
+            context.reminderHelpText = 'Create the Chapman default reminders: 1 day before and 1 hour before.';
+        } else if (isEpe) {
+            context.defaultCreateReminders = true;
+            context.reminderMode = 'DEFAULT';
+            context.reminderHelpText = 'Create the EPE default reminders: 1 day before and 8:00 AM on the day of event.';
+        } else if (accountName.startsWith('Pino')) {
+            context.defaultCreateReminders = true;
+            context.reminderMode = 'DEFAULT';
+            context.reminderHelpText = 'Create the Pino default reminders: 1 day before and 1 hour before.';
+        } else if (context.sourceReminderCount != null && context.sourceReminderCount > 0) {
+            context.defaultCreateReminders = false;
+            context.reminderMode = 'SOURCE';
+            context.reminderHelpText = 'Optionally clone ' + context.sourceReminderCount + ' reminder record(s) from the source instance.';
+        } else {
+            context.defaultCreateReminders = false;
+            context.reminderMode = 'NONE';
+            context.reminderHelpText = 'No department default reminder pattern was detected for this event.';
+        }
+    }
+
+    private static String getEasternTimeZoneLabel() {
+        return 'Eastern Daylight Time (America/New_York)';
+    }
+
+    private static void validateTextLength(String value, Integer maxLength, String label) {
+        if (value != null && value.length() > maxLength) {
+            throw new AuraHandledException(label + ' must be ' + maxLength + ' characters or fewer.');
+        }
+    }
+
+    private static void validateFee(Decimal value, String label) {
+        if (value != null && value > 999999.99) {
+            throw new AuraHandledException(label + ' must be 999,999.99 or less.');
+        }
+    }
+
     private static void putWritable(SObject row, Map<String, Schema.SObjectField> fields, String apiName, Object value) {
         if (!fields.containsKey(apiName)) return;
         Schema.DescribeFieldResult d = fields.get(apiName).getDescribe();
         if (!d.isCreateable() || d.isCalculated()) return;
         row.put(apiName, value);
+    }
+
+    private static void putWritableDateTimeCompatible(SObject row, Map<String, Schema.SObjectField> fields, String apiName, Datetime value) {
+        if (value == null || !fields.containsKey(apiName)) return;
+        Schema.DescribeFieldResult d = fields.get(apiName).getDescribe();
+        if (!d.isCreateable() || d.isCalculated()) return;
+
+        Schema.DisplayType fieldType = d.getType();
+        if (fieldType == Schema.DisplayType.Time) {
+            row.put(apiName, value.time());
+        } else if (fieldType == Schema.DisplayType.Date) {
+            row.put(apiName, value.date());
+        } else {
+            row.put(apiName, value);
+        }
     }
 }

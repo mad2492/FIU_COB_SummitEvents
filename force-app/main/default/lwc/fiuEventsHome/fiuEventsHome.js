@@ -64,24 +64,14 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
     get showOperationalDashboard() {
         return this.dashboardReady && !this.isFirstRun;
     }
-    get hasUrgentWork() {
-        return this.kpiNotReady > 0 || this.kpiStartedRegs > 0 || this.kpiNotReadyEvents > 0;
+    get readinessIssueCount() {
+        return this.kpiNotReady + this.kpiNotReadyEvents;
     }
-    get heroTitle() {
-        if (!this.dashboardReady) return 'Pulling your latest event activity';
-        if (this.hasUrgentWork) {
-            const count = this.kpiNotReady + this.kpiStartedRegs + this.kpiNotReadyEvents;
-            return `${count} item${count === 1 ? '' : 's'} need attention`;
-        }
-        return 'Everything looks steady';
+    get hasReadinessIssues() {
+        return this.readinessIssueCount > 0;
     }
-    get heroBody() {
-        if (!this.dashboardReady) return 'Checking readiness, registrations, and upcoming event activity for this scope.';
-        if (this.hasUrgentWork) return 'Start with the specific Needs Attention rows and any started registrations before opening new setup work.';
-        return 'No urgent readiness or registration follow-up is showing for this scope.';
-    }
-    get heroClass() {
-        return `hero-panel ${this.hasUrgentWork ? 'hero-panel--attention' : 'hero-panel--steady'}`;
+    get hasStartedFollowUp() {
+        return this.kpiStartedRegs > 0;
     }
 
     get attentionRows() {
@@ -98,8 +88,20 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
         return selected ? selected.label : 'All Programs';
     }
 
-    get attentionCount() { return this.attentionRows.length; }
+    get attentionCount() { return this.readinessIssueCount; }
     get upcomingCount() { return this.upcomingRows.length; }
+    get registrationFollowUpClass() {
+        return this.hasStartedFollowUp ? 'kpi-tile kpi-tile--follow-up' : 'kpi-tile';
+    }
+    get readinessKpiClass() {
+        return this.hasReadinessIssues ? 'kpi-tile kpi-tile--warn' : 'kpi-tile';
+    }
+    get registrationFollowUpHint() {
+        return this.hasStartedFollowUp ? 'Review started' : 'No follow-up';
+    }
+    get readinessKpiHint() {
+        return this.hasReadinessIssues ? 'Review list' : 'All clear';
+    }
     get currentUserFirstName() {
         return getFieldValue(this.wiredUser?.data, USER_FIRST_NAME_FIELD) || 'there';
     }
@@ -223,8 +225,12 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
         const action = event.currentTarget?.dataset?.action;
         if (action === 'events') this.openEvents();
         if (action === 'instances') this.openInstances();
-        if (action === 'registrations') this.openRegistrations();
-        if (action === 'notReadyEvents') this.reviewNotReadyEvents();
-        if (action === 'startedRegistrations') this.openStartedRegistrations();
+        if (action === 'registrationFollowUp') this.openStartedRegistrations();
+        if (action === 'readinessIssues') this.focusReadinessIssues();
+    }
+
+    focusReadinessIssues() {
+        const panel = this.template.querySelector('.attention-panel');
+        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 }
