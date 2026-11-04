@@ -9,3 +9,8 @@
 .vscode
 
 coverage/
+
+# The SDD Markdown is the source for a generated DOCX. Prettier rewrites
+# *italic* to _italic_, which the FIU document builder renders as literal
+# underscores in the Word output, so leave this folder formatted as authored.
+docs/sdd/**
