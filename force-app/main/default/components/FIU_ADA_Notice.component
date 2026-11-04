@@ -1,0 +1,19 @@
+<!--
+  FIU's Reasonable Accommodations Policy for Events, required on every page promoting the details or
+  registration of an FIU event. Keep this wording verbatim from the source below and update it only here.
+  Source: https://core.fiu.edu/blog/2026/reasonable-accommodations-policy-for-events.html (updated October 2026)
+  Uses Core's Blue - General callout: https://core.fiu.edu/features/design-elements/index.html
+-->
+<apex:component layout="none">
+    <aside
+        class="panel callout blue-callout fiu-ada-notice"
+        aria-label="Reasonable accommodations and nondiscrimination"
+    >
+        <div>
+            Need an accommodation or accessible materials? Contact the Office of Universal Access and Digital Compliance at <a href="mailto:accommodations@fiu.edu">accommodations@fiu.edu</a> or <a href="tel:+13053481576">305-348-1576</a>.
+        </div>
+        <div class="fiu-ada-notice__statement">
+            FIU is a State University System of Florida member, Equal Opportunity, Equal Access, and Affirmative Action Employer for individuals with disabilities and veterans. FIU provides equal opportunity in its programs, events, and activities and does not discriminate on the basis of race, color, religion, sex, age, national origin, disability, protected veteran status, and any other legally protected basis. For inquiries regarding nondiscrimination, contact FIU's Office of Title IX and EEO Compliance (TITLEIX) at <a href="tel:+13053482785">305.348.2785</a> or email <a href="mailto:titleix@fiu.edu">titleix@fiu.edu</a>.
+        </div>
+    </aside>
+</apex:component>

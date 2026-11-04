@@ -1,0 +1,341 @@
+/*
+  FIU RSVP templates: Core 2026 layer.
+  Loaded last, after Core (styles.css, brand-2026.css) and sp_rsvp/rsvp.css.
+  Holds only what Core does not provide: the landing-page layout these templates
+  used to get from business.fiu.edu/_assets/css/landing-page.css, and sizing for the
+  Summit Events form. Fonts, type scale, grid, and buttons come from Core.
+*/
+
+form {
+    scroll-margin-top: 2.5rem;
+}
+
+/*
+  openEnrollment.js adds no-display to this button on closed events, but Open Enrollment templates do not load
+  rsvp.css, which defines that class. Scoped to the button because Summit's own markup also uses no-display
+  on event details, which those templates show today.
+*/
+#registerToday.no-display {
+    display: none;
+}
+
+/* Banner */
+#banner > .headline-container {
+    background: linear-gradient(rgba(8, 30, 63, 0.85), rgba(8, 30, 63, 0.45));
+}
+
+/* Keep Core's energy line, but drop its top-right notch: it sits under the logo and contact row. */
+#banner.energize.cyan::before {
+    display: none;
+}
+
+#banner.energize.cyan::after {
+    top: 0;
+    height: 100%;
+}
+
+#banner .content-flex {
+    position: relative;
+    z-index: 1;
+    justify-content: flex-start !important;
+}
+
+#banner.banner-flex .content-flex .content {
+    padding: 7rem 0 3rem;
+    max-width: 100%;
+}
+
+/* #banner beats SLDS's ".slds-scope img" sizing, which stays active on Open Enrollment templates. */
+#banner .landing-page-logo {
+    position: absolute;
+    top: 2rem;
+    left: 0;
+    width: auto;
+    max-width: none;
+    height: 38px;
+}
+
+#banner .contact-info {
+    position: absolute;
+    top: 2rem;
+    right: 0;
+    margin: 0;
+    max-width: 150px;
+    color: #ffffff;
+    font-size: 1rem;
+    text-align: center;
+}
+
+#banner .contact-info a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+#banner .contact-info a.cta-link-primary {
+    margin: 0 0 0 0.5rem;
+    color: #00ffff;
+    font-size: 1em;
+    line-height: inherit;
+}
+
+#banner .pretitle {
+    margin-bottom: 0.75rem;
+    color: #ffffff;
+    font-size: 1rem;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+#banner h1 {
+    margin-bottom: 1.5rem;
+    color: #ffffff;
+    font-size: clamp(2.25rem, 4.2vw, 3.5rem);
+    line-height: 1.125;
+    font-weight: 800;
+    text-shadow: 0 3px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* Core renders buttons on blue backgrounds as outlines; business.fiu.edu custom.css used to make them gold. */
+#banner .button.button--gold {
+    margin-bottom: 0;
+    min-width: 190px;
+    border-color: #ffcc00;
+    background-color: #ffcc00;
+    color: #081e3f !important;
+}
+
+#banner .button.button--gold:hover,
+#banner .button.button--gold:focus {
+    border-color: #ffcc00;
+    background-color: rgba(255, 204, 0, 0.8);
+    color: #081e3f !important;
+}
+
+@media (min-width: 641px) {
+    #banner .landing-page-logo {
+        height: 60px;
+    }
+
+    #banner .contact-info {
+        max-width: 100%;
+    }
+
+    #banner .pretitle {
+        font-size: 1.125rem;
+    }
+}
+
+@media (min-width: 1025px) {
+    #banner.banner-flex .content-flex .content {
+        padding: 8.5rem 0 8rem;
+        max-width: 52rem;
+    }
+}
+
+/* Event details and registration panel */
+.content-block.landing-page-intro {
+    padding-bottom: 1.5rem;
+}
+
+.landing-page-intro .medium-8,
+.landing-page-intro .medium-4 {
+    width: 100%;
+}
+
+.landing-page-intro #mainInfoDiv > *:first-child {
+    margin-top: 0;
+}
+
+.landing-page-intro .related-content {
+    position: relative;
+    margin: 1rem 0 0;
+    padding: 2rem;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: rgba(0, 0, 0, 0.3) 0 3px 6px;
+}
+
+/* Registration forms vary in length, so the panel stays in normal flow to keep it off the ADA notice. */
+#register.scrollable {
+    overflow: visible;
+}
+
+@media (min-width: 1025px) {
+    .landing-page-intro .medium-8 {
+        width: 56%;
+    }
+
+    .landing-page-intro .medium-4 {
+        width: 44%;
+    }
+
+    .landing-page-intro .related-content {
+        z-index: 1;
+        margin-top: -8rem;
+    }
+}
+
+/* Summit Events form */
+#register h2 {
+    margin: 0 0 1.5rem;
+    color: #081e3f;
+    font-size: 1.875rem;
+    text-transform: none;
+}
+
+#register p,
+#register .slds-form-element__help {
+    font-size: 1rem;
+}
+
+/* #register is built by rsvp.js; Open Enrollment templates leave the form directly in #bodyDiv. */
+#register label,
+#register .slds-form-element__label,
+#bodyDiv form label,
+#bodyDiv form .slds-form-element__label {
+    color: #222222;
+    font-size: 1rem;
+}
+
+#register input[type="text"],
+#register input[type="email"],
+#register input[type="tel"],
+#register select,
+#register textarea,
+#bodyDiv form input[type="text"],
+#bodyDiv form input[type="email"],
+#bodyDiv form input[type="tel"],
+#bodyDiv form select,
+#bodyDiv form textarea {
+    min-height: 2.75rem;
+    font-size: 1rem;
+}
+
+/* Open Enrollment body columns set an inline 1024px limit; match Core's row so they line up with the logo and footer. */
+#main-content .slds-grid_align-center > .slds-col {
+    max-width: 80.625rem !important;
+    padding-right: 0.9375rem;
+    padding-left: 0.9375rem;
+}
+
+/* Open Enrollment forms keep SLDS buttons; rsvp.js restyles them on RSVP templates. */
+#bodyDiv form .slds-button_brand {
+    border-color: #081e3f;
+    background-color: #081e3f;
+    color: #ffffff;
+}
+
+#bodyDiv form .slds-button_brand:hover,
+#bodyDiv form .slds-button_brand:focus {
+    border-color: #0c2b5a;
+    background-color: #0c2b5a;
+    color: #ffffff;
+}
+
+/* ADA notice: Core's callout, with spacing and text sizing for this layout */
+.fiu-ada-notice {
+    margin: 1.5rem 0;
+    color: #222222;
+    font-size: 1rem;
+    line-height: 1.5;
+    text-align: left;
+}
+
+.fiu-ada-notice a {
+    text-decoration: underline;
+}
+
+.fiu-ada-notice__statement {
+    margin-top: 0.75rem;
+}
+
+/* Page sections */
+#share-with-friends {
+    margin-top: 1.5rem;
+}
+
+.fiu-accreditation h2 {
+    margin-top: 0;
+    color: #081e3f;
+    text-align: center;
+}
+
+.fiu-accreditation img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Mobile register button: Core's #floating-button, phones only */
+#floating-button[hidden] {
+    display: none;
+}
+
+@media (min-width: 641px) {
+    #floating-button {
+        display: none;
+    }
+}
+
+/* Footer */
+footer .footer-flex {
+    padding: 3.5rem 0;
+}
+
+footer img.footer-logo {
+    width: 100%;
+    max-width: 300px;
+    margin-bottom: 0.8rem;
+}
+
+footer address {
+    font-style: normal;
+}
+
+footer .links-and-social {
+    margin-top: 2rem;
+}
+
+footer .col.links {
+    display: flex;
+    flex-direction: column;
+}
+
+footer .col.social {
+    margin-top: 2rem;
+}
+
+footer .col.social p {
+    margin: 0 0 0.5rem;
+}
+
+footer .col.social a {
+    margin: 0 0.2rem;
+    color: #ffffff;
+    font-size: 1.05rem;
+    text-decoration: none;
+}
+
+@media (min-width: 641px) {
+    footer .footer-flex {
+        display: flex;
+        align-items: center;
+    }
+
+    footer .links-and-social {
+        display: flex;
+        gap: 3rem;
+        margin-top: 0;
+    }
+
+    footer .col.links {
+        flex: 1 1 60%;
+        text-align: right;
+    }
+
+    footer .col.social {
+        flex: 1 1 40%;
+        margin-top: 0;
+        padding-left: 3rem;
+        border-left: 1px solid #ffffff;
+    }
+}

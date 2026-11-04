@@ -24,8 +24,6 @@
     <html
         class="no-js"
         lang="en-US"
-        xmlns="http://www.w3.org/2000/svg"
-        xmlns:xlink="http://www.w3.org/1999/xlink"
     >
         <head>
             <!-- Google Tag Manager -->
@@ -80,49 +78,7 @@
             <meta content="{!backgroundImageUrl}" property="og:image" />
             <meta content="website" property="og:type" />
             <meta content="{!metaTitle}" property="og:title" />
-            <meta
-                content="https://fiu-staging.azurewebsites.net/cob/fiubusiness/mbacrm/"
-                property="og:url"
-            />
-            <link
-                href="https://fiu-staging.azurewebsites.net/cob/fiubusiness/mbacrm/"
-                rel="canonical"
-            />
             <meta content="summary_large_image" name="twitter:card" />
-            <script id="page-schema" type="application/ld+json">
-                {
-                    "@context": "https://schema.org",
-
-                    "@graph": [
-                        {
-                            "@type": "WebSite",
-                            "@id": "https://fiu-staging.azurewebsites.net/cob",
-                            "url": "https://fiu-staging.azurewebsites.net/cob",
-                            "name": "College of Business | Florida International University",
-                            "potentialAction": {
-                                "@type": "SearchAction",
-                                "target": "https://fiu-staging.azurewebsites.net/cob/results.html?q={query}",
-                                "query-input": "required name=query"
-                            }
-                        },
-                        {
-                            "@type": "WebPage",
-                            "@id": "https://fiu-staging.azurewebsites.net/cob/fiubusiness/mbacrm/",
-                            "@url": "https://fiu-staging.azurewebsites.net/cob/fiubusiness/mbacrm/",
-                            "inLanguage": "en-US",
-                            "name": "Online MBA in Cybersecurity Risk Management | College of Business | Florida International University",
-                            "isPartOf": {
-                                "@id": "https://fiu-staging.azurewebsites.net/cob"
-                            },
-
-                            "description": "Florida International University's MBA in Cybersecurity Risk Management degree program bridges the gap between IT and business. Learn to prevent, detect, and respond to cybersecurity attacks, and earn a STEM-designated degree from an R1 school.",
-
-                            "datePublished": "2023-05-10T13:10:51",
-                            "dateModified": "2023-05-10T13:09:39"
-                        }
-                    ]
-                }
-            </script>
 
             <link
                 href="https://digicdn.fiu.edu/core/_assets/css/fiu-custom-foundation.css"
@@ -133,7 +89,7 @@
                 rel="stylesheet"
             />
             <link
-                href="https://digicdn.fiu.edu/core/_assets/css/styles.css?v=1.21.0"
+                href="https://digicdn.fiu.edu/core/_assets/css/styles.css?v=1.48.1"
                 rel="stylesheet"
             />
 
@@ -146,28 +102,20 @@
                 rel="stylesheet"
             />
 
-            <link href="https://use.typekit.net/fpx6thr.css" rel="stylesheet" />
+            <link href="https://use.typekit.net/erk8tyy.css" rel="stylesheet" />
             <link
                 href="https://digicdn.fiu.edu/fonts/furore.css"
                 rel="stylesheet"
             />
             <link
-                href="https://digicdn.fiu.edu/fonts/barlow.css"
+                href="https://core.fiu.edu/_assets/css/brand-2026.css"
                 rel="stylesheet"
             />
             <link
                 href="{!URLFOR($Resource.sp_rsvp, '/css/rsvp.css')}"
                 rel="stylesheet"
             />
-
-            <link
-                href="https://business.fiu.edu/_assets/css/custom.css?v=03232023"
-                rel="stylesheet"
-            />
-            <link
-                href="https://business.fiu.edu/_assets/css/landing-page.css"
-                rel="stylesheet"
-            />
+            <link href="{!$Resource.FIU_RSVP_Core2026}" rel="stylesheet" />
 
             <link
                 href="https://digicdn.fiu.edu/core/_assets/favicon/apple-touch-icon.png"
@@ -207,7 +155,8 @@
             <script src="https://code.jquery.com/jquery-3.6.2.min.js" type="text/javascript"></script> <!--MB 09182023-->
             <apex:insert name="scriptsHead" />
         </head>
-        <body id="rsvpBody" style="color: #333">
+        <body id="rsvpBody">
+            <a class="skip-main-content" href="#main-content">Skip to Main Content</a>
             <apex:includeLightning />
             <div id="compContainer" />
             <!-- Google Tag Manager (noscript) -->
@@ -234,24 +183,22 @@
                                         <img
                                             alt="FIU Business - Florida International University"
                                             class="landing-page-logo"
-                                            height="50"
                                             src="{!logoImageUrl}"
-                                            width="237"
                                         />
-                                        
-                                        <h1 class="heading">
-                                            <span class="subheading"
-                                                >{!startEventWeekDay},
-                                                {!startEventMonthDay},
-                                                {!startEventYear} •
-                                                {!startEventTime} - {!timeZone} </span
-                                            ><br/>{!eventDescription}
-                                           <span id='formattedDateHide' style='display:none;'> {!formattedEventStartDate} </span>
+                                        <p class="pretitle">
+                                            {!startEventWeekDay},
+                                            {!startEventMonthDay},
+                                            {!startEventYear} &#8226;
+                                            {!startEventTime} - {!timeZone}
+                                        </p>
+                                        <h1>
+                                            {!eventDescription}
+                                            <span id='formattedDateHide' style='display:none;'> {!formattedEventStartDate} </span>
                                         </h1>
                                         <p>
                                             <a
                                                 id="registerToday"
-                                                class="button button--bright-gold"
+                                                class="button button--gold"
                                                 href="#SummitEventsRegister:RsvpTemplate:SummitEventRegisterForm"
                                                 >Register Today!</a
                                             >
@@ -319,45 +266,21 @@
                     </div>
                 </article>
 
-                <article aria-label="">
-                    <div class="fiu-background-white content-block">
+                <article aria-label="Accreditation">
+                    <div class="fiu-background-white content-block fiu-accreditation">
                         <div class="row">
-                            <div class="small-12 columns">
-                                <small class="italic">
-                                    Should you need an ADA accommodation to participate in a university event, program, or activity or need to request materials in an accessible format, please contact FIU’s Office of Civil Rights (OCR) at <a href="tel:+13053482785">305-348-2785</a> or <a href="mailto:accommodations@fiu.edu">accommodations@fiu.edu</a>. 
-                                    All requests for ADA accommodation or accessible materials for this event must be submitted to OCR at least seven (7) business days prior to the event or at the earliest possible opportunity.
-                                </small>
+                            <div class="small-12 medium-12 columns">
+                                <c:FIU_ADA_Notice />
                             </div>
                             <div class="row">&nbsp;</div>
                             <div class="small-12 columns">
-                                <h2
-                                    style="
-                                        line-height: 1.2;
-                                        margin-bottom: 1rem;
-                                        color: #081e3f;
-                                        text-align: center;
-                                        margin-top: 0;
-                                        font-family: frank-new, new-frank,
-                                            Helvetica, Arial, sans-serif;
-                                        font-style: normal;
-                                        font-size: 2.05rem;
-                                    "
-                                >
-                                    Accreditation
-                                </h2>
-                                <div>
-                                    <img
-                                        alt="logo-aacsb.png"
-                                        src="https://business.fiu.edu/fiubusiness/_assets/images/logo-aacsb.png"
-                                        style="
-                                            display: block;
-                                            margin-left: auto;
-                                            margin-right: auto;
-                                        "
-                                        width="110"
-                                        height="153"
-                                    />
-                                </div>
+                                <h2>Accreditation</h2>
+                                <img
+                                    alt="AACSB Accredited"
+                                    src="https://business.fiu.edu/fiubusiness/_assets/images/logo-aacsb.png"
+                                    width="110"
+                                    height="153"
+                                />
                             </div>
                         </div>
                     </div>
@@ -388,7 +311,7 @@
                     <div class="columns medium-7 links-and-social">
                         <div class="col links">
                             <a
-                                href="https://ocr.fiu.edu/civil-rights-and-accessibility/harassment-and-discrimination/"
+                                href="https://titleix.fiu.edu/civil-rights/harassment-and-discrimination/"
                                 rel="noopener"
                                 target="_blank"
                                 >Nondiscrimination</a
@@ -405,6 +328,18 @@
                                 target="_blank"
                                 >Report Discrimination or Harassment</a
                             >
+                            <a
+                                href="https://titleix.fiu.edu/ada-and-accessibility/"
+                                rel="noopener"
+                                target="_blank"
+                                >Accessibility</a
+                            >
+                            <a
+                                href="https://compliance.fiu.edu/privacy/"
+                                rel="noopener"
+                                target="_blank"
+                                >Privacy Policy</a
+                            >
                         </div>
                         <div class="col social">
                             <p><strong>Connect with Us!</strong></p>
@@ -413,60 +348,40 @@
                                 rel="noopener"
                                 target="_blank"
                             >
-                                <span
-                                    aria-hidden="true"
-                                    class="fa-brands fa-facebook"
-                                >
-                                    <span class="show-for-sr">Facebook</span>
-                                </span>
+                                <span aria-hidden="true" class="fa-brands fa-facebook"></span>
+                                <span class="show-for-sr">Facebook</span>
                             </a>
                             <a
                                 href="https://www.linkedin.com/edu/school?id=18094"
                                 rel="noopener"
                                 target="_blank"
                             >
-                                <span
-                                    aria-hidden="true"
-                                    class="fa-brands fa-linkedin"
-                                >
-                                    <span class="show-for-sr">LinkedIn</span>
-                                </span>
+                                <span aria-hidden="true" class="fa-brands fa-linkedin"></span>
+                                <span class="show-for-sr">LinkedIn</span>
                             </a>
                             <a
                                 href="https://www.instagram.com/fiubusiness/"
                                 rel="noopener"
                                 target="_blank"
                             >
-                                <span
-                                    aria-hidden="true"
-                                    class="fa-brands fa-instagram"
-                                >
-                                    <span class="show-for-sr">Instagram</span>
-                                </span>
+                                <span aria-hidden="true" class="fa-brands fa-instagram"></span>
+                                <span class="show-for-sr">Instagram</span>
                             </a>
                             <a
                                 href="https://www.youtube.com/fiubusiness"
                                 rel="noopener"
                                 target="_blank"
                             >
-                                <span
-                                    aria-hidden="true"
-                                    class="fa-brands fa-youtube"
-                                >
-                                    <span class="show-for-sr">YouTube</span>
-                                </span>
+                                <span aria-hidden="true" class="fa-brands fa-youtube"></span>
+                                <span class="show-for-sr">YouTube</span>
                             </a>
                             <a
                                 href="https://twitter.com/fiubusiness"
                                 rel="noopener"
                                 target="_blank"
                             >
-                                <span
-                                    aria-hidden="true"
-                                    class="fa-brands fa-twitter"
-                                >
-                                    <span class="show-for-sr">Twitter</span>
-                                </span>
+                                <span aria-hidden="true" class="fa-brands fa-twitter"></span>
+                                <span class="show-for-sr">X (Twitter)</span>
                             </a>
                         </div>
                     </div>
@@ -480,9 +395,10 @@
                 src="{!URLFOR($Resource.sp_rsvp, '/js/rsvp.js')}"
                 type="text/javascript"
             ></script>
+            <c:FIU_Floating_Register />
         </body>
         <script
-            src="https://digicdn.fiu.edu/core/_assets/js/core.js?v1.17.0"
+            src="https://digicdn.fiu.edu/core/_assets/js/core.js?v1.47.0"
             type="text/javascript"
         ></script>
 
@@ -569,25 +485,5 @@
                 );
             });
         </script>
-
-        <div
-            style="
-                position: absolute !important;
-                top: 0px !important;
-                left: 0px !important;
-                height: 0px !important;
-                width: 0px !important;
-            "
-            data-lastpass-root=""
-        >
-            <div
-                data-lastpass-infield="true"
-                style="
-                    position: absolute !important;
-                    top: 0px !important;
-                    left: 0px !important;
-                "
-            ></div>
-        </div>
     </html>
 </apex:page>

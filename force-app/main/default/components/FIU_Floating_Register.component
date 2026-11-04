@@ -1,0 +1,29 @@
+<!--
+  Core's #floating-button for phones: links to the registration form until the form is on screen.
+  Place after the template's rsvp.js or openEnrollment.js script tag, because it reads the state those scripts set.
+-->
+<apex:component layout="none">
+    <div id="floating-button" hidden="hidden">
+        <a class="button button--gold" href="#main-content">Register Today</a>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var hero = document.getElementById("registerToday");
+            var floating = document.getElementById("floating-button");
+            var form = document.getElementsByTagName("form")[0];
+            var isRegisterPage = window.location.pathname
+                .toLowerCase()
+                .indexOf("summiteventsregister") !== -1;
+            if (!hero || !form || !isRegisterPage || hero.classList.contains("no-display")) {
+                return;
+            }
+            floating.querySelector("a").setAttribute("href", "#" + form.id);
+            floating.hidden = false;
+            if ("IntersectionObserver" in window) {
+                new IntersectionObserver(function (entries) {
+                    floating.hidden = entries[0].isIntersecting;
+                }).observe(form);
+            }
+        });
+    </script>
+</apex:component>

@@ -21,12 +21,7 @@
     controller="SPRsvpTemplateController"
 >
     <apex:slds />
-    <html
-        class="no-js"
-        lang="en-US"
-        xmlns="http://www.w3.org/2000/svg"
-        xmlns:xlink="http://www.w3.org/1999/xlink"
-    >
+    <html class="no-js" lang="en-US">
         <head>
             <!-- Google Tag Manager -->
             <script>
@@ -108,7 +103,7 @@
                 rel="stylesheet"
             />
             <link
-                href="https://digicdn.fiu.edu/core/_assets/css/styles.css?v=1.21.0"
+                href="https://digicdn.fiu.edu/core/_assets/css/styles.css?v=1.48.1"
                 rel="stylesheet"
             />
 
@@ -121,28 +116,20 @@
                 rel="stylesheet"
             />
 
-            <link href="https://use.typekit.net/fpx6thr.css" rel="stylesheet" />
+            <link href="https://use.typekit.net/erk8tyy.css" rel="stylesheet" />
             <link
                 href="https://digicdn.fiu.edu/fonts/furore.css"
                 rel="stylesheet"
             />
             <link
-                href="https://digicdn.fiu.edu/fonts/barlow.css"
+                href="https://core.fiu.edu/_assets/css/brand-2026.css"
                 rel="stylesheet"
             />
             <link
                 href="{!URLFOR($Resource.sp_rsvp, '/css/rsvp.css')}"
                 rel="stylesheet"
             />
-
-            <link
-                href="https://business.fiu.edu/_assets/css/custom.css?v=03232023"
-                rel="stylesheet"
-            />
-            <link
-                href="https://business.fiu.edu/_assets/css/landing-page.css"
-                rel="stylesheet"
-            />
+            <link href="{!$Resource.FIU_RSVP_Core2026}" rel="stylesheet" />
 
             <link
                 href="https://digicdn.fiu.edu/core/_assets/favicon/apple-touch-icon.png"
@@ -183,7 +170,8 @@
              
             <apex:insert name="scriptsHead" />
         </head>
-        <body id="rsvpBody" style="color: #333">
+        <body id="rsvpBody">
+            <a class="skip-main-content" href="#main-content">Skip to Main Content</a>
             <apex:includeLightning />
             <div id="compContainer" />
             <!-- Google Tag Manager (noscript) -->
@@ -210,9 +198,7 @@
                                         <img
                                             alt="FIU Business - Florida International University"
                                             class="landing-page-logo"
-                                            height="50"
                                             src="{!logoImageUrl}"
-                                            width="237"
                                         />
                                         <p class="contact-info">
                                             <span
@@ -229,18 +215,17 @@
                                                 >Contact Us!</a
                                             >
                                         </p>
-                                        <h1 class="heading">
-                                            <span class="subheading"
-                                                >{!startEventWeekDay},
-                                                {!startEventMonthDay},
-                                                {!startEventYear} •
-                                                {!startEventTime} - {!timeZone} </span
-                                            >{!eventDescription}
-                                        </h1>
+                                        <p class="pretitle">
+                                            {!startEventWeekDay},
+                                            {!startEventMonthDay},
+                                            {!startEventYear} •
+                                            {!startEventTime} - {!timeZone}
+                                        </p>
+                                        <h1>{!eventDescription}</h1>
                                         <p>
                                             <a
                                                 id="registerToday"
-                                                class="button button--bright-gold"
+                                                class="button button--gold"
                                                 href="#SummitEventsRegister:RsvpTemplate:SummitEventRegisterForm"
                                                 >Register Today!</a
                                             >
@@ -272,6 +257,9 @@
                                 class="small-12 medium-12 columns"
                             >
                                 <apex:insert name="body" />
+                            </div>
+                            <div class="small-12 medium-12 columns">
+                                <c:FIU_ADA_Notice />
                             </div>
                         </div>
                     </div>
@@ -320,8 +308,7 @@
                                         ></a>
                                         
                                         <a class="a2a_button_facebook" ></a>
-                                        <a class="a2a_button_twitter"></a>
-                                        <a class="a2a_button_google_plus"></a>
+                                        <a class="a2a_button_x"></a>
                                         <a class="a2a_button_linkedin"></a>
                                     </div>
                                 </div>
@@ -356,13 +343,13 @@
                     <div class="columns medium-7 links-and-social">
                         <div class="col links">
                             <a
-                                href="https://dei.fiu.edu/civil-rights-and-accessibility/harassment-and-discrimination/"
+                                href="https://titleix.fiu.edu/civil-rights/harassment-and-discrimination/"
                                 rel="noopener"
                                 target="_blank"
                                 >Nondiscrimination</a
                             >
                             <a
-                                href="https://dei.fiu.edu/title-ix/"
+                                href="https://titleix.fiu.edu/title-ix/"
                                 rel="noopener"
                                 target="_blank"
                                 >Title IX</a
@@ -373,6 +360,18 @@
                                 target="_blank"
                                 >Report Discrimination or Harassment</a
                             >
+                            <a
+                                href="https://titleix.fiu.edu/ada-and-accessibility/"
+                                rel="noopener"
+                                target="_blank"
+                                >Accessibility</a
+                            >
+                            <a
+                                href="https://compliance.fiu.edu/privacy/"
+                                rel="noopener"
+                                target="_blank"
+                                >Privacy Policy</a
+                            >
                         </div>
                         <div class="col social">
                             <p><strong>Connect with Us!</strong></p>
@@ -381,60 +380,40 @@
                                 rel="noopener"
                                 target="_blank"
                             >
-                                <span
-                                    aria-hidden="true"
-                                    class="fa-brands fa-facebook"
-                                >
-                                    <span class="show-for-sr">Facebook</span>
-                                </span>
+                                <span aria-hidden="true" class="fa-brands fa-facebook"></span>
+                                <span class="show-for-sr">Facebook</span>
                             </a>
                             <a
                                 href="https://www.linkedin.com/edu/school?id=18094"
                                 rel="noopener"
                                 target="_blank"
                             >
-                                <span
-                                    aria-hidden="true"
-                                    class="fa-brands fa-linkedin"
-                                >
-                                    <span class="show-for-sr">LinkedIn</span>
-                                </span>
+                                <span aria-hidden="true" class="fa-brands fa-linkedin"></span>
+                                <span class="show-for-sr">LinkedIn</span>
                             </a>
                             <a
                                 href="https://www.instagram.com/fiubusiness/"
                                 rel="noopener"
                                 target="_blank"
                             >
-                                <span
-                                    aria-hidden="true"
-                                    class="fa-brands fa-instagram"
-                                >
-                                    <span class="show-for-sr">Instagram</span>
-                                </span>
+                                <span aria-hidden="true" class="fa-brands fa-instagram"></span>
+                                <span class="show-for-sr">Instagram</span>
                             </a>
                             <a
                                 href="https://www.youtube.com/fiubusiness"
                                 rel="noopener"
                                 target="_blank"
                             >
-                                <span
-                                    aria-hidden="true"
-                                    class="fa-brands fa-youtube"
-                                >
-                                    <span class="show-for-sr">YouTube</span>
-                                </span>
+                                <span aria-hidden="true" class="fa-brands fa-youtube"></span>
+                                <span class="show-for-sr">YouTube</span>
                             </a>
                             <a
                                 href="https://twitter.com/fiubusiness"
                                 rel="noopener"
                                 target="_blank"
                             >
-                                <span
-                                    aria-hidden="true"
-                                    class="fa-brands fa-twitter"
-                                >
-                                    <span class="show-for-sr">Twitter</span>
-                                </span>
+                                <span aria-hidden="true" class="fa-brands fa-twitter"></span>
+                                <span class="show-for-sr">X (Twitter)</span>
                             </a>
                         </div>
                     </div>
@@ -448,9 +427,10 @@
                 src="{!URLFOR($Resource.sp_rsvp, '/js/rsvp.js')}"
                 type="text/javascript"
             ></script>
+            <c:FIU_Floating_Register />
         </body>
         <script
-            src="https://digicdn.fiu.edu/core/_assets/js/core.js?v1.17.0"
+            src="https://digicdn.fiu.edu/core/_assets/js/core.js?v1.47.0"
             type="text/javascript"
         ></script>
 
@@ -522,25 +502,5 @@
                 );
             });
         </script>
-
-        <div
-            style="
-                position: absolute !important;
-                top: 0px !important;
-                left: 0px !important;
-                height: 0px !important;
-                width: 0px !important;
-            "
-            data-lastpass-root=""
-        >
-            <div
-                data-lastpass-infield="true"
-                style="
-                    position: absolute !important;
-                    top: 0px !important;
-                    left: 0px !important;
-                "
-            ></div>
-        </div>
     </html>
 </apex:page>

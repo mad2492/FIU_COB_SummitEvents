@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ApexComponent xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <label>FIU ADA Notice</label>
+    <description>University-mandated ADA accommodation notice for all Summit Events templates.</description>
+</ApexComponent>
