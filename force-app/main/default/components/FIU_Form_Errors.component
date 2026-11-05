@@ -26,6 +26,14 @@
             border: 2px solid #ba0517;
             box-shadow: none;
         }
+
+        /* The red border alone doesn't show which field has focus, so focused fields with errors get an outline too. */
+        form[id$="SummitEventRegisterForm"] .slds-has-error .slds-input:focus-visible,
+        form[id$="SummitEventRegisterForm"] .slds-has-error .slds-select:focus-visible,
+        form[id$="SummitEventRegisterForm"] .slds-has-error textarea:focus-visible {
+            outline: 2px solid #081e3f;
+            outline-offset: 2px;
+        }
     </style>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -48,6 +56,14 @@
                 if (!help) {
                     return;
                 }
+                // Summit links most help text to its field already; make sure every one is, so the message is read out.
+                if (field && help.id) {
+                    var describedBy = (field.getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean);
+                    if (describedBy.indexOf(help.id) === -1) {
+                        describedBy.push(help.id);
+                        field.setAttribute("aria-describedby", describedBy.join(" "));
+                    }
+                }
                 if (!help.hasAttribute("data-fiu-default")) {
                     help.setAttribute("data-fiu-default", help.textContent);
                 }
@@ -64,6 +80,9 @@
                     }
                 });
             }).observe(form, { subtree: true, attributes: true, attributeFilter: ["class"] });
+
+            // Errors already on the page at load (e.g. after a server round trip) get the same treatment.
+            Array.prototype.forEach.call(form.querySelectorAll(".slds-form-element.slds-has-error"), sync);
 
             // Summit's checkForm runs in the Register link's own onclick, so errors are in place by the time this runs.
             form.addEventListener("click", function (event) {

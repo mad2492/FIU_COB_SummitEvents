@@ -76,11 +76,16 @@ form {
     display: none;
 }
 
-/* Desktop has the form beside the details, so only phones need Register in the bar. */
-@media (min-width: 641px) {
+/* Only desktop has the form beside the details; below 1025px the columns stack, so Register stays in the bar. */
+@media (min-width: 1025px) {
     #fiu-apply-bar .fiu-apply-bar__register {
         display: none;
     }
+}
+
+/* Keyboard focus and in-page jumps stop clear of the fixed bar (WCAG 2.4.11 Focus Not Obscured). */
+html.fiu-has-apply-bar {
+    scroll-padding-top: 4.5rem;
 }
 
 @media (max-width: 640px) {
@@ -104,6 +109,12 @@ form {
     /* Keeps the bar from covering the end of the footer. */
     .fiu-has-apply-bar footer {
         padding-bottom: 4.5rem;
+    }
+
+    /* The bar sits at the bottom here, so focus needs room below instead of above. */
+    html.fiu-has-apply-bar {
+        scroll-padding-top: 0;
+        scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
     }
 }
 
@@ -133,8 +144,12 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
 }
 
 /* Banner */
+/*
+  The tint keeps white banner text readable over any photo. At 45% navy the bottom of the banner could drop to
+  about 2.9:1 over a bright image, below WCAG's 4.5:1; 70% holds it above that.
+*/
 #banner > .headline-container {
-    background: linear-gradient(rgba(8, 30, 63, 0.85), rgba(8, 30, 63, 0.45));
+    background: linear-gradient(rgba(8, 30, 63, 0.85), rgba(8, 30, 63, 0.7));
 }
 
 /* Keep Core's energy line, but drop its top-right notch: it sits under the logo and contact row. */

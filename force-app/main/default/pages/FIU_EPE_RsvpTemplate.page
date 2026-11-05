@@ -435,8 +435,9 @@
         <script>
      
             
-              $.noConflict();
-      $(document).ready(function() {
+              // noConflict hands $ back to whatever owned it, so the ready callback gets jQuery as its own $.
+              jQuery.noConflict();
+      jQuery(function ($) {
             
          
             $('form input[id*=\'mobile\']').filter(':not([required]:visible)').eq(0).parent('div').parent('div').parent('div').next().find('abbr').remove(); //remove unnecessary Required asterisk

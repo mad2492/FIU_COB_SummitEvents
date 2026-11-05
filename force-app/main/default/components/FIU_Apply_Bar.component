@@ -2,8 +2,9 @@
   Keeps the Apply link on screen: a slim bar that appears once the banner's Apply link scrolls out of view.
   Applying is the main goal of these pages, so it stays reachable through the whole registration flow.
 
-  On phones the bar sits at the bottom and also carries a Register link until the visitor first reaches the form,
-  so it replaces FIU_Floating_Register. Don't use both on a template.
+  Below desktop width (where the form stacks under the banner) the bar also carries a Register link until the
+  visitor first reaches the form; on phones the bar sits at the bottom. It replaces FIU_Floating_Register, so
+  don't use both on a template. A link that has keyboard focus is never hidden out from under the visitor.
   Place after the template's rsvp.js script tag, because it reads the state that script sets.
 -->
 <apex:component layout="none">
@@ -29,26 +30,60 @@
 
             document.documentElement.classList.add("fiu-has-apply-bar");
 
+            // Never hide a link while it has keyboard focus; re-check once focus leaves the bar.
+            var hasFocus = function (el) {
+                return el.contains(document.activeElement);
+            };
+            var bannerInView = false;
+            var updateBar = function () {
+                bar.hidden = bannerInView && !hasFocus(bar);
+            };
+            bar.addEventListener("focusout", function () {
+                setTimeout(function () {
+                    updateBar();
+                    hideOnceFormReached();
+                }, 0);
+            });
+
             if (bannerLink && canObserve) {
                 new IntersectionObserver(function (entries) {
-                    bar.hidden = entries[0].isIntersecting;
+                    bannerInView = entries[0].isIntersecting;
+                    updateBar();
                 }).observe(bannerLink);
             } else {
                 bar.hidden = false;
             }
 
+            var formReached = false;
+            var hideOnceFormReached = function () {};
+
             if (hero && form && isRegisterPage && !hero.classList.contains("no-display")) {
                 register.setAttribute("href", "#" + form.id);
                 register.hidden = false;
                 // Checks position on scroll, not intersection, so a fast scroll that jumps past the form still counts.
-                var hideOnceFormReached = function () {
-                    if (form.getBoundingClientRect().top < window.innerHeight) {
-                        register.hidden = true;
+                hideOnceFormReached = function () {
+                    if (!formReached && form.getBoundingClientRect().top < window.innerHeight) {
+                        formReached = true;
                         window.removeEventListener("scroll", hideOnceFormReached);
+                    }
+                    if (formReached && !hasFocus(register)) {
+                        register.hidden = true;
                     }
                 };
                 window.addEventListener("scroll", hideOnceFormReached, { passive: true });
                 hideOnceFormReached();
+
+                // A plain fragment jump moves the view but not keyboard focus, so put the cursor in the first field.
+                register.addEventListener("click", function (event) {
+                    event.preventDefault();
+                    form.scrollIntoView({ block: "start" });
+                    var firstField = form.querySelector(
+                        "input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled])"
+                    );
+                    if (firstField) {
+                        firstField.focus({ preventScroll: true });
+                    }
+                });
             }
         });
     </script>
