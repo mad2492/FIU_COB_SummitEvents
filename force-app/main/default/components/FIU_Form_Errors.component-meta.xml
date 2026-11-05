@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ApexComponent xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <label>FIU Form Errors</label>
+    <description>Red, field-level registration errors with a specific email message, aria-invalid, and focus on the first error.</description>
+</ApexComponent>

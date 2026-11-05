@@ -144,6 +144,7 @@
               <div class="small-12 medium-12 columns">
                 <c:FIU_ADA_Notice />
                 <c:FIU_Confirmation_Fallback />
+                <c:FIU_Form_Errors />
               </div>
               <div class="columns small-12 medium-12 text-center">
                 <div id="share-with-friends">

@@ -145,6 +145,7 @@
             <div class="slds-col slds-size_1-of-1" style="max-width:1024px;">
               <c:FIU_ADA_Notice />
               <c:FIU_Confirmation_Fallback />
+              <c:FIU_Form_Errors />
             </div>
           </div>
         </article>

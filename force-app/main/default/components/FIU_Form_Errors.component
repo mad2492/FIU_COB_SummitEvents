@@ -1,0 +1,87 @@
+<!--
+  Makes the registration form's errors visible and usable. Summit's register.js already marks a field with
+  .slds-has-error and shows its help text when Register is clicked; this component works alongside it:
+  - colors the message and border red, so an error reads as an error;
+  - says "Enter a valid email address" when an email is filled in but malformed, instead of "This field is required";
+  - keeps aria-invalid in step with the error state, which Summit leaves at "false";
+  - scrolls the first error clear of the Apply bar and puts the cursor in it.
+  It never adds or removes errors itself, so Summit's validation rules stay the single source of truth.
+-->
+<apex:component layout="none">
+    <style>
+        form[id$="SummitEventRegisterForm"] .slds-form-element {
+            scroll-margin-top: 5.5rem;
+        }
+
+        form[id$="SummitEventRegisterForm"] .slds-has-error .slds-form-element__help {
+            color: #ba0517;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        form[id$="SummitEventRegisterForm"] .slds-has-error .slds-input,
+        form[id$="SummitEventRegisterForm"] .slds-has-error .slds-select,
+        form[id$="SummitEventRegisterForm"] .slds-has-error .slds-textarea,
+        form[id$="SummitEventRegisterForm"] .slds-has-error textarea {
+            border: 2px solid #ba0517;
+            box-shadow: none;
+        }
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var form = document.querySelector('form[id$="SummitEventRegisterForm"]');
+            if (!form) {
+                return;
+            }
+
+            var fieldIn = function (wrap) {
+                return wrap.querySelector("input:not([type=hidden]), select, textarea");
+            };
+
+            var sync = function (wrap) {
+                var field = fieldIn(wrap);
+                var help = wrap.querySelector(".slds-form-element__help");
+                var hasError = wrap.classList.contains("slds-has-error");
+                if (field) {
+                    field.setAttribute("aria-invalid", hasError ? "true" : "false");
+                }
+                if (!help) {
+                    return;
+                }
+                if (!help.hasAttribute("data-fiu-default")) {
+                    help.setAttribute("data-fiu-default", help.textContent);
+                }
+                var malformedEmail = hasError && field && field.type === "email" && field.value.trim() !== "";
+                help.textContent = malformedEmail
+                    ? "Enter a valid email address, like name@example.com."
+                    : help.getAttribute("data-fiu-default");
+            };
+
+            new MutationObserver(function (mutations) {
+                mutations.forEach(function (mutation) {
+                    if (mutation.target.classList.contains("slds-form-element")) {
+                        sync(mutation.target);
+                    }
+                });
+            }).observe(form, { subtree: true, attributes: true, attributeFilter: ["class"] });
+
+            // Summit's checkForm runs in the Register link's own onclick, so errors are in place by the time this runs.
+            form.addEventListener("click", function (event) {
+                if (!event.target.closest('a[id*="submitReg"]')) {
+                    return;
+                }
+                setTimeout(function () {
+                    var first = form.querySelector(".slds-form-element.slds-has-error");
+                    if (!first) {
+                        return;
+                    }
+                    first.scrollIntoView({ block: "start" });
+                    var field = fieldIn(first);
+                    if (field) {
+                        field.focus({ preventScroll: true });
+                    }
+                }, 0);
+            });
+        });
+    </script>
+</apex:component>
