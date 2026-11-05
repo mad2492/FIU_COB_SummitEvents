@@ -68,11 +68,6 @@
                 }
                 
               
-    .ohnohoney{
-        opacity: 0;
-        visibility: hidden;
-        display: none;
-    }
  
             </style>
             <script>
@@ -459,9 +454,6 @@
               
       $(document).ready(function() {
             
-            $("form label:contains('Leave_Blank')").parent('div').parent('div').attr('style', 'position:absolute; left:-9999px; top: -9999px; ') ;
-            $("form label:contains('Leave_Blank')").parent('div').find('input').addClass('ohnohoney').attr("autocomplete","new-password").attr("tabindex","-1").attr("aria-autocomplete","none").attr("placeholder","Leave Blank")  ;
-            $("form label:contains('Leave_Blank')").text('Leave Blank');
          
             $('form input[id*=\'mobile\']').filter(':not([required]:visible)').eq(0).parent('div').parent('div').parent('div').next().find('abbr').remove(); //remove unnecessary Required asterisk
             
