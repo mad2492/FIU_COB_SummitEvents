@@ -4,10 +4,10 @@ subtitle: Plain-language design and operating reference for FIU_SummitEvents
 profile: controlled
 owner: FIU Business Salesforce Team
 audience: FIU Business administrators and technical support
-version: "0.2"
+version: "0.3"
 last_updated: November 4, 2026
 status: Draft
-related_metadata: FIU_Events app, FIU_Events_User, FIU_ADA_Notice, FIU_Floating_Register, FIU_RSVP_Core2026, Summit Events Visualforce templates, Fiu* Apex classes and LWCs
+related_metadata: FIU_Events app, FIU_Events_User, FIU_ADA_Notice, FIU_Floating_Register, FIU_RSVP_Core2026, FIU_Site_Error, FIU_SiteErrorController, SPRsvpTemplateService, Summit Events Visualforce templates, Fiu* Apex classes and LWCs
 ---
 
 > Audience: any admin, with or without a developer background. Write in plain language.
@@ -23,7 +23,7 @@ related_metadata: FIU_Events app, FIU_Events_User, FIU_ADA_Notice, FIU_Floating_
 | Repo | https://github.com/mad2492/FIU_COB_SummitEvents |
 | Protected branch | main |
 | Build target org | Partial UAT sandbox, then Production when approved |
-| Last documented commit | ca393cf |
+| Last documented commit | ab9187a |
 | Last updated | November 4, 2026 |
 
 # Plain-language Summary
@@ -86,6 +86,18 @@ or another Instance?"), guide the user through valid setup, and surface readines
 - **Notable behavior:** The wording lives in one place, the `FIU_ADA_Notice` component, and all
   16 templates use it. If the university changes the wording, update that component only. Copy
   the text verbatim from the [FIU Core policy post](https://core.fiu.edu/blog/2026/reasonable-accommodations-policy-for-events.html).
+
+## Public site error page 🟢
+
+- **What it does:** Replaces Salesforce's misleading "Authorization Required" page on the FIU
+  Business Events site with a page that says what went wrong.
+- **Who uses it:** Registrants see it when a page can't open, and event staff use it to know what
+  to fix.
+- **Notable behavior:** If an event is missing setup it names the event and lists what to add:
+  Account, start date, start time, or time zone. A bad link gets "We can't find this event", and
+  anything else gets a general message with details for the organizer. A malformed event link also
+  clears the Summit cookie, because that cookie would otherwise break later event pages in the same
+  browser.
 
 ## FIU Events app & home dashboard ✅
 
@@ -184,7 +196,15 @@ not modified.
 - External assets, loaded live: FIU Core CSS and JS from `digicdn.fiu.edu`, `brand-2026.css` from
   `core.fiu.edu`, the proxima-nova font kit from Adobe Fonts, and `custom.js` and
   `info-sessions-listing.js` from `business.fiu.edu`.
-- In Production but not yet in this repo: `SPRsvpTemplateController`, `SPRsvpTemplateService`,
+- Apex: `SPRsvpTemplateService` (chooses the event for the page and checks its required setup),
+  `FIU_SiteErrorController` and page `FIU_Site_Error` (site error page), and the tests
+  `SPRsvpTemplateServiceTest` and `FIU_SiteErrorControllerTest`. `SPSummitEventsTestDataFactory`
+  gives test events a Campaign so the Create Campaign flow skips them; that flow fails when tests
+  create events.
+- Site settings: `FIU_Business_Events` uses `FIU_Site_Error` as its Authorization Required and
+  generic error page. This setting isn't in the repo because the site's subdomain and users differ
+  by org, so deploy it from a retrieve of the target org.
+- In Production but not yet in this repo: `SPRsvpTemplateController`,
   `SPSummitEventBaseService`, `SPSummitEventsUtils`, and the `sp_rsvp` and `sp_open_enrollment`
   static resources.
 
@@ -295,9 +315,15 @@ vs. full editor) is an open item.
   item.
 - **Reminders at scale** remain a known weak spot in the surrounding FIU architecture
   (offloaded to Pardot/MCAE for large registrant volumes).
-- **Registration banner can show the previous event.** The template reads the event from the
-  Summit cookie rather than the page address, so someone browsing between events can see the
-  last event's title and date until they reload. A first-time visitor has not been tested.
+- **The event's required setup now stops the page.** An instance missing an Account, start date,
+  start time, or time zone shows the error page instead of opening. These gaps already crashed the
+  page before, and no upcoming active event was missing them on November 4, 2026.
+- **Salesforce hides the real error from public pages.** Most failures arrive as "Login is
+  required", so the error page can only be specific about what it checks itself: required setup and
+  bad links. Other failures get the general message. Use a guest-user debug log to find their cause.
+- **Other Apex tests may still depend on the old test factory behavior.** Only
+  `SPRsvpTemplateServiceTest`, `SPRsvpTemplateControllerTest`, and `FIU_SiteErrorControllerTest` were
+  run with the factory change.
 - **Templates are still separate copies.** Only the notice, the floating button, and the layout
   CSS are shared. The head, footer, and custom scripts still live in each of the 16 templates.
 - **Testing templates in UAT:** record types limit which templates an event can use, and
@@ -307,5 +333,6 @@ vs. full editor) is an open item.
 
 | Date | Commit | Summary of change |
 |---|---|---|
+| November 4, 2026 | ab9187a | Fixed the registration banner showing the previously viewed event: the template now uses the event in the page address before the Summit cookies. Added the FIU_Site_Error page, which names missing event setup and bad links instead of showing "Authorization Required". Repaired the shared test factory. Prod deploys 0AfVr000002sfHxKAI and 0AfVr000002sfJZKAY (site settings). |
 | November 4, 2026 | ca393cf | Moved all 16 public registration templates to FIU Core 2026 in Production. Added the required Reasonable Accommodations Policy text as a shared component in Core's Blue - General callout, including 5 templates that had no notice. Added the phone register button, fixed footer links and accessibility gaps, and removed staging references. Corrected the status: the templates are live in Production, and the FIU Events app remains UAT-only. Prod deploys 0AfVr000002sVAXKA2 and 0AfVr000002sVldKAE. |
 | June 4, 2026 | a4b6b77 | Initial SDD created. Documents the in-development Phase 1 FIU Events extension layer: app + home dashboard, event-first launcher and guided create/clone/add-instance wizards, clone risk warnings, readiness engine (policy + async recalc), Event/Instance/Registration browsers on a shared list-shell, instance roster/attendance, CSV export, in-app guide, public file link and plan-lookup helpers. Captures Salesforce surface area, the FIU_Events_User permission set, Summit/reminder/payment/email dependencies, and UAT-only status. |
