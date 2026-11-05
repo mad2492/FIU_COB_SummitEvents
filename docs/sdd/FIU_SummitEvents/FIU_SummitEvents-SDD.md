@@ -4,8 +4,8 @@ subtitle: Plain-language design and operating reference for FIU_SummitEvents
 profile: controlled
 owner: FIU Business Salesforce Team
 audience: FIU Business administrators and technical support
-version: "0.3"
-last_updated: November 4, 2026
+version: "0.4"
+last_updated: November 5, 2026
 status: Draft
 related_metadata: FIU_Events app, FIU_Events_User, FIU_ADA_Notice, FIU_Floating_Register, FIU_RSVP_Core2026, FIU_Site_Error, FIU_SiteErrorController, SPRsvpTemplateService, Summit Events Visualforce templates, Fiu* Apex classes and LWCs
 ---
@@ -23,8 +23,8 @@ related_metadata: FIU_Events app, FIU_Events_User, FIU_ADA_Notice, FIU_Floating_
 | Repo | https://github.com/mad2492/FIU_COB_SummitEvents |
 | Protected branch | main |
 | Build target org | Partial UAT sandbox, then Production when approved |
-| Last documented commit | ab9187a |
-| Last updated | November 4, 2026 |
+| Last documented commit | 5dc0b0a |
+| Last updated | November 5, 2026 |
 
 # Plain-language Summary
 
@@ -76,6 +76,9 @@ or another Instance?"), guide the user through valid setup, and surface readines
 - **Notable behavior:** Each unit keeps its own logo, contact details, and form scripts. On
   phones, a Register button floats at the bottom of open registration pages until the form is
   on screen.
+- **Event text in page scripts:** The templates encode event values before placing them in a
+  script, so a quote mark or tag in a field such as Register Button Text can't break the page or
+  run code. Button text shows as plain text, so HTML typed there appears literally.
 
 ## Reasonable Accommodations Policy notice 🟢
 
@@ -328,11 +331,20 @@ vs. full editor) is an open item.
   CSS are shared. The head, footer, and custom scripts still live in each of the 16 templates.
 - **Testing templates in UAT:** record types limit which templates an event can use, and
   `FIU_Financial_Aid_RSVP_Template` is not in UAT's picklist.
+- **Staff-entered links and text are still trusted.** The online-event button opens the instance's
+  Virtual Meeting Link as entered, and the event disclaimer text displays as HTML on the templates
+  that show it. Script encoding doesn't cover either one, so only trusted staff should edit them.
+  No Production meeting link used `javascript:` on November 5, 2026.
+- **Some footers still don't match the event's unit.** `FIU_GeneralPayment_Template` shows
+  `globiz@fiu.edu` on 4 Chapman events, `FIU_EPE_NonRecruitment` shows Chapman details on 1
+  Executive Education event, and `FIU_RsvpTemplate_NonRecruitment` shows Chapman details on 2
+  Executive Education events (counts from the November 5, 2026 review).
 
 # Revision History
 
 | Date | Commit | Summary of change |
 |---|---|---|
+| November 5, 2026 | 5dc0b0a | Encoded event values placed in template scripts on all 16 templates, after a Codex review found the gap. Pointed Title IX links to titleix.fiu.edu, gave FIU_EPE_OpenEnrollment the Executive Education footer, and kept the Apply Today arrow inside the banner. Prod deploys 0AfVr000002sr2zKAA and 0AfVr000002srJ7KAI. |
 | November 4, 2026 | ab9187a | Fixed the registration banner showing the previously viewed event: the template now uses the event in the page address before the Summit cookies. Added the FIU_Site_Error page, which names missing event setup and bad links instead of showing "Authorization Required". Repaired the shared test factory. Prod deploys 0AfVr000002sfHxKAI and 0AfVr000002sfJZKAY (site settings). |
 | November 4, 2026 | ca393cf | Moved all 16 public registration templates to FIU Core 2026 in Production. Added the required Reasonable Accommodations Policy text as a shared component in Core's Blue - General callout, including 5 templates that had no notice. Added the phone register button, fixed footer links and accessibility gaps, and removed staging references. Corrected the status: the templates are live in Production, and the FIU Events app remains UAT-only. Prod deploys 0AfVr000002sVAXKA2 and 0AfVr000002sVldKAE. |
 | June 4, 2026 | a4b6b77 | Initial SDD created. Documents the in-development Phase 1 FIU Events extension layer: app + home dashboard, event-first launcher and guided create/clone/add-instance wizards, clone risk warnings, readiness engine (policy + async recalc), Event/Instance/Registration browsers on a shared list-shell, instance roster/attendance, CSV export, in-app guide, public file link and plan-lookup helpers. Captures Salesforce surface area, the FIU_Events_User permission set, Summit/reminder/payment/email dependencies, and UAT-only status. |
