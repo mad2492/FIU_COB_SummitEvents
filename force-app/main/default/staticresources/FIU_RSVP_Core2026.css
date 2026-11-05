@@ -163,16 +163,55 @@ form {
 
 @media (min-width: 1025px) {
     .landing-page-intro .medium-8 {
-        width: 56%;
+        width: 60%;
     }
 
     .landing-page-intro .medium-4 {
-        width: 44%;
+        width: 40%;
     }
 
     .landing-page-intro .related-content {
         z-index: 1;
         margin-top: -8rem;
+        padding: 1.5rem;
+    }
+
+    /* Summit already marks short fields as half width; this lays them out that way so the form fits one screen. */
+    #register [id$="divControls"] {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        column-gap: 0.75rem;
+    }
+
+    #register [id$="divControls"] > * {
+        width: 100%;
+    }
+
+    #register [id$="divControls"] > .slds-large-size_3-of-6 {
+        width: calc(50% - 0.375rem);
+    }
+}
+
+/*
+  The panel's z-index would otherwise cover Google's reCAPTCHA badge, which must stay visible.
+  Google sets the badge's position inline, so moving it takes !important. On desktop it goes bottom left,
+  because the right side is where the registration panel and its Register button sit.
+*/
+.grecaptcha-badge {
+    z-index: 2;
+}
+
+@media (min-width: 1025px) {
+    .grecaptcha-badge {
+        right: auto !important;
+        left: 4px !important;
+        width: 70px !important;
+        transition: width 0.3s ease !important;
+    }
+
+    .grecaptcha-badge:hover {
+        width: 256px !important;
     }
 }
 
@@ -208,8 +247,17 @@ form {
 #bodyDiv form input[type="tel"],
 #bodyDiv form select,
 #bodyDiv form textarea {
-    min-height: 2.75rem;
+    min-height: 2.5rem;
     font-size: 1rem;
+}
+
+/* Keeps a typical form close to one screen tall. */
+#register input[type="text"],
+#register input[type="email"],
+#register input[type="tel"],
+#register select,
+#register textarea {
+    margin-bottom: 0.5rem;
 }
 
 /* Open Enrollment body columns set an inline 1024px limit; match Core's row so they line up with the logo and footer. */
