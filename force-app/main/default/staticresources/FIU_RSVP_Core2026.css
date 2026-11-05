@@ -336,6 +336,26 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
     #register [id$="divControls"] > .slds-large-size_3-of-6 {
         width: calc(50% - 0.375rem);
     }
+
+    /*
+      Half-width fields pair up in order, so a run with an odd count leaves its last field alone beside empty
+      space (e.g. First, Last, Email on Exec Ed forms). Runs of one or three are the ones Summit produces;
+      their last field takes the full row.
+    */
+    #register [id$="divControls"] > :not(.slds-large-size_3-of-6) + .slds-large-size_3-of-6:not(:has(+ .slds-large-size_3-of-6)),
+    #register [id$="divControls"] > :not(.slds-large-size_3-of-6) + .slds-large-size_3-of-6 + .slds-large-size_3-of-6 + .slds-large-size_3-of-6:not(:has(+ .slds-large-size_3-of-6)) {
+        width: 100%;
+    }
+
+    /*
+      SLDS gives labels a 12px right margin, which wraps labels like "Company or Organization *" in a half-width
+      column by a couple of pixels. Without it they fit; longer ones break evenly instead of leaving the
+      required asterisk alone on the second line.
+    */
+    #register [id$="divControls"] label {
+        margin-right: 0;
+        text-wrap: balance;
+    }
 }
 
 /*
