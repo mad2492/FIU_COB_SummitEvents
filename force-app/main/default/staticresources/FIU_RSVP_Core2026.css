@@ -225,6 +225,21 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
     color: #081e3f !important;
 }
 
+/*
+  Phones: the logo and two-line contact row end about 81px down, so the headline starts just below them,
+  and long event names get a smaller size so they wrap to fewer lines. Both bring the form up.
+*/
+@media (max-width: 640px) {
+    #banner.banner-flex .content-flex .content {
+        padding: 6rem 0 2rem;
+    }
+
+    #banner h1 {
+        margin-bottom: 1.25rem;
+        font-size: 1.75rem;
+    }
+}
+
 @media (min-width: 641px) {
     #banner .landing-page-logo {
         height: 60px;
@@ -267,6 +282,23 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
     border-radius: 8px;
     background: #ffffff;
     box-shadow: rgba(0, 0, 0, 0.3) 0 3px 6px;
+}
+
+/*
+  Below desktop the columns stack. On the register page the form comes first: the banner already gives the
+  event name and date, and long descriptions otherwise push the form one or two screens down on a phone.
+  Scoped with :has() to the row holding the registration form, so other Summit pages keep their order.
+*/
+@media (max-width: 1024px) {
+    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) > .medium-4 {
+        order: -1;
+        margin-bottom: 1.5rem;
+    }
 }
 
 /* Registration forms vary in length, so the panel stays in normal flow to keep it off the ADA notice. */
