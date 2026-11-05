@@ -17,6 +17,10 @@
             <script>
                 (function (w, d, s, l, i) {
                     w[l] = w[l] || [];
+                    // GTM's conversion rules don't check the hostname, so sandbox test registrations must not load it.
+                    if (d.location.hostname.indexOf(".sandbox.") !== -1) {
+                        return;
+                    }
                     w[l].push({
                         "gtm.start": new Date().getTime(),
                         event: "gtm.js"
@@ -255,6 +259,7 @@
                             </div> -->
                             <div class="small-12 medium-12 columns">
                                 <c:FIU_ADA_Notice />
+                                <c:FIU_Confirmation_Fallback />
                             </div>
                             <div class="columns small-12 medium-12 text-center">
                                 <div id="share-with-friends">

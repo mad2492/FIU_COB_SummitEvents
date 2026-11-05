@@ -19,6 +19,10 @@
       <script>
         (function(w, d, s, l, i) {
           w[l] = w[l] || [];
+          // GTM's conversion rules don't check the hostname, so sandbox test registrations must not load it.
+          if (d.location.hostname.indexOf(".sandbox.") !== -1) {
+            return;
+          }
           w[l].push({
             "gtm.start": new Date().getTime(),
             
@@ -140,6 +144,7 @@
           <div class="slds-grid slds-grid_align-center">
             <div class="slds-col slds-size_1-of-1" style="max-width:1024px;">
               <c:FIU_ADA_Notice />
+              <c:FIU_Confirmation_Fallback />
             </div>
           </div>
         </article>

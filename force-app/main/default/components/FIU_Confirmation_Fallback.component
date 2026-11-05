@@ -1,0 +1,28 @@
+<!--
+  Summit shows the event's Confirmation Title and Description after someone registers. When an event leaves
+  both blank, the page says nothing about the registration going through. This adds a default message in that
+  case only; events with their own wording are left alone.
+-->
+<apex:component layout="none">
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var form = document.querySelector('form[id$="SummitEventsConfirmationForm"]');
+            if (!form) {
+                return;
+            }
+            var hasMessage = Array.prototype.some.call(form.querySelectorAll("h2, p"), function (el) {
+                return el.textContent.trim() !== "";
+            });
+            if (hasMessage) {
+                return;
+            }
+            var message = document.createElement("div");
+            message.className = "slds-col slds-size_1-of-1 slds-p-vertical_x-small fiu-confirmation-fallback";
+            message.innerHTML =
+                '<h2 class="slds-text-heading_large slds-p-vertical_xx-small">You’re registered!</h2>' +
+                '<p class="slds-text-body slds-p-vertical_xx-small">Thank you for registering. ' +
+                "You’ll receive a confirmation email with the event details shortly.</p>";
+            form.insertBefore(message, form.firstChild);
+        });
+    </script>
+</apex:component>
