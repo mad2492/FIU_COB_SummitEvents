@@ -277,21 +277,6 @@
                     </div>
                 </article>
 
-                <article aria-label="Accreditation">
-                    <div class="fiu-background-white content-block fiu-accreditation">
-                        <div class="row">
-                            <div class="small-12 columns">
-                                <h2>Accreditation</h2>
-                                <img
-                                    alt="AACSB Accredited"
-                                    src="https://business.fiu.edu/fiubusiness/_assets/images/logo-aacsb.png"
-                                    width="110"
-                                    height="153"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </article>
             </main>
 
             <footer>

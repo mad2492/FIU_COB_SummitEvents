@@ -303,18 +303,6 @@ form {
     margin-top: 1.5rem;
 }
 
-.fiu-accreditation h2 {
-    margin-top: 0;
-    color: #081e3f;
-    text-align: center;
-}
-
-.fiu-accreditation img {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-}
-
 /* Mobile register button: Core's #floating-button, phones only */
 #floating-button[hidden] {
     display: none;
