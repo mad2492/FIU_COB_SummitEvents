@@ -69,9 +69,9 @@
             <script>
                 window.dataInfo = [];
                 dataInfo.push({
-                    registerLabel: "{!registerButtonLabel}",
-                    calendarUrl: "{!calendarUrl}",
-                    meetUrl: "{!meetUrl}",
+                    registerLabel: "{!JSENCODE(HTMLENCODE(registerButtonLabel))}",
+                    calendarUrl: "{!JSENCODE(calendarUrl)}",
+                    meetUrl: "{!JSENCODE(meetUrl)}",
                     online: "{!onlineEvent}"
                 });
             </script>
@@ -316,7 +316,7 @@
                                 >Nondiscrimination</a
                             >
                             <a
-                                href="https://ocr.fiu.edu/title-ix/"
+                                href="https://titleix.fiu.edu/title-ix/"
                                 rel="noopener"
                                 target="_blank"
                                 >Title IX</a
@@ -440,12 +440,12 @@
                 $Lightning.createComponent(
                     "c:facebookRegistrationComplete",
                     {
-                        registrationId: "{!registrationId}",
-                        fbc: "{!fbc}",
-                        fbp: "{!fbp}",
-                        userAgent: "{!userAgent}",
-                        clientIpAddress: "{!clientIp}",
-                        relativePath: "{!relativePath}",
+                        registrationId: "{!JSENCODE(registrationId)}",
+                        fbc: "{!JSENCODE(fbc)}",
+                        fbp: "{!JSENCODE(fbp)}",
+                        userAgent: "{!JSENCODE(userAgent)}",
+                        clientIpAddress: "{!JSENCODE(clientIp)}",
+                        relativePath: "{!JSENCODE(relativePath)}",
                         gclId: gcId?.value
                     },
                     "compContainer",

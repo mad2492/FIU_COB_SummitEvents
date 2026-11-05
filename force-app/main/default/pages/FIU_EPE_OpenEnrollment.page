@@ -69,9 +69,9 @@
             <script>
                 window.dataInfo = [];
                 dataInfo.push({
-                    registerLabel: "{!registerButtonLabel}",
-                    calendarUrl: "{!calendarUrl}",
-                    meetUrl: "{!meetUrl}",
+                    registerLabel: "{!JSENCODE(HTMLENCODE(registerButtonLabel))}",
+                    calendarUrl: "{!JSENCODE(calendarUrl)}",
+                    meetUrl: "{!JSENCODE(meetUrl)}",
                     online: "{!onlineEvent}"
                 });
             </script>
@@ -289,7 +289,7 @@
                 <div class="row footer-flex">
                     <div class="columns medium-5">
                         <a
-                            href="https://business.fiu.edu/"
+                            href="https://business.fiu.edu/academics/executive-education/"
                             rel="noopener"
                             target="_blank"
                             ><img
@@ -301,9 +301,9 @@
                         /></a>
                         <address>
                             Modesto A. Maidique Campus <br />11200 S.W. 8th
-                            Street, CBC 200 <br />Miami, Florida 33199-0001
-                            <br />305.348.0148 <br />
-                            <a href="mailto:chapman@fiu.edu">chapman@fiu.edu</a>
+                            Street, MANGO 360<br />Miami, Florida 33199-0001
+                            <br />305.348.4217 <br />
+                            <a href="mailto:fiuexeced@fiu.edu">fiuexeced@fiu.edu</a>
                         </address>
                     </div>
                     <div class="columns medium-7 links-and-social">
@@ -315,7 +315,7 @@
                                 >Nondiscrimination</a
                             >
                             <a
-                                href="https://ocr.fiu.edu/title-ix/"
+                                href="https://titleix.fiu.edu/title-ix/"
                                 rel="noopener"
                                 target="_blank"
                                 >Title IX</a
@@ -439,12 +439,12 @@
                 $Lightning.createComponent(
                     "c:facebookRegistrationComplete",
                     {
-                        registrationId: "{!registrationId}",
-                        fbc: "{!fbc}",
-                        fbp: "{!fbp}",
-                        userAgent: "{!userAgent}",
-                        clientIpAddress: "{!clientIp}",
-                        relativePath: "{!relativePath}",
+                        registrationId: "{!JSENCODE(registrationId)}",
+                        fbc: "{!JSENCODE(fbc)}",
+                        fbp: "{!JSENCODE(fbp)}",
+                        userAgent: "{!JSENCODE(userAgent)}",
+                        clientIpAddress: "{!JSENCODE(clientIp)}",
+                        relativePath: "{!JSENCODE(relativePath)}",
                         gclId: gcId?.value
                     },
                     "compContainer",

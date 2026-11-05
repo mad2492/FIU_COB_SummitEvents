@@ -60,7 +60,9 @@ form {
     top: 2rem;
     right: 0;
     margin: 0;
-    max-width: 150px;
+    /* Room for Core's cta-link-primary arrow, which hangs past the end of the link. */
+    padding-right: 1.5rem;
+    max-width: 174px;
     color: #ffffff;
     font-size: 1rem;
     text-align: center;

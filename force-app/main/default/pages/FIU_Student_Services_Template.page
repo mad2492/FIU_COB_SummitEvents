@@ -64,9 +64,9 @@
       <script>
         window.dataInfo = [];
         dataInfo.push({
-          registerLabel: "{!registerButtonLabel}",
-          calendarUrl: "{!calendarUrl}",
-          meetUrl: "{!meetUrl}",
+          registerLabel: "{!JSENCODE(HTMLENCODE(registerButtonLabel))}",
+          calendarUrl: "{!JSENCODE(calendarUrl)}",
+          meetUrl: "{!JSENCODE(meetUrl)}",
           online: "{!onlineEvent}"
         });
       </script>
@@ -157,7 +157,7 @@
           <div class="columns medium-7 links-and-social">
             <div class="col links">
               <a href="https://titleix.fiu.edu/civil-rights/harassment-and-discrimination/" rel="noopener" target="_blank">Nondiscrimination</a>
-              <a href="https://ocr.fiu.edu/title-ix/" rel="noopener" target="_blank">Title IX</a>
+              <a href="https://titleix.fiu.edu/title-ix/" rel="noopener" target="_blank">Title IX</a>
               <a href="https://report.fiu.edu/" rel="noopener" target="_blank">Report Discrimination or Harassment</a>
               <a href="https://titleix.fiu.edu/ada-and-accessibility/" rel="noopener" target="_blank">Accessibility</a>
               <a href="https://compliance.fiu.edu/privacy/" rel="noopener" target="_blank">Privacy Policy</a>
@@ -214,12 +214,12 @@
             
           var gcId = JSON.parse(localStorage.getItem('gclid')); $Lightning.use("c:facebookRegistrationCompleteApp", function() {
             $Lightning.createComponent("c:facebookRegistrationComplete", {
-              registrationId: "{!registrationId}",
-              fbc: "{!fbc}",
-              fbp: "{!fbp}",
-              userAgent: "{!userAgent}",
-              clientIpAddress: "{!clientIp}",
-              relativePath: "{!relativePath}",
+              registrationId: "{!JSENCODE(registrationId)}",
+              fbc: "{!JSENCODE(fbc)}",
+              fbp: "{!JSENCODE(fbp)}",
+              userAgent: "{!JSENCODE(userAgent)}",
+              clientIpAddress: "{!JSENCODE(clientIp)}",
+              relativePath: "{!JSENCODE(relativePath)}",
               gclId: gcId?.value
             }, "compContainer", function(cmp) {
               console.log("c:VFPageApp loaded successfully in VF page");
