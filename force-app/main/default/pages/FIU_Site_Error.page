@@ -1,0 +1,154 @@
+<!--
+  Error page for the FIU Business Events public site. Replaces Salesforce's stock "Authorization
+  Required" page, which appears for page crashes as well as real access problems.
+  FIU_SiteErrorController looks up the event from the link to explain what is wrong, and never throws.
+-->
+<apex:page
+    id="FIU_Site_Error"
+    controller="FIU_SiteErrorController"
+    sidebar="false"
+    showHeader="false"
+    standardStylesheets="false"
+    cache="false"
+    applyHtmlTag="false"
+    title="We couldn't load this page | FIU Business"
+>
+    <html lang="en-US">
+        <head>
+            <meta charset="utf-8" />
+            <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+            <meta content="noindex" name="robots" />
+            <title>We couldn't load this page | FIU Business</title>
+            <link href="https://digicdn.fiu.edu/core/_assets/css/fiu-custom-foundation.css" rel="stylesheet" />
+            <link href="https://digicdn.fiu.edu/v2/assets/css/styles.css" rel="stylesheet" />
+            <link href="https://digicdn.fiu.edu/core/_assets/css/styles.css?v=1.48.1" rel="stylesheet" />
+            <link href="https://use.typekit.net/erk8tyy.css" rel="stylesheet" />
+            <link href="https://core.fiu.edu/_assets/css/brand-2026.css" rel="stylesheet" />
+            <style>
+                .fiu-error-band {
+                    padding: 1.5rem 0;
+                    background-color: #081e3f;
+                }
+
+                .fiu-error-logo {
+                    display: block;
+                    width: auto;
+                    height: 60px;
+                }
+
+                .fiu-error-details summary {
+                    cursor: pointer;
+                    font-weight: 700;
+                }
+
+                .fiu-error-details dt {
+                    margin-top: 1rem;
+                    font-weight: 700;
+                }
+
+                .fiu-error-details dd {
+                    margin: 0;
+                    overflow-wrap: anywhere;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="fiu-error-band">
+                <div class="row">
+                    <div class="columns">
+                        <img
+                            alt="FIU Business - Florida International University"
+                            class="fiu-error-logo"
+                            src="https://business.fiu.edu/_assets/images/fiu-business-logo-text.svg"
+                        />
+                    </div>
+                </div>
+            </div>
+            <main id="main-content">
+                <div class="fiu-background-white content-block">
+                    <div class="row">
+                        <div class="columns">
+                            <apex:outputPanel layout="none" rendered="{!hasMissingSetup}">
+                                <h1>This event isn't ready for registration</h1>
+                                <p>
+                                    <apex:outputText value="{!eventName}" style="font-weight: 700;" />
+                                    is missing information it needs before this page can open.
+                                    You haven't done anything wrong. Please contact the event organizer.
+                                </p>
+                                <div class="panel callout orange-callout">
+                                    <strong>Event staff: add the following in Salesforce, then reload this page.</strong>
+                                    <ul>
+                                        <apex:repeat value="{!missingSetup}" var="missingItem">
+                                            <li><apex:outputText value="{!missingItem}" /></li>
+                                        </apex:repeat>
+                                    </ul>
+                                </div>
+                            </apex:outputPanel>
+                            <apex:outputPanel layout="none" rendered="{!hasBadEventLink}">
+                                <h1>We can't find this event</h1>
+                                <p>
+                                    This link is incomplete, out of date, or points to an event that no longer exists.
+                                    You haven't done anything wrong. Please find the event on the
+                                    <a href="https://business.fiu.edu/">FIU Business website</a>
+                                    or ask the event organizer for a new link.
+                                </p>
+                            </apex:outputPanel>
+                            <apex:outputPanel layout="none" rendered="{!NOT(hasMissingSetup) && NOT(hasBadEventLink)}">
+                                <h1>We couldn't load this page</h1>
+                                <p>
+                                    Something went wrong on our end, or this page may not be public.
+                                    You haven't done anything wrong, and you don't need to log in.
+                                </p>
+                                <p>
+                                    Please try the link again. If it still doesn't work, find the event on the
+                                    <a href="https://business.fiu.edu/">FIU Business website</a>
+                                    or contact the event organizer, and include the details below.
+                                </p>
+                            <div class="panel callout gold-callout fiu-error-details">
+                                <details open="open">
+                                    <summary>Details for the event organizer</summary>
+                                    <!--
+                                      Salesforce reports page crashes, bad event links, and non-public pages all as
+                                      "Login is required", so that text is replaced with what it actually means.
+                                    -->
+                                    <dl>
+                                        <dt>What happened</dt>
+                                        <dd>
+                                            <apex:outputText rendered="{!CONTAINS($Site.ErrorMessage, 'Login is required')}" value="Salesforce could not open this page for public visitors. The usual causes are a bad or outdated event link, an error while loading the page, or a page that isn't public." />
+                                            <apex:outputText rendered="{!NOT(CONTAINS($Site.ErrorMessage, 'Login is required'))}" value="{!$Site.ErrorMessage}" />
+                                        </dd>
+                                        <apex:outputPanel layout="none" rendered="{!NOT(CONTAINS($Site.ErrorMessage, 'Login is required'))}">
+                                            <dt>Description</dt>
+                                            <dd><apex:outputText value="{!$Site.ErrorDescription}" /></dd>
+                                        </apex:outputPanel>
+                                        <dt>Page</dt>
+                                        <dd><apex:outputText value="{!$Site.OriginalUrl}" /></dd>
+                                    </dl>
+                                </details>
+                            </div>
+                            </apex:outputPanel>
+                        </div>
+                    </div>
+                </div>
+            </main>
+            <script>
+                /*
+                  A malformed instanceID gets stored in the Summit cookie, and every later event page then fails
+                  in that browser. Clear the cookie for malformed links only: other errors can happen partway
+                  through a registration, and the cookie holds that registration.
+                */
+                (function () {
+                    var match = window.location.search.match(/[?&]instanceID=([^&]*)/i);
+                    if (!match || /^[a-zA-Z0-9]{15}([a-zA-Z0-9]{3})?$/.test(match[1])) {
+                        return;
+                    }
+                    ["apex__SummitEvents", "apex__SummitEvents_Copy"].forEach(function (name) {
+                        ["/", "/fiubusiness", "/fiubusiness/"].forEach(function (path) {
+                            document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=" + path;
+                        });
+                    });
+                })();
+            </script>
+        </body>
+    </html>
+</apex:page>
