@@ -8,10 +8,12 @@
 -->
 <apex:component layout="none">
     <apex:attribute name="applyUrl" type="String" required="true" description="Where the Apply link goes." />
+    <apex:attribute name="applyLabel" type="String" default="Apply Today"
+        description="The link's text. Exec Ed has no application, so its templates pass Explore Programs." />
     <div id="fiu-apply-bar" hidden="hidden">
         <span class="fiu-apply-bar__text">Ready to take the next step?</span>
         <a class="fiu-apply-bar__register" href="#main-content" hidden="hidden">Register</a>
-        <a class="fiu-apply-bar__apply" href="{!applyUrl}" rel="noopener" target="_blank">Apply Today</a>
+        <a class="fiu-apply-bar__apply" href="{!applyUrl}" rel="noopener" target="_blank">{!applyLabel}</a>
     </div>
     <script>
         document.addEventListener("DOMContentLoaded", function () {

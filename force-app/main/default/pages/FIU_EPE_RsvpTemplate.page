@@ -185,6 +185,21 @@
                                             class="landing-page-logo"
                                             src="{!logoImageUrl}"
                                         />
+                                        <p class="contact-info">
+                                            <span
+                                                aria-hidden="true"
+                                                class="fa-solid fa-phone"
+                                                >&nbsp;</span
+                                            >
+                                            <a href="tel:+13053484217">305.348.4217</a> |
+                                            <a
+                                                class="cta-link-primary"
+                                                href="https://business.fiu.edu/academics/executive-education/"
+                                                rel="noopener"
+                                                target="_blank"
+                                                >Explore Programs</a
+                                            >
+                                        </p>
                                         <p class="pretitle">
                                             {!startEventWeekDay},
                                             {!startEventMonthDay},
@@ -397,7 +412,10 @@
                 src="{!URLFOR($Resource.sp_rsvp, '/js/rsvp.js')}"
                 type="text/javascript"
             ></script>
-            <c:FIU_Floating_Register />
+            <c:FIU_Apply_Bar
+                applyUrl="https://business.fiu.edu/academics/executive-education/"
+                applyLabel="Explore Programs"
+            />
             <c:FIU_ReCaptcha_Notice />
         </body>
         <script

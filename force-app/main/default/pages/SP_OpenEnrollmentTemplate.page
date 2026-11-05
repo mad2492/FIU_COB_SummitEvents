@@ -194,10 +194,10 @@
                                                 class="fa-solid fa-phone"
                                                 >&nbsp;</span
                                             >
-                                            305.348.0148 |
+                                            <a href="tel:+13053480148">305.348.0148</a> |
                                             <a
                                                 class="cta-link-primary"
-                                                href="https://business.fiu.edu/apply-now/index.cfm"
+                                                href="https://business.fiu.edu/apply/index.html#2"
                                                 rel="noopener"
                                                 target="_blank"
                                                 >Apply Today</a
@@ -379,7 +379,7 @@
                 src="{!URLFOR($Resource.sp_open_enrollment, '/js/openEnrollment.js')}"
                 type="text/javascript"
             ></script>
-            <c:FIU_Floating_Register />
+            <c:FIU_Apply_Bar applyUrl="https://business.fiu.edu/apply/index.html#2" />
         </body>
         <script
             src="https://digicdn.fiu.edu/core/_assets/js/core.js?v1.47.0"
