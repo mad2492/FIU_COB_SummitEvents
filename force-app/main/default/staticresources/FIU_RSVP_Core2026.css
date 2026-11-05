@@ -6,8 +6,121 @@
   Summit Events form. Fonts, type scale, grid, and buttons come from Core.
 */
 
+/* Leaves room above the form for the Apply bar. */
 form {
-    scroll-margin-top: 2.5rem;
+    scroll-margin-top: 4.5rem;
+}
+
+/* Apply bar: FIU_Apply_Bar component */
+#fiu-apply-bar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+    background: #081e3f;
+    box-shadow: rgba(0, 0, 0, 0.3) 0 2px 4px;
+    color: #ffffff;
+}
+
+#fiu-apply-bar[hidden] {
+    display: none;
+}
+
+.fiu-apply-bar__text {
+    font-size: 1rem;
+}
+
+#fiu-apply-bar a {
+    padding: 0.5rem 1.25rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+}
+
+#fiu-apply-bar a:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+}
+
+/* Apply is the page's main goal, so it's the bar's only gold button. Solid colors keep page content from showing through. */
+#fiu-apply-bar .fiu-apply-bar__apply {
+    background: #ffcc00;
+    color: #081e3f;
+}
+
+#fiu-apply-bar .fiu-apply-bar__apply:hover,
+#fiu-apply-bar .fiu-apply-bar__apply:focus {
+    background: #e6b800;
+}
+
+#fiu-apply-bar .fiu-apply-bar__register {
+    border-color: #ffffff;
+    background: #081e3f;
+    color: #ffffff;
+}
+
+#fiu-apply-bar .fiu-apply-bar__register:hover,
+#fiu-apply-bar .fiu-apply-bar__register:focus {
+    background: #0c2b5a;
+}
+
+#fiu-apply-bar .fiu-apply-bar__register[hidden] {
+    display: none;
+}
+
+/* Desktop has the form beside the details, so only phones need Register in the bar. */
+@media (min-width: 641px) {
+    #fiu-apply-bar .fiu-apply-bar__register {
+        display: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .fiu-apply-bar__text {
+        display: none;
+    }
+
+    /* Bottom of the screen, in thumb reach. */
+    #fiu-apply-bar {
+        top: auto;
+        bottom: 0;
+        padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+        box-shadow: rgba(0, 0, 0, 0.3) 0 -2px 4px;
+        gap: 0.75rem;
+    }
+
+    #fiu-apply-bar a {
+        flex: 1 1 0;
+    }
+
+    /* Keeps the bar from covering the end of the footer. */
+    .fiu-has-apply-bar footer {
+        padding-bottom: 4.5rem;
+    }
+}
+
+/* reCAPTCHA line: FIU_ReCaptcha_Notice component */
+.fiu-recaptcha-notice {
+    margin: 0.75rem 0 0;
+    color: #555555;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+}
+
+.fiu-recaptcha-notice a {
+    text-decoration: underline;
+}
+
+html.fiu-recaptcha-disclosed .grecaptcha-badge {
+    visibility: hidden;
 }
 
 /*

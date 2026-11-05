@@ -1,0 +1,26 @@
+<!--
+  Google's required reCAPTCHA wording, shown under the registration form in place of the floating badge.
+  Runs only on events that load reCAPTCHA. The stylesheet hides the badge only after this adds its class,
+  so if the line can't be placed, the badge stays visible and the page still meets Google's terms.
+-->
+<apex:component layout="none">
+    <script>
+        window.addEventListener("load", function () {
+            if (!document.querySelector('script[src*="recaptcha"]')) {
+                return;
+            }
+            var panel = document.getElementById("register");
+            if (!panel) {
+                return;
+            }
+            var notice = document.createElement("p");
+            notice.className = "fiu-recaptcha-notice";
+            notice.innerHTML =
+                "This site is protected by reCAPTCHA and the Google " +
+                '<a href="https://policies.google.com/privacy" rel="noopener" target="_blank">Privacy Policy</a> and ' +
+                '<a href="https://policies.google.com/terms" rel="noopener" target="_blank">Terms of Service</a> apply.';
+            panel.appendChild(notice);
+            document.documentElement.classList.add("fiu-recaptcha-disclosed");
+        });
+    </script>
+</apex:component>

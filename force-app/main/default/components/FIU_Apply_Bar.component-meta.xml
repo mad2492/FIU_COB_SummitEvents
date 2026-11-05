@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ApexComponent xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <label>FIU Apply Bar</label>
+    <description>Keeps the Apply link on screen after the banner scrolls out of view.</description>
+</ApexComponent>
