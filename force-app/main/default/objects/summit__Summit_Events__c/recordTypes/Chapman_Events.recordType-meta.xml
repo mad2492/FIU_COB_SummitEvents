@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RecordType xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Chapman_Events</fullName>
+    <active>true</active>
+    <description>Chapman Grad School Events Rec Type</description>
+    <label>Chapman Events</label>
+    <picklistValues>
+        <picklist>summit__Template__c</picklist>
+        <values>
+            <fullName>FIU_Chapman_Payment_Template</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>FIU_Financial_Aid_RSVP_Template</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>FIU_RsvpTemplate_NonRecruitment</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>FIU_Student_Services_Template</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>SP_RsvpTemplate</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+</RecordType>
