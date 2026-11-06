@@ -1,7 +1,7 @@
 <!--
   Makes the registration form's errors visible and usable. Summit's register.js already marks a field with
   .slds-has-error and shows its help text when Register is clicked; this component works alongside it:
-  - colors the message and border red, so an error reads as an error;
+  - colors the message red (the red border is in FIU_RSVP_Core2026.css), so an error reads as an error;
   - says "Enter a valid email address" when an email is filled in but malformed, instead of "This field is required";
   - keeps aria-invalid in step with the error state, which Summit leaves at "false";
   - scrolls the first error clear of the Apply bar and puts the cursor in it.
@@ -19,21 +19,10 @@
             margin-top: 0.25rem;
         }
 
-        form[id$="SummitEventRegisterForm"] .slds-has-error .slds-input,
-        form[id$="SummitEventRegisterForm"] .slds-has-error .slds-select,
-        form[id$="SummitEventRegisterForm"] .slds-has-error .slds-textarea,
-        form[id$="SummitEventRegisterForm"] .slds-has-error textarea {
-            border: 2px solid #ba0517;
-            box-shadow: none;
-        }
-
-        /* The red border alone doesn't show which field has focus, so focused fields with errors get an outline too. */
-        form[id$="SummitEventRegisterForm"] .slds-has-error .slds-input:focus-visible,
-        form[id$="SummitEventRegisterForm"] .slds-has-error .slds-select:focus-visible,
-        form[id$="SummitEventRegisterForm"] .slds-has-error textarea:focus-visible {
-            outline: 2px solid #081e3f;
-            outline-offset: 2px;
-        }
+        /*
+          The red border and the focus outlines live in FIU_RSVP_Core2026.css: this style block loads before Core's
+          stylesheets, and a Core rule there beat the border here.
+        */
     </style>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -84,22 +73,34 @@
             // Errors already on the page at load (e.g. after a server round trip) get the same treatment.
             Array.prototype.forEach.call(form.querySelectorAll(".slds-form-element.slds-has-error"), sync);
 
-            // Summit's checkForm runs in the Register link's own onclick, so errors are in place by the time this runs.
+            var focusFirstError = function () {
+                var first = form.querySelector(".slds-form-element.slds-has-error");
+                if (!first) {
+                    return false;
+                }
+                first.scrollIntoView({ block: "start" });
+                var field = fieldIn(first);
+                if (field) {
+                    field.focus({ preventScroll: true });
+                }
+                return true;
+            };
+
+            // Register is Summit's link (submitReg1) or, on reCAPTCHA events, a separate button (submitReg2). The link
+            // checks the form in its own onclick; the button may check only after reCAPTCHA answers, so look again
+            // briefly until an error shows up.
             form.addEventListener("click", function (event) {
-                if (!event.target.closest('a[id*="submitReg"]')) {
+                if (!event.target.closest('a[id*="submitReg"], button[id*="submitReg"]')) {
                     return;
                 }
-                setTimeout(function () {
-                    var first = form.querySelector(".slds-form-element.slds-has-error");
-                    if (!first) {
-                        return;
-                    }
-                    first.scrollIntoView({ block: "start" });
-                    var field = fieldIn(first);
-                    if (field) {
-                        field.focus({ preventScroll: true });
-                    }
-                }, 0);
+                [0, 150, 500].forEach(function (delay, i, delays) {
+                    setTimeout(function () {
+                        if (delays.done) {
+                            return;
+                        }
+                        delays.done = focusFirstError();
+                    }, delay);
+                });
             });
         });
     </script>

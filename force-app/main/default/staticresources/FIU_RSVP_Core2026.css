@@ -439,6 +439,36 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
     font-size: 1rem;
 }
 
+/*
+  Core's base styles and Salesforce's Lightning stylesheet both remove the focus ring from text fields (selects and
+  buttons keep Core's), so keyboard users couldn't see where they were (WCAG 2.4.7).
+*/
+#register input:focus-visible,
+#register select:focus-visible,
+#register textarea:focus-visible,
+#bodyDiv form input:focus-visible,
+#bodyDiv form select:focus-visible,
+#bodyDiv form textarea:focus-visible {
+    outline: 2px solid #081e3f;
+    outline-offset: 2px;
+}
+
+/* Error text is smaller than body text; #register's 1rem rule above would otherwise win over FIU_Form_Errors. */
+#register .slds-has-error .slds-form-element__help {
+    font-size: 0.875rem;
+}
+
+/* Fields FIU_Form_Errors' script and Summit mark with an error get a red border, so an error reads as an error. */
+#register .slds-has-error input,
+#register .slds-has-error select,
+#register .slds-has-error textarea,
+#bodyDiv form .slds-has-error input,
+#bodyDiv form .slds-has-error select,
+#bodyDiv form .slds-has-error textarea {
+    border: 2px solid #ba0517;
+    box-shadow: none;
+}
+
 /* Keeps a typical form close to one screen tall. */
 #register input[type="text"],
 #register input[type="email"],
