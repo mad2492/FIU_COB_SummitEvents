@@ -269,9 +269,18 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
     }
 }
 
+/*
+  The banner fits its content on desktop, and the registration card starts below it. Core's 450px minimum and a
+  card rising into the banner left a band of photo the card covered, along with the corner of Core's energy line.
+*/
 @media (min-width: 1025px) {
+    /* Core sets the 450px minimum with !important, so only !important removes it. */
+    #banner.banner-flex .content-flex {
+        min-height: 0 !important;
+    }
+
     #banner.banner-flex .content-flex .content {
-        padding: 8.5rem 0 8rem;
+        padding: 7rem 0 2.5rem;
         max-width: 52rem;
     }
 }
@@ -331,8 +340,7 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
     }
 
     .landing-page-intro .related-content {
-        z-index: 1;
-        margin-top: -8rem;
+        margin-top: 0;
         padding: 1.5rem;
     }
 
