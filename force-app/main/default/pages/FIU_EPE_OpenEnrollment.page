@@ -201,7 +201,7 @@
                                                 href="https://business.fiu.edu/academics/executive-education/"
                                                 rel="noopener"
                                                 target="_blank"
-                                                >Explore Programs</a
+                                                >Explore Programs<span class="show-for-sr"> (opens in a new tab)</span></a
                                             >
                                         </p>
                                         <p class="pretitle">

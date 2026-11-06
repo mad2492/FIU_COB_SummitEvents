@@ -290,6 +290,17 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
     padding-bottom: 1.5rem;
 }
 
+/*
+  Core's brand stylesheet shortens this block's top padding to 2rem only when it is the first child of its article.
+  Open Enrollment templates put a hidden #eventInstanceDescriptionDiv ahead of it, so the card sat 72px below the
+  banner instead of the 32px it gets on the other templates.
+*/
+@media (min-width: 1025px) {
+    #main-content #eventInstanceDescriptionDiv + .content-block.landing-page-intro {
+        padding-top: 2rem;
+    }
+}
+
 .landing-page-intro .medium-8,
 .landing-page-intro .medium-4 {
     width: 100%;
@@ -322,6 +333,24 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
     .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) > .medium-4 {
         order: -1;
         margin-bottom: 1.5rem;
+    }
+}
+
+/*
+  Phones: the block's top padding, the column's top margin, and the card's own margin stacked up to about 72px of
+  white between the banner and the form. One 1.5rem gap keeps the card clear of the banner and brings the form up.
+  Two selectors because Core's first-child padding rule outranks a plain class selector; the second covers Open
+  Enrollment, where the block follows #eventInstanceDescriptionDiv.
+*/
+@media (max-width: 640px) {
+    #main-content > article > .content-block.landing-page-intro:first-child,
+    #main-content #eventInstanceDescriptionDiv + .content-block.landing-page-intro {
+        padding-top: 1.5rem;
+    }
+
+    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) > .medium-4,
+    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) > .medium-4 > .related-content {
+        margin-top: 0;
     }
 }
 
@@ -382,6 +411,35 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
 }
 
 /*
+  Open Enrollment descriptions can run several thousand pixels, and the Apply bar drops its Register button on
+  desktop, so the card stays in view while the details scroll. The row becomes a flex row so the form's column runs
+  the full height of the details, which is the distance the card can travel; it stops at the end of the row, above
+  the ADA notice. top clears the 4.5rem Apply bar. Only on screens tall enough for a typical form: shorter screens
+  keep the card in normal flow, and a form taller than the screen scrolls inside the card instead of being cut off.
+  Where the details are shorter than the card, as on most Graduate and Exec Ed events, the card has nowhere to move.
+*/
+@media (min-width: 1025px) and (min-height: 48rem) {
+    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) {
+        display: flex;
+    }
+
+    /* Foundation's clearfix pseudo-elements would become empty flex items. */
+    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"])::before,
+    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"])::after {
+        display: none;
+    }
+
+    /* The #register line outranks the overflow: visible rule for rsvp.js's panel further down. */
+    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) > .medium-4 > .related-content,
+    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) > .medium-4 > #register.scrollable {
+        position: sticky;
+        top: 5.5rem;
+        max-height: calc(100vh - 6.5rem);
+        overflow-y: auto;
+    }
+}
+
+/*
   The panel's z-index would otherwise cover Google's reCAPTCHA badge, which must stay visible.
   Google sets the badge's position inline, so moving it takes !important. On desktop it goes bottom left,
   because the right side is where the registration panel and its Register button sit.
@@ -406,9 +464,16 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
 /* Summit Events form */
 #register h2 {
     margin: 0 0 1.5rem;
-    color: #081e3f;
+    /* Core sets this heading's color to #333 with !important, so only !important makes it navy. */
+    color: #081e3f !important;
     font-size: 1.875rem;
     text-transform: none;
+}
+
+/* Summit's "Additional Information" heading outranks the card's own heading; the RSVP templates hide it with jQuery. */
+#register [id$=":addInfo"] h3,
+#bodyDiv form [id$=":addInfo"] h3 {
+    display: none;
 }
 
 #register p,
@@ -423,6 +488,35 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
 #bodyDiv form .slds-form-element__label {
     color: #222222;
     font-size: 1rem;
+}
+
+/*
+  Required-field asterisks are <abbr title="required">. The browser's dotted underline made a one-character mark look
+  like a link; the title stays for hover and assistive technology.
+*/
+#register abbr[title],
+#bodyDiv form abbr[title] {
+    border-bottom: 0;
+    text-decoration: none;
+}
+
+/*
+  Summit's text-message checkbox: a 1.25rem box is an easier target than the default, the gap keeps it off the label,
+  and the 0.125rem top margin centers it on the label's first 1.5rem line when the label wraps.
+*/
+#register .slds-checkbox,
+#bodyDiv form .slds-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+#register .slds-checkbox input[type="checkbox"],
+#bodyDiv form .slds-checkbox input[type="checkbox"] {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin: 0.125rem 0 0;
 }
 
 #register input[type="text"],

@@ -200,7 +200,7 @@
                                                 href="https://business.fiu.edu/apply/index.html#2"
                                                 rel="noopener"
                                                 target="_blank"
-                                                >Apply Today</a
+                                                >Apply Today<span class="show-for-sr"> (opens in a new tab)</span></a
                                             >
                                         </p>
                                         <p class="pretitle">

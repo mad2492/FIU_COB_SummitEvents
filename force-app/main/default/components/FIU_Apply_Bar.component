@@ -14,7 +14,7 @@
     <div id="fiu-apply-bar" hidden="hidden">
         <span class="fiu-apply-bar__text">Ready to take the next step?</span>
         <a class="fiu-apply-bar__register" href="#main-content" hidden="hidden">Register</a>
-        <a class="fiu-apply-bar__apply" href="{!applyUrl}" rel="noopener" target="_blank">{!applyLabel}</a>
+        <a class="fiu-apply-bar__apply" href="{!applyUrl}" rel="noopener" target="_blank">{!applyLabel}<span class="show-for-sr"> (opens in a new tab)</span></a>
     </div>
     <script>
         document.addEventListener("DOMContentLoaded", function () {

@@ -211,7 +211,7 @@
                                                 href="mailto:sales@fiu.edu"
                                                 rel="noopener"
                                                 target="_blank"
-                                                >Contact Us!</a
+                                                >Contact Us!<span class="show-for-sr"> (opens in a new tab)</span></a
                                             >
                                         </p>
                                         <p class="pretitle">
