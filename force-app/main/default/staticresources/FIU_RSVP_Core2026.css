@@ -242,7 +242,7 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
 
 /*
   Phones: the logo and two-line contact row end about 81px down, so the headline starts just below them,
-  and long event names get a smaller size so they wrap to fewer lines. Both bring the form up.
+  and long event names get a smaller size so they wrap to fewer lines. Both bring the page content up.
 */
 @media (max-width: 640px) {
     #banner.banner-flex .content-flex .content {
@@ -322,28 +322,27 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
 }
 
 /*
-  Below desktop the columns stack. On the register page the form comes first: the banner already gives the
-  event name and date, and long descriptions otherwise push the form one or two screens down on a phone.
-  Scoped with :has() to the row holding the registration form, so other Summit pages keep their order.
+  Below desktop the columns stack in source order: the event description, then the form card. An earlier rule
+  moved the card first, but that read backwards on short descriptions, put visual order out of step with
+  screen-reader and keyboard order, and hid the Apply bar's Register link on load. On long descriptions the
+  banner's Register button and the bar's Register link jump to the form. The card's 1rem top margin left the
+  description's last line almost touching it, so the card gets one 1.5rem gap and the column adds none.
 */
 @media (max-width: 1024px) {
-    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) {
-        display: flex;
-        flex-direction: column;
+    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) > .medium-4 {
+        margin-top: 0;
     }
 
-    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) > .medium-4 {
-        order: -1;
-        margin-bottom: 1.5rem;
+    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) > .medium-4 > .related-content {
+        margin-top: 1.5rem;
     }
 }
 
 /*
-  Phones: the block's top padding, the column's top margin, and the card's own margin stacked up to about 72px of
-  white between the banner and the form. One 1.5rem gap keeps the card clear of the banner and brings the form up.
-  Three selectors because Core's first-child padding rule outranks a plain class selector; the other two cover
-  Open Enrollment, where the block follows #eventInstanceDescriptionDiv, and GSC and Pino, where it follows
-  #eventInstanceDescriptionDivContent.
+  Space between the banner and the page content: 1.5rem on phones and desktop's 2rem on tablets, instead of the
+  larger gaps Core's padding and the column margins added up to. Three selectors because Core's first-child padding
+  rule outranks a plain class selector; the other two cover Open Enrollment, where the block follows
+  #eventInstanceDescriptionDiv, and GSC and Pino, where it follows #eventInstanceDescriptionDivContent.
 */
 @media (max-width: 640px) {
     #main-content > article > .content-block.landing-page-intro:first-child,
@@ -351,27 +350,13 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
     #main-content #eventInstanceDescriptionDivContent + .content-block.landing-page-intro {
         padding-top: 1.5rem;
     }
-
-    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) > .medium-4,
-    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) > .medium-4 > .related-content {
-        margin-top: 0;
-    }
 }
 
-/*
-  Tablets: the block's 40px top padding and the card's 16px top margin left 56px between the banner and the card,
-  against 32px on desktop. Same selectors as the phone rule above, with desktop's 2rem.
-*/
 @media (min-width: 641px) and (max-width: 1024px) {
     #main-content > article > .content-block.landing-page-intro:first-child,
     #main-content #eventInstanceDescriptionDiv + .content-block.landing-page-intro,
     #main-content #eventInstanceDescriptionDivContent + .content-block.landing-page-intro {
         padding-top: 2rem;
-    }
-
-    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) > .medium-4,
-    .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) > .medium-4 > .related-content {
-        margin-top: 0;
     }
 }
 

@@ -2,7 +2,7 @@
   Keeps the Apply link on screen: a slim bar that appears once the banner's Apply link scrolls out of view.
   Applying is the main goal of these pages, so it stays reachable through the whole registration flow.
 
-  Below desktop width (where the form stacks under the banner) the bar also carries a Register link until the
+  Below desktop width (where the form stacks under the event description) the bar also carries a Register link until the
   visitor first reaches the form; on phones the bar sits at the bottom. It replaces FIU_Floating_Register, so
   don't use both on a template. A link that has keyboard focus is never hidden out from under the visitor.
   Place after the template's rsvp.js script tag, because it reads the state that script sets.
