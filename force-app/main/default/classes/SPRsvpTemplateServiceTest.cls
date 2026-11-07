@@ -12,6 +12,7 @@
  * 1.0    6/15/2023, 4:18:45 PM   aniubo     Initial Version
  * 2.0    8/22/2023, 11:58:00 AM   mdennis    Tests for new additions
  * 2.1    11/4/2026                mdennis    Tests for instanceID taking priority over the cookie
+ * 2.2    11/7/2026                mdennis    Tests for confirmationReceipt
  **/
 @isTest
 private class SPRsvpTemplateServiceTest {
@@ -315,6 +316,122 @@ private class SPRsvpTemplateServiceTest {
 		System.assert(String.isNotBlank(title), 'The page title must still build with no event');
 		System.assert(String.isNotBlank(metaTitle), 'The meta title must still build with no event');
 		System.assertNotEquals(null, timeZoneText, 'The time zone text must not be null');
+	}
+
+	@isTest
+	private static void testConfirmationReceiptListsRegistrationAndPayment() {
+		System.PageReference currentPage = confirmationPage();
+		testSetup();
+		insertReceivedPayment(1234.5);
+
+		Test.startTest();
+		SPRsvpTemplateService service = new SPRsvpTemplateService(currentPage);
+		String receiptJson = service.confirmationReceipt;
+		Test.stopTest();
+
+		summit__Summit_Events_Registration__c registration = [SELECT Name FROM summit__Summit_Events_Registration__c LIMIT 1];
+		Map<String, Object> receipt = (Map<String, Object>) JSON.deserializeUntyped(receiptJson);
+		System.assertEquals(registration.Name, receipt.get('registrationNumber'), 'The receipt must carry the EVR number');
+		System.assertEquals('TestFirst TestLast', receipt.get('registrantName'), 'The receipt must name the registrant');
+		List<Object> payments = (List<Object>) receipt.get('payments');
+		System.assertEquals(1, payments.size(), 'The received payment must be listed');
+		Map<String, Object> payment = (Map<String, Object>) payments[0];
+		System.assertEquals('7940682228906416303812', payment.get('transactionId'), 'The CyberSource transaction ID must be listed');
+		System.assertEquals('$1,234.50', payment.get('amount'), 'The amount must be formatted as currency');
+		System.assertEquals('Visa', payment.get('cardType'), 'The card type must be listed');
+		System.assert(String.isNotBlank((String) payment.get('paidOn')), 'The payment date must be listed');
+	}
+
+	@isTest
+	private static void testConfirmationReceiptBlankOffConfirmationPage() {
+		System.PageReference currentPage = registrationPage();
+		testSetup();
+		insertReceivedPayment(10);
+
+		Test.startTest();
+		SPRsvpTemplateService service = new SPRsvpTemplateService(currentPage);
+		Test.stopTest();
+
+		System.assertEquals('', service.confirmationReceipt, 'Only the confirmation page may show receipt details');
+	}
+
+	@isTest
+	private static void testConfirmationReceiptBlankForAnotherEvent() {
+		System.PageReference currentPage = confirmationPage();
+		testSetup();
+		insertReceivedPayment(10);
+		summit__Summit_Events_Instance__c otherInstance = insertSecondInstance();
+		currentPage.getParameters().put('instanceID', otherInstance.Id);
+
+		Test.startTest();
+		SPRsvpTemplateService service = new SPRsvpTemplateService(currentPage);
+		Test.stopTest();
+
+		System.assertEquals(
+			'',
+			service.confirmationReceipt,
+			'A registration from another event in the cookie must not appear on this event\'s confirmation'
+		);
+	}
+
+	@isTest
+	private static void testConfirmationWordInQueryStringDoesNotCount() {
+		System.PageReference currentPage = registrationPage();
+		testSetup();
+		insertReceivedPayment(10);
+		currentPage.getParameters().put('next', 'summiteventsconfirmation');
+
+		Test.startTest();
+		SPRsvpTemplateService service = new SPRsvpTemplateService(currentPage);
+		Test.stopTest();
+
+		System.assertEquals('', service.confirmationReceipt, 'Only the confirmation page itself may show receipt details');
+	}
+
+	@isTest
+	private static void testConfirmationReceiptSkipsPaymentsNotReceived() {
+		System.PageReference currentPage = confirmationPage();
+		testSetup();
+		insertReceivedPayment(10);
+		summit__Summit_Events_Payment__c refunded = [SELECT Id FROM summit__Summit_Events_Payment__c LIMIT 1];
+		refunded.summit__Payment_Status__c = 'Refund';
+		update refunded;
+
+		Test.startTest();
+		SPRsvpTemplateService service = new SPRsvpTemplateService(currentPage);
+		Map<String, Object> receipt = (Map<String, Object>) JSON.deserializeUntyped(service.confirmationReceipt);
+		Test.stopTest();
+
+		System.assertEquals(0, ((List<Object>) receipt.get('payments')).size(), 'Only received payments belong on the receipt');
+		System.assert(String.isNotBlank((String) receipt.get('registrationNumber')), 'The EVR number still shows');
+	}
+
+	@isTest
+	private static void testFormatCurrency() {
+		System.assertEquals('$1.00', SPRsvpTemplateService.formatCurrency(1), 'Whole dollars');
+		System.assertEquals('$1,234,567.89', SPRsvpTemplateService.formatCurrency(1234567.891), 'Grouping and rounding');
+		System.assertEquals('$500.00', SPRsvpTemplateService.formatCurrency(500), 'No grouping under a thousand');
+		System.assertEquals(null, SPRsvpTemplateService.formatCurrency(null), 'Null stays null');
+	}
+
+	private static System.PageReference confirmationPage() {
+		System.PageReference currentPage = new System.PageReference('/apex/summit__SummitEventsConfirmation');
+		Test.setCurrentPage(currentPage);
+		return currentPage;
+	}
+
+	private static void insertReceivedPayment(Decimal amount) {
+		summit__Summit_Events_Registration__c registration = [SELECT Id FROM summit__Summit_Events_Registration__c LIMIT 1];
+		insert new summit__Summit_Events_Payment__c(
+			summit__Event_Registration__c = registration.Id,
+			summit__Payment_Amount__c = amount,
+			summit__Payment_Status__c = 'Received',
+			summit__Payment_Received_Date__c = DateTime.now(),
+			summit__TouchnetReceiptNumber__c = '7940682228906416303812',
+			summit__Card_Type__c = 'Visa',
+			summit__Name_On_Account__c = 'TestFirst TestLast',
+			summit__Method_of_Payment__c = 'Credit Card'
+		);
 	}
 
 	/** Set the page before testSetup, because the Summit cookie is written onto the current page. */

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RecordType xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>CIBER_Events</fullName>
-    <active>true</active>
-    <description>FIU CIBER Events</description>
+    <active>false</active>
+    <description>FIU CIBER Events. Inactive since November 2026: the CIBER department was dissolved.</description>
     <label>CIBER Events</label>
     <picklistValues>
         <picklist>summit__Template__c</picklist>

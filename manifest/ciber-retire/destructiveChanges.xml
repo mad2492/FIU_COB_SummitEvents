@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Both rules share CIBER events with the FIU_CIBER role, which has no sub-roles and only two users, both
+  inactive. Roles above FIU_CIBER also get these shares through the hierarchy, but Prod's only CIBER event is
+  owned by an active user in Chapman_Student_Services, so those managers keep access through the owner's role.
+  Checked in Prod on November 7, 2026: deleting the rules removes no active user's access.
+-->
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>summit__Summit_Events__c.CIBER_Events_to_CIBER_Users</members>
+        <name>SharingCriteriaRule</name>
+    </types>
+    <types>
+        <members>summit__Summit_Events__c.RW_CIBER_Events_Only</members>
+        <name>SharingOwnerRule</name>
+    </types>
+    <version>66.0</version>
+</Package>

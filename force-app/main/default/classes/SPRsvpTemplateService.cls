@@ -13,6 +13,8 @@
  * 2.2	  7/26/2024, 02:30:00 PM   mdennis    Added htmlTitle and modified metaTitle to include Date/Time
  * 2.3	  11/4/2026                mdennis    Banner uses the page's instanceID before the Summit cookie;
  *                                            missing event data no longer crashes the page
+ * 2.4	  11/7/2026                mdennis    confirmationReceipt: EVR number, registrant and received payments
+ *                                            for the confirmation page's receipt
  **/
 public inherited sharing class SPRsvpTemplateService extends SPSummitEventBaseService {
 	private static final String INSTANCE_ID_PARAM = 'instanceID';
@@ -278,6 +280,121 @@ public String eventInstanceDescription {
 	public String registrationId {
 		get {
 			return this.info.registrationId;
+		}
+	}
+
+	private static final String RECEIPT_TIME_ZONE = 'America/New_York';
+	private String confirmationReceiptValue;
+
+	/**
+	 * Receipt details for the confirmation page, as JSON read by FIU_Confirmation_Fallback: the EVR registration
+	 * number (the invoice number in CyberSource), the registrant, and each received payment with its CyberSource
+	 * transaction ID, date, amount, card type and name on card. Blank on every other page.
+	 *
+	 * The registration comes only from the visitor's Summit cookie, which Summit encrypts, so a visitor cannot ask
+	 * for someone else's receipt. It must also belong to the event in the page address, so a cookie left from
+	 * another event never shows here. ReceiptQueries reads without sharing because the site guest user cannot see
+	 * registrations or payments under sharing; it returns only the fields listed below.
+	 */
+	public String confirmationReceipt {
+		get {
+			if (confirmationReceiptValue == null) {
+				confirmationReceiptValue = buildConfirmationReceipt();
+			}
+			return confirmationReceiptValue;
+		}
+	}
+
+	private String buildConfirmationReceipt() {
+		// The page name itself, without the query string, so "?anything=confirmation" on another page does not count.
+		String pagePath = this.currentPage?.getUrl()?.substringBefore('?');
+		Id cookieRegistrationId = toId(this.info?.registrationId);
+		if (
+			String.isBlank(pagePath) ||
+			!pagePath.toLowerCase().endsWith('summiteventsconfirmation') ||
+			cookieRegistrationId == null
+		) {
+			return '';
+		}
+		ReceiptQueries queries = new ReceiptQueries();
+		summit__Summit_Events_Registration__c registration = queries.registration(cookieRegistrationId);
+		if (registration == null || this.instance == null || registration.summit__Event_Instance__c != this.instance.Id) {
+			return '';
+		}
+
+		List<Map<String, Object>> payments = new List<Map<String, Object>>();
+		for (summit__Summit_Events_Payment__c payment : queries.receivedPayments(cookieRegistrationId)) {
+			payments.add(
+				new Map<String, Object>{
+					'transactionId' => payment.summit__TouchnetReceiptNumber__c,
+					'paidOn' => payment.summit__Payment_Received_Date__c?.format('MMMM d, yyyy, h:mm a z', RECEIPT_TIME_ZONE),
+					'amount' => formatCurrency(payment.summit__Payment_Amount__c),
+					'cardType' => payment.summit__Card_Type__c,
+					'nameOnCard' => payment.summit__Name_On_Account__c
+				}
+			);
+		}
+
+		List<String> nameParts = new List<String>();
+		for (String part : new List<String>{ registration.summit__Registrant_First_Name__c, registration.summit__Registrant_Last_Name__c }) {
+			if (String.isNotBlank(part)) {
+				nameParts.add(part.trim());
+			}
+		}
+		return JSON.serialize(
+			new Map<String, Object>{
+				'registrationNumber' => registration.Name,
+				'registrantName' => String.join(nameParts, ' '),
+				'registrantEmail' => registration.summit__Registrant_Email__c,
+				'payments' => payments
+			}
+		);
+	}
+
+	/** "$1,234.50". Returns null for a null amount. */
+	@TestVisible
+	private static String formatCurrency(Decimal amount) {
+		if (amount == null) {
+			return null;
+		}
+		String digits = String.valueOf(amount.abs().setScale(2));
+		String whole = digits.substringBefore('.');
+		String grouped = '';
+		while (whole.length() > 3) {
+			grouped = ',' + whole.right(3) + grouped;
+			whole = whole.left(whole.length() - 3);
+		}
+		return (amount < 0 ? '-' : '') + '$' + whole + grouped + '.' + digits.substringAfter('.');
+	}
+
+	private without sharing class ReceiptQueries {
+		summit__Summit_Events_Registration__c registration(Id registrationId) {
+			List<summit__Summit_Events_Registration__c> registrations = [
+				SELECT
+					Name,
+					summit__Event_Instance__c,
+					summit__Registrant_First_Name__c,
+					summit__Registrant_Last_Name__c,
+					summit__Registrant_Email__c
+				FROM summit__Summit_Events_Registration__c
+				WHERE Id = :registrationId
+				LIMIT 1
+			];
+			return registrations.isEmpty() ? null : registrations[0];
+		}
+
+		List<summit__Summit_Events_Payment__c> receivedPayments(Id registrationId) {
+			return [
+				SELECT
+					summit__TouchnetReceiptNumber__c,
+					summit__Payment_Received_Date__c,
+					summit__Payment_Amount__c,
+					summit__Card_Type__c,
+					summit__Name_On_Account__c
+				FROM summit__Summit_Events_Payment__c
+				WHERE summit__Event_Registration__c = :registrationId AND summit__Payment_Status__c = 'Received'
+				ORDER BY summit__Payment_Received_Date__c
+			];
 		}
 	}
 

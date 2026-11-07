@@ -143,59 +143,14 @@
           <div class="slds-grid slds-grid_align-center">
             <div class="slds-col slds-size_1-of-1" style="max-width:1024px;">
               <c:FIU_ADA_Notice />
-              <c:FIU_Confirmation_Fallback />
+              <c:FIU_Confirmation_Fallback receipt="{!confirmationReceipt}" />
               <c:FIU_Form_Errors />
             </div>
           </div>
         </article>
         
       </main>
-      <footer style="margin-top: auto;">
-        <div class="row footer-flex">
-          <div class="columns medium-5">
-            <a href="https://business.fiu.edu/" rel="noopener" target="_blank">
-              <img alt="FIU Business" class="footer-logo" src="{!logoImageUrl}" width="316" height="82" />
-            </a>
-            <address> Modesto A. Maidique Campus <br />11200 S.W. 8th Street<br />Miami, Florida 33199-0001 <br />
-              <a href="mailto:chapman@fiu.edu">chapman@fiu.edu</a>
-            </address>
-          </div>
-          <div class="columns medium-7 links-and-social">
-            <div class="col links">
-              <a href="https://titleix.fiu.edu/civil-rights/harassment-and-discrimination/" rel="noopener" target="_blank">Nondiscrimination</a>
-              <a href="https://titleix.fiu.edu/title-ix/" rel="noopener" target="_blank">Title IX</a>
-              <a href="https://report.fiu.edu/" rel="noopener" target="_blank">Report Discrimination or Harassment</a>
-              <a href="https://titleix.fiu.edu/ada-and-accessibility/" rel="noopener" target="_blank">Accessibility</a>
-              <a href="https://compliance.fiu.edu/privacy/" rel="noopener" target="_blank">Privacy Policy</a>
-            </div>
-            <div class="col social">
-              <p>
-                <strong>Connect with Us!</strong>
-              </p>
-              <a href="https://www.facebook.com/fiubusiness" rel="noopener" target="_blank">
-                <span aria-hidden="true" class="fa-brands fa-facebook"></span>
-                <span class="show-for-sr">Facebook</span>
-              </a>
-              <a href="https://www.linkedin.com/edu/school?id=18094" rel="noopener" target="_blank">
-                <span aria-hidden="true" class="fa-brands fa-linkedin"></span>
-                <span class="show-for-sr">LinkedIn</span>
-              </a>
-              <a href="https://www.instagram.com/fiubusiness/" rel="noopener" target="_blank">
-                <span aria-hidden="true" class="fa-brands fa-instagram"></span>
-                <span class="show-for-sr">Instagram</span>
-              </a>
-              <a href="https://www.youtube.com/fiubusiness" rel="noopener" target="_blank">
-                <span aria-hidden="true" class="fa-brands fa-youtube"></span>
-                <span class="show-for-sr">YouTube</span>
-              </a>
-              <a href="https://twitter.com/fiubusiness" rel="noopener" target="_blank">
-                <span aria-hidden="true" class="fa-brands fa-twitter"></span>
-                <span class="show-for-sr">X (Twitter)</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <c:FIU_Footer unit="studentservices" logoUrl="{!logoImageUrl}" pushToBottom="true" />
       <script src="{!URLFOR($Resource.summit__SummitEventsAssets, '/js/loading.js')}" type="text/javascript"></script>
       <script src="{!URLFOR($Resource.sp_open_enrollment, '/js/openEnrollment.js')}" type="text/javascript"></script>
       <c:FIU_Floating_Register />

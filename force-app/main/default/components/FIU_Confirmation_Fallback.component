@@ -1,28 +1,254 @@
 <!--
-  Summit shows the event's Confirmation Title and Description after someone registers. When an event leaves
-  both blank, the page says nothing about the registration going through. This adds a default message in that
-  case only; events with their own wording are left alone.
+  Polishes Summit's confirmation page and two small Summit quirks. Summit owns the page markup; this only adds to
+  it and restyles it (styles are in FIU_RSVP_Core2026.css, under "Confirmation page"). Included by every template.
+
+  Confirmation page (form ...SummitEventsConfirmationForm):
+  - Turns the event's confirmation block into a success card: a green check, the event's Confirmation Title (or
+    "You're registered!" / "Payment received. You're registered!" when the title is blank), the event's
+    Confirmation Description (or "Thank you for registering." when it is blank), and a details list. The event's
+    Event Footer, which Summit prints below the block and events use for fine print, moves to the end of the card.
+  - The details and the receipt come from the server through the receipt attribute, which the templates fill with
+    the controller's confirmationReceipt (SPRsvpTemplateService): the EVR registration number (the invoice number in
+    CyberSource), the registrant's name and email, and each received payment with its CyberSource transaction ID,
+    date, amount, card type and name on card. Event, session and date come from Summit's hidden breadcrumb.
+  - Styles Summit's fee table as a receipt and, once payment is received (the server lists received payments and
+    the balance is $0.00), adds a "Print or save receipt" button. A $0.00 fee table with no payment is hidden. Printing this page, by the button or the browser, prints only a receipt version of the card,
+    with FIU's name, the print date and the unit's contact details from the page footer.
+  Events closed to registration keep Summit's "event full" wording, unstyled as a success.
+
+  Summit's payment-step error is passed in the URL with "+" for spaces ("Payment+was+not+received."); messages made
+  only of words joined by "+" get their spaces back.
+
+  The file keeps its original name so the templates did not have to switch components.
 -->
 <apex:component layout="none">
+    <apex:attribute name="receipt" type="String" required="false"
+        description="The controller's confirmationReceipt: JSON with the EVR number, registrant and received payments. Blank off the confirmation page." />
+
+    <!-- Always rendered; empty everywhere but the confirmation page, and the script ignores it when empty. -->
+    <div id="fiu-receipt-data" hidden="hidden" data-receipt="{!receipt}"></div>
+
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            // Only plain words joined by "+" (Summit's URL-encoded messages); "C++" or "first+last@fiu.edu" are left alone.
+            Array.prototype.forEach.call(document.querySelectorAll(".slds-notify li"), function (item) {
+                var text = item.textContent.trim();
+                if (/^[A-Za-z'.,!?-]+(\+[A-Za-z'.,!?-]+)+$/.test(text)) {
+                    item.textContent = text.replace(/\+/g, " ");
+                }
+            });
+
             var form = document.querySelector('form[id$="SummitEventsConfirmationForm"]');
             if (!form) {
                 return;
             }
-            var hasMessage = Array.prototype.some.call(form.querySelectorAll("h2, p"), function (el) {
-                return el.textContent.trim() !== "";
-            });
-            if (hasMessage) {
+            form.classList.add("fiu-confirmation");
+
+            var heading = form.querySelector("h2");
+            var card = heading ? heading.parentElement : null;
+            // The registration-open block holds the description paragraph (.regularLists); the "event closed" block
+            // does not. Only the open block is a success.
+            var description = card ? card.querySelector("p.regularLists") : null;
+            if (!card || !description) {
                 return;
             }
-            var message = document.createElement("div");
-            message.className = "slds-col slds-size_1-of-1 slds-p-vertical_x-small fiu-confirmation-fallback";
-            message.innerHTML =
-                '<h2 class="slds-text-heading_large slds-p-vertical_xx-small">You’re registered!</h2>' +
-                '<p class="slds-text-body slds-p-vertical_xx-small">Thank you for registering. ' +
-                "You’ll receive a confirmation email with the event details shortly.</p>";
-            form.insertBefore(message, form.firstChild);
+            card.classList.add("fiu-confirmation__card");
+
+            var receiptData = {};
+            var dataElement = document.getElementById("fiu-receipt-data");
+            if (dataElement && dataElement.getAttribute("data-receipt")) {
+                try {
+                    receiptData = JSON.parse(dataElement.getAttribute("data-receipt")) || {};
+                } catch (e) {
+                    receiptData = {};
+                }
+            }
+            var payments = Array.isArray(receiptData.payments) ? receiptData.payments : [];
+
+            // Paid means the server found received payments and Summit shows nothing left to pay. Summit also prints
+            // a $0.00 fee table on some free events; with no payments that is not a payment, and the table is hidden.
+            var totalCell = card.querySelector("tr.eventTotalCost td:last-child");
+            var table = card.querySelector("table.slds-table");
+            var balance = totalCell ? parseFloat(totalCell.textContent.replace(/[^0-9.]/g, "")) : NaN;
+            var paid = Boolean(table) && balance === 0 && payments.length > 0;
+            var emptyFeeTable = Boolean(table) && balance === 0 && payments.length === 0;
+
+            // The glyph sits in an inner span: rsvp.js (RSVP templates) hides any empty element directly inside the
+            // card, and a Font Awesome icon on its own is an empty span.
+            var icon = document.createElement("span");
+            icon.className = "fiu-confirmation__icon";
+            icon.setAttribute("aria-hidden", "true");
+            icon.innerHTML = '<span class="fa-solid fa-circle-check"></span>';
+            card.insertBefore(icon, heading);
+
+            if (!heading.textContent.trim()) {
+                heading.textContent = paid ? "Payment received. You’re registered!" : "You’re registered!";
+            }
+            // Only when the event has no Confirmation Description of its own, and kept to what is always true: not
+            // every event sends a confirmation email, so this does not promise one. The check reads the whole
+            // description box, not just Summit's <p>: rich text with its own paragraphs or lists cannot sit inside a
+            // <p>, so the browser closes Summit's <p> early and moves the event's wording after it, leaving it empty.
+            if (!description.parentElement.textContent.trim()) {
+                description.textContent = paid
+                    ? "Thank you for registering. Your payment details are below."
+                    : "Thank you for registering.";
+            }
+
+            // Summit prints the event's Event Footer below the confirmation block. In practice it is fine print (travel
+            // disclaimers, sponsor lines, a contact email), so it moves to the bottom of the card as a note instead of
+            // floating under it. Moved later, after the receipt, so it ends the card and the printed receipt.
+            var footerNote = null;
+            Array.prototype.forEach.call(form.children, function (child) {
+                var text = child.querySelector ? child.querySelector("p.regularLists") : null;
+                if (child !== card && child.classList.contains("slds-clearfix") && text && text.textContent.trim()) {
+                    footerNote = child;
+                }
+            });
+
+            var buildList = function (pairs, className) {
+                var list = document.createElement("dl");
+                list.className = className;
+                pairs.forEach(function (pair) {
+                    if (!pair[1]) {
+                        return;
+                    }
+                    var term = document.createElement("dt");
+                    term.textContent = pair[0];
+                    var value = document.createElement("dd");
+                    value.textContent = pair[1];
+                    list.appendChild(term);
+                    list.appendChild(value);
+                });
+                return list;
+            };
+
+            // Event, session and date from Summit's breadcrumb, which the templates hide. Order is event, session
+            // (optional), date (optional). The date is Summit's formatted date, such as "Friday, November 20, 2026,
+            // 10:32 AM - 11:32 AM EST"; a year alone ("MBA Class of 2026") is a session name, not a date.
+            var summitDate = /\b(January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2}, \d{4}\b/;
+            var crumbs = Array.prototype.map
+                .call(form.querySelectorAll(".slds-breadcrumb__item"), function (item) {
+                    return item.textContent.trim();
+                })
+                .filter(Boolean);
+
+            var details = [
+                ["Registration number", receiptData.registrationNumber],
+                ["Registered", receiptData.registrantName],
+                ["Email", receiptData.registrantEmail]
+            ];
+            if (crumbs.length) {
+                details.push(["Event", crumbs[0]]);
+                crumbs.slice(1).forEach(function (text) {
+                    details.push([summitDate.test(text) ? "When" : "Session", text]);
+                });
+            }
+            var detailsList = buildList(details, "fiu-confirmation__details");
+            if (detailsList.children.length) {
+                description.parentElement.insertAdjacentElement("afterend", detailsList);
+            }
+
+            if (table) {
+                table.parentElement.classList.add(
+                    emptyFeeTable ? "fiu-confirmation__receipt--empty" : "fiu-confirmation__receipt"
+                );
+            }
+            var placeNote = function () {
+                if (footerNote) {
+                    footerNote.classList.add("fiu-confirmation__note");
+                    card.appendChild(footerNote);
+                }
+            };
+
+            // One block per received payment: the transaction ID is what CyberSource and FIU's records match on.
+            // Shown for partial payments too; the success wording and the print button wait for a $0.00 balance.
+            // Summit prints the fee table only when the event has fees; without it the blocks follow the details.
+            var after = table || (detailsList.parentElement ? detailsList : description.parentElement);
+            payments.forEach(function (payment) {
+                var list = buildList(
+                    [
+                        ["Transaction ID", payment.transactionId],
+                        ["Paid on", payment.paidOn],
+                        ["Amount paid", payment.amount],
+                        ["Card", payment.cardType],
+                        ["Name on card", payment.nameOnCard]
+                    ],
+                    "fiu-confirmation__payment"
+                );
+                if (list.children.length) {
+                    after.insertAdjacentElement("afterend", list);
+                    after = list;
+                }
+            });
+
+            if (!paid) {
+                placeNote();
+                return;
+            }
+
+            var printButton = document.createElement("button");
+            printButton.type = "button";
+            printButton.className = "fiu-confirmation__print";
+            printButton.innerHTML = '<span class="fa-solid fa-print" aria-hidden="true"></span> Print or save receipt';
+            printButton.addEventListener("click", function () {
+                window.print();
+            });
+            table.parentElement.appendChild(printButton);
+            placeNote();
+
+            // The print copy: a receipt header, the finished card and the unit's contact details, outside the page
+            // layout so @media print can show it alone. Built once, after the card is complete.
+            var paragraph = function (className, text) {
+                var p = document.createElement("p");
+                p.className = className;
+                p.textContent = text;
+                return p;
+            };
+            var receipt = document.createElement("div");
+            receipt.id = "fiu-receipt-print";
+            var header = document.createElement("div");
+            header.className = "fiu-receipt-print__header";
+            header.appendChild(paragraph("fiu-receipt-print__org", "Florida International University · FIU Business"));
+            header.appendChild(paragraph("fiu-receipt-print__title", "Payment receipt"));
+            header.appendChild(
+                paragraph(
+                    "fiu-receipt-print__date",
+                    "Printed " +
+                        new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                )
+            );
+            receipt.appendChild(header);
+
+            var copy = card.cloneNode(true);
+            copy.removeAttribute("id");
+            Array.prototype.forEach.call(copy.querySelectorAll(".fiu-confirmation__print, [id]"), function (el) {
+                if (el.classList.contains("fiu-confirmation__print")) {
+                    el.remove();
+                } else {
+                    el.removeAttribute("id");
+                }
+            });
+            receipt.appendChild(copy);
+
+            var address = document.querySelector("footer address");
+            if (address) {
+                var contact = document.createElement("div");
+                contact.className = "fiu-receipt-print__contact";
+                contact.appendChild(paragraph("fiu-receipt-print__contact-title", "Questions about this payment?"));
+                address.innerText
+                    .split("\n")
+                    .map(function (line) {
+                        return line.trim();
+                    })
+                    .filter(Boolean)
+                    .forEach(function (line) {
+                        contact.appendChild(paragraph("fiu-receipt-print__contact-line", line));
+                    });
+                receipt.appendChild(contact);
+            }
+
+            document.body.appendChild(receipt);
+            document.body.classList.add("fiu-has-receipt");
         });
     </script>
 </apex:component>

@@ -1,15 +1,20 @@
 <!--
   @Page Name          : FIU_OGI_Template.page
-  @Description        : 
+  @Description        : Office of Global Initiatives (Globiz) template, used for study abroad registrations, most of
+                        them paid. Summit's payment page (SP_SummitEventsPayment) renders inside this template, so
+                        jQuery stays in <head>, ahead of the payment page's own scripts.
   @Author             : mdennis
-  @Group              : 
-  @Last Modified By   : vadelaos
-  @Last Modified On   : 03/19/2026, 5:01 PM
-  @Modification Log   : 
+  @Group              :
+  @Last Modified By   : mdennis
+  @Last Modified On   : 11/07/2026
+  @Modification Log   :
   ==============================================================================
   Ver         Date                     Author                 Modification
   ==============================================================================
   1.0    8/16/2023, 3:21 PM           mdennis     Initial Version
+  2.0    11/7/2026                    mdennis     Register button label from the event, Traveler Information heading
+                                                  anchored to First Name (it landed after Student Email on events
+                                                  without a deposit), jQuery 3.7.1, notices below the form
 -->
 <apex:page id="FIU_OGI_Template" lightningStylesheets="true" sidebar="false" showHeader="false" standardStylesheets="false" cache="false" applyHtmlTag="false" controller="SPRsvpTemplateController">
   <apex:slds />
@@ -96,8 +101,11 @@
       <meta content="#e8cd7d" name="msapplication-TileColor" />
       <meta content="#ffffff" name="theme-color" />
       <meta content="https://digicdn.fiu.edu/core/_assets/favicon/browserconfig.xml" name="msapplication-config" />
-      <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/> -->
-      <script src="https://code.jquery.com/jquery-3.6.2.min.js" type="text/javascript"></script>
+      <!-- jQuery loads here, before scriptsHead: Summit's payment page loads its own jQuery and Bootstrap there. -->
+      <script
+        src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+        crossorigin="anonymous"></script>
       <apex:insert name="scriptsHead" />
     </head>
     <body id="rsvpBody" style="min-height: 100vh; display: flex; flex-direction: column;">
@@ -120,7 +128,10 @@
                     <p class="pretitle">{!eventDescription}</p>
                     <h1>{!eventParentDescription}</h1>
                     <p>
-                      <a id="registerToday" class="button button--gold" href="#SummitEventsRegister:RsvpTemplate:SummitEventRegisterForm">Register Today!</a>
+                      <!-- The label comes from the event's Register Button Label field (Register_Button_Text__c),
+                           falling back to the old wording when it is blank. openEnrollment.js points the link at the
+                           form, or hides it when registration is closed. -->
+                      <a id="registerToday" class="button button--gold" href="#main-content">{!IF(ISBLANK(registerButtonLabel), 'Register Today!', registerButtonLabel)}</a>
                     </p>
                   </div>
                 </div>
@@ -140,15 +151,17 @@
               <apex:insert name="body" />
             </div>
           </div>
+          <div class="slds-grid slds-grid_align-center">
+            <div class="slds-col slds-size_1-of-1" style="max-width:1024px;">
+              <c:FIU_ADA_Notice />
+              <c:FIU_Confirmation_Fallback receipt="{!confirmationReceipt}" />
+              <c:FIU_Form_Errors />
+            </div>
+          </div>
         </article>
         <article id="article-panel">
           <div id="div-panel">
             <div class="row">
-              <div class="small-12 medium-12 columns">
-                <c:FIU_ADA_Notice />
-                <c:FIU_Confirmation_Fallback />
-                <c:FIU_Form_Errors />
-              </div>
               <div class="columns small-12 medium-12 text-center">
                 <div id="share-with-friends">
                   <!-- AddToAny BEGIN -->
@@ -167,52 +180,7 @@
           </div>
         </article>
       </main>
-      <footer style="margin-top: auto;">
-        <div class="row footer-flex">
-          <div class="columns medium-5">
-            <a href="https://business.fiu.edu/" rel="noopener" target="_blank">
-              <img alt="FIU Business" class="footer-logo" src="{!logoImageUrl}" width="316" height="82" />
-            </a>
-            <address> Modesto A. Maidique Campus <br />11200 S.W. 8th Street, MANGO 210 <br />Miami, Florida 33199-0001 <br />305.348.4825 <br />
-              <a href="mailto:globiz@fiu.edu">globiz@fiu.edu</a>
-            </address>
-          </div>
-          <div class="columns medium-7 links-and-social">
-            <div class="col links">
-              <a href="https://titleix.fiu.edu/civil-rights/harassment-and-discrimination/" rel="noopener" target="_blank">Nondiscrimination</a>
-              <a href="https://titleix.fiu.edu/title-ix/" rel="noopener" target="_blank">Title IX</a>
-              <a href="https://report.fiu.edu/" rel="noopener" target="_blank">Report Discrimination or Harassment</a>
-              <a href="https://titleix.fiu.edu/ada-and-accessibility/" rel="noopener" target="_blank">Accessibility</a>
-              <a href="https://compliance.fiu.edu/privacy/" rel="noopener" target="_blank">Privacy Policy</a>
-            </div>
-            <div class="col social">
-              <p>
-                <strong>Connect with Us!</strong>
-              </p>
-              <a href="https://www.facebook.com/fiubusiness" rel="noopener" target="_blank">
-                <span aria-hidden="true" class="fa-brands fa-facebook"></span>
-                <span class="show-for-sr">Facebook</span>
-              </a>
-              <a href="https://www.linkedin.com/edu/school?id=18094" rel="noopener" target="_blank">
-                <span aria-hidden="true" class="fa-brands fa-linkedin"></span>
-                <span class="show-for-sr">LinkedIn</span>
-              </a>
-              <a href="https://www.instagram.com/fiubusiness/" rel="noopener" target="_blank">
-                <span aria-hidden="true" class="fa-brands fa-instagram"></span>
-                <span class="show-for-sr">Instagram</span>
-              </a>
-              <a href="https://www.youtube.com/fiubusiness" rel="noopener" target="_blank">
-                <span aria-hidden="true" class="fa-brands fa-youtube"></span>
-                <span class="show-for-sr">YouTube</span>
-              </a>
-              <a href="https://twitter.com/fiubusiness" rel="noopener" target="_blank">
-                <span aria-hidden="true" class="fa-brands fa-twitter"></span>
-                <span class="show-for-sr">X (Twitter)</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <c:FIU_Footer unit="ogi" logoUrl="{!logoImageUrl}" pushToBottom="true" />
       <script src="{!URLFOR($Resource.summit__SummitEventsAssets, '/js/loading.js')}" type="text/javascript"></script>
       <script src="{!URLFOR($Resource.sp_open_enrollment, '/js/openEnrollment.js')}" type="text/javascript"></script>
       <c:FIU_Floating_Register />
@@ -224,32 +192,38 @@
     <script>
       jQuery.noConflict();
       jQuery(document).ready(function($) {
-            //Customize Managed Form slightly
-            $('form').eq(0).find("div[id^='SummitEventsRegister:FIU_OGI_Template:SummitEventRegisterForm']").eq(1).after(' <br /><br /> <div class="slds-col slds-p-around_x-small slds-size_1-of-1"> <h3 class ="slds-text-heading_medium"> Traveler Information </h3>Please type name as it appears on your passport. This information will be used to book your travel. </div>');
-           // $('form').eq(0).find('div').eq(1).after($('form').eq(0).find("div[id^='SummitEventsRegister:FIU_OGI_Template:SummitEventRegisterForm']").eq(1)); 
-              $('form').eq(0).find("h3:contains('Additional Information')").eq(0).parent().css('display', 'none'); $('form').eq(0).find("h3:contains('Additional Information')").eq(0).parent().nextAll().addClass('slds-large-size_3-of-6'); $('form').eq(0).find('nav').parent().css('display', 'none'); $('form').eq(0).find("input[id*='mobile']").eq(0).parent('div').parent('div').parent('div').next().find('abbr').remove();
-              
-                    var persnEmail = $('form').eq(0).find("label:contains('Personal Email')").eq(0).parent('div').parent('div'); $(persnEmail).insertBefore($('form').eq(0).find("div[id*='phoneBlock']").eq(0));
-              var pid = $('form').eq(0).find("label:contains('Panther ID')").eq(0).parent('div').parent('div'); 
-              $(pid).insertBefore($('form').eq(0).find("div[id*='phoneBlock']").eq(0));
+              // Customize Summit's form slightly.
+              var form = $('form').eq(0);
 
-             var dob = $('form').eq(0).find("label:contains('Date of Birth')").eq(0).parent('div').parent('div');
-             
-              $(dob).insertBefore($('form').eq(0).find("div[id*='phoneBlock']").eq(0));
-              var gndr = $('form').eq(0).find("label:contains('Gender')").eq(0).parent('div').parent('div');
-           //   var prons = $('form').eq(0).find("label:contains('Pronouns')").eq(0).parent('div').parent('div'); 
-           $(gndr).insertBefore($('form').eq(0).find("div[id*='phoneBlock']").eq(0)).addClass('slds-large-size_3-of-6'); 
-            //  $(prons).insertBefore($('form').eq(0).find("div[id*='phoneBlock']").eq(0)).addClass('slds-large-size_3-of-6'); $('form').eq(0).find("div[id*='addInfo']").insertBefore($('form').eq(0).find("div[id*='phoneBlock']").eq(0));
-              var cobMjr =  $('form').eq(0).find("label:contains('COB Major')").eq(0).parent('div').parent('div'); 
-              var cobMjr2 =  $('form').eq(0).find("label:contains('Business Major')").eq(0).parent('div').parent('div');
-              var majorQ = $('form').eq(0).find("label:contains('your major?')").eq(0).parent('div').parent('div') ;
-              var gpa = $('form').eq(0).find("label:contains('GPA')").eq(0).parent('div').parent('div');
-              $(cobMjr).insertBefore($('form').eq(0).find("div[id*='phoneBlock']").eq(0)).addClass('slds-large-size_3-of-6'); 
-                $(cobMjr2).insertBefore($('form').eq(0).find("div[id*='phoneBlock']").eq(0)).addClass('slds-large-size_3-of-6'); 
-                  $(majorQ).insertBefore($('form').eq(0).find("div[id*='phoneBlock']").eq(0)).addClass('slds-large-size_3-of-6'); 
-                    $(gpa).insertBefore($('form').eq(0).find("div[id*='phoneBlock']").eq(0)).addClass('slds-large-size_3-of-6'); 
-              
-              var hdr = $('form').eq(0).find("h4:contains('Event Details')"); hdr.append($('#eventInstanceDescriptionDiv').text()); $('form').eq(0).find("h4:contains('Event Details')").parent().html(hdr);
+              // Traveler Information goes right above First Name. It used to follow the form's second generated
+              // element id, which is the deposit block on paid events but Student Email on free ones, and the id
+              // also carried this page's name. Anchoring to First Name holds either way; pages without a First
+              // Name field (payment, confirmation) are left alone.
+              var firstNameBlock = form.find("input[id$=':firstName']").eq(0).parentsUntil(form).last();
+              firstNameBlock.before('<div class="slds-col slds-p-around_x-small slds-size_1-of-1"><h3 class="slds-text-heading_medium">Traveler Information</h3>Please type name as it appears on your passport. This information will be used to book your travel.</div>');
+
+              form.find("h3:contains('Additional Information')").eq(0).parent().css('display', 'none'); form.find("h3:contains('Additional Information')").eq(0).parent().nextAll().addClass('slds-large-size_3-of-6'); form.find('nav').parent().css('display', 'none'); form.find("input[id*='mobile']").eq(0).parent('div').parent('div').parent('div').next().find('abbr').remove();
+
+              // Personal details, then the major and GPA questions, move up ahead of the phone fields.
+              var phoneBlock = form.find("div[id*='phoneBlock']").eq(0);
+              var persnEmail = form.find("label:contains('Personal Email')").eq(0).parent('div').parent('div');
+              $(persnEmail).insertBefore(phoneBlock);
+              var pid = form.find("label:contains('Panther ID')").eq(0).parent('div').parent('div');
+              $(pid).insertBefore(phoneBlock);
+              var dob = form.find("label:contains('Date of Birth')").eq(0).parent('div').parent('div');
+              $(dob).insertBefore(phoneBlock);
+              var gndr = form.find("label:contains('Gender')").eq(0).parent('div').parent('div');
+              $(gndr).insertBefore(phoneBlock).addClass('slds-large-size_3-of-6');
+              var cobMjr = form.find("label:contains('COB Major')").eq(0).parent('div').parent('div');
+              var cobMjr2 = form.find("label:contains('Business Major')").eq(0).parent('div').parent('div');
+              var majorQ = form.find("label:contains('your major?')").eq(0).parent('div').parent('div');
+              var gpa = form.find("label:contains('GPA')").eq(0).parent('div').parent('div');
+              $(cobMjr).insertBefore(phoneBlock).addClass('slds-large-size_3-of-6');
+              $(cobMjr2).insertBefore(phoneBlock).addClass('slds-large-size_3-of-6');
+              $(majorQ).insertBefore(phoneBlock).addClass('slds-large-size_3-of-6');
+              $(gpa).insertBefore(phoneBlock).addClass('slds-large-size_3-of-6');
+
+              var hdr = form.find("h4:contains('Event Details')"); hdr.append($('#eventInstanceDescriptionDiv').text()); form.find("h4:contains('Event Details')").parent().html(hdr);
             });
             
           var gcId = JSON.parse(localStorage.getItem('gclid')); $Lightning.use("c:facebookRegistrationCompleteApp", function() {

@@ -1,0 +1,135 @@
+<!--
+  The footer shared by every Summit Events template. The legal and social links are the same for every unit;
+  the logo link, logo description and contact block change with the unit attribute. Edit footer content here
+  only, never in a template.
+
+  Units: chapman (the default), studentservices, finaid, ogi, epe, gsc, pino.
+  Format for every contact block: optional office lines, campus, street and room, city and ZIP+4, phone with
+  dots, email. Contact details confirmed by Marina Brillas on November 7, 2026.
+
+  pushToBottom adds margin-top: auto, which the payment-style templates use to keep the footer at the bottom
+  of a short page. The RSVP-style templates leave it off.
+-->
+<apex:component layout="none">
+    <apex:attribute name="unit" type="String" required="true" description="Which unit's contact details to show: chapman, studentservices, finaid, ogi, epe, gsc or pino." />
+    <apex:attribute name="logoUrl" type="String" required="true" description="The logo image URL, normally the controller's logoImageUrl." />
+    <apex:attribute name="pushToBottom" type="Boolean" default="false" description="Adds margin-top: auto so the footer sits at the bottom of a short page." />
+
+    <footer style="{!IF(pushToBottom, 'margin-top: auto;', '')}">
+        <div class="row footer-flex">
+            <div class="columns medium-5">
+                <a href="{!CASE(unit, 'epe', 'https://business.fiu.edu/academics/executive-education/', 'gsc', 'https://sales.fiu.edu/', 'https://business.fiu.edu/')}" rel="noopener" target="_blank">
+                    <img alt="{!IF(unit == 'gsc', 'FIU Business - Global Sales', 'FIU Business')}" class="footer-logo" src="{!logoUrl}" width="316" height="82" />
+                    <span class="show-for-sr"> (opens in a new tab)</span>
+                </a>
+
+                <apex:outputPanel layout="none" rendered="{!NOT(OR(unit == 'studentservices', unit == 'finaid', unit == 'ogi', unit == 'epe', unit == 'gsc', unit == 'pino'))}">
+                    <address>
+                        Modesto A. Maidique Campus<br />
+                        11200 S.W. 8th Street, CBC 200<br />
+                        Miami, Florida 33199-0001<br />
+                        <a href="tel:+13053480148">305.348.0148</a><br />
+                        <a href="mailto:chapman@fiu.edu">chapman@fiu.edu</a>
+                    </address>
+                </apex:outputPanel>
+
+                <!-- Student Services has no public phone number. -->
+                <apex:outputPanel layout="none" rendered="{!unit == 'studentservices'}">
+                    <address>
+                        Modesto A. Maidique Campus<br />
+                        11200 S.W. 8th Street<br />
+                        Miami, Florida 33199-0001<br />
+                        <a href="mailto:chapman@fiu.edu">chapman@fiu.edu</a>
+                    </address>
+                </apex:outputPanel>
+
+                <apex:outputPanel layout="none" rendered="{!unit == 'finaid'}">
+                    <address>
+                        Chapman Graduate School<br />
+                        Financial Aid<br />
+                        Modesto A. Maidique Campus<br />
+                        11200 S.W. 8th Street, CBC 200<br />
+                        Miami, Florida 33199-0001<br />
+                        <a href="tel:+13053488045">305.348.8045</a><br />
+                        <a href="mailto:cobfa@fiu.edu">cobfa@fiu.edu</a>
+                    </address>
+                </apex:outputPanel>
+
+                <apex:outputPanel layout="none" rendered="{!unit == 'ogi'}">
+                    <address>
+                        Modesto A. Maidique Campus<br />
+                        11200 S.W. 8th Street, MANGO 210<br />
+                        Miami, Florida 33199-0001<br />
+                        <a href="tel:+13053484825">305.348.4825</a><br />
+                        <a href="mailto:globiz@fiu.edu">globiz@fiu.edu</a>
+                    </address>
+                </apex:outputPanel>
+
+                <apex:outputPanel layout="none" rendered="{!unit == 'epe'}">
+                    <address>
+                        Executive and Professional Education<br />
+                        Modesto A. Maidique Campus<br />
+                        11200 S.W. 8th Street, CBC 200<br />
+                        Miami, Florida 33199-0001<br />
+                        <a href="tel:+13053484217">305.348.4217</a><br />
+                        <a href="mailto:fiuExecEd@fiu.edu">fiuExecEd@fiu.edu</a>
+                    </address>
+                </apex:outputPanel>
+
+                <apex:outputPanel layout="none" rendered="{!unit == 'gsc'}">
+                    <address>
+                        Modesto A. Maidique Campus<br />
+                        11200 S.W. 8th Street, RB307B<br />
+                        Miami, Florida 33199-0001<br />
+                        <a href="tel:+13053480694">305.348.0694</a><br />
+                        <a href="mailto:sales@fiu.edu">sales@fiu.edu</a>
+                    </address>
+                </apex:outputPanel>
+
+                <apex:outputPanel layout="none" rendered="{!unit == 'pino'}">
+                    <address>
+                        Pino Global Entrepreneurship Center<br />
+                        Modesto A. Maidique Campus<br />
+                        11200 S.W. 8th Street<br />
+                        College of Business Complex, CBC 106B<br />
+                        Miami, Florida 33199-0001<br />
+                        <a href="tel:+13053486488">305.348.6488</a><br />
+                        <a href="mailto:entrepreneurship@fiu.edu">entrepreneurship@fiu.edu</a>
+                    </address>
+                </apex:outputPanel>
+            </div>
+            <div class="columns medium-7 links-and-social">
+                <div class="col links">
+                    <a href="https://titleix.fiu.edu/civil-rights/harassment-and-discrimination/" rel="noopener" target="_blank">Nondiscrimination<span class="show-for-sr"> (opens in a new tab)</span></a>
+                    <a href="https://titleix.fiu.edu/title-ix/" rel="noopener" target="_blank">Title IX<span class="show-for-sr"> (opens in a new tab)</span></a>
+                    <a href="https://report.fiu.edu/" rel="noopener" target="_blank">Report Discrimination or Harassment<span class="show-for-sr"> (opens in a new tab)</span></a>
+                    <a href="https://titleix.fiu.edu/ada-and-accessibility/" rel="noopener" target="_blank">Accessibility<span class="show-for-sr"> (opens in a new tab)</span></a>
+                    <a href="https://compliance.fiu.edu/privacy/" rel="noopener" target="_blank">Privacy Policy<span class="show-for-sr"> (opens in a new tab)</span></a>
+                </div>
+                <div class="col social">
+                    <p><strong>Connect with Us!</strong></p>
+                    <a href="https://www.facebook.com/fiubusiness" rel="noopener" target="_blank">
+                        <span aria-hidden="true" class="fa-brands fa-facebook"></span>
+                        <span class="show-for-sr">Facebook (opens in a new tab)</span>
+                    </a>
+                    <a href="https://www.linkedin.com/edu/school?id=18094" rel="noopener" target="_blank">
+                        <span aria-hidden="true" class="fa-brands fa-linkedin"></span>
+                        <span class="show-for-sr">LinkedIn (opens in a new tab)</span>
+                    </a>
+                    <a href="https://www.instagram.com/fiubusiness/" rel="noopener" target="_blank">
+                        <span aria-hidden="true" class="fa-brands fa-instagram"></span>
+                        <span class="show-for-sr">Instagram (opens in a new tab)</span>
+                    </a>
+                    <a href="https://www.youtube.com/fiubusiness" rel="noopener" target="_blank">
+                        <span aria-hidden="true" class="fa-brands fa-youtube"></span>
+                        <span class="show-for-sr">YouTube (opens in a new tab)</span>
+                    </a>
+                    <a href="https://twitter.com/fiubusiness" rel="noopener" target="_blank">
+                        <span aria-hidden="true" class="fa-brands fa-twitter"></span>
+                        <span class="show-for-sr">X (Twitter) (opens in a new tab)</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</apex:component>

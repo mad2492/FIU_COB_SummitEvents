@@ -2,5 +2,5 @@
 <ApexComponent xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>66.0</apiVersion>
     <label>FIU Confirmation Fallback</label>
-    <description>Default confirmation message when an event has no Confirmation Title or Description.</description>
+    <description>Confirmation page polish: success card, receipt styling and print receipt with the EVR number; fixes Summit's "+" error text.</description>
 </ApexComponent>

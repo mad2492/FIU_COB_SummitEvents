@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>summit__Template__c</fullName>
+    <deprecated>false</deprecated>
+    <description>Chose a pre-programmed template for your event site</description>
+    <inlineHelpText>Chose a pre-programmed template for your event site</inlineHelpText>
+    <label>Template</label>
+    <required>true</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>GeneralSLDS</fullName>
+                <default>false</default>
+                <label>GeneralSLDS</label>
+            </value>
+            <value>
+                <fullName>SP_RsvpTemplate</fullName>
+                <default>false</default>
+                <label>RSVP</label>
+            </value>
+            <value>
+                <fullName>FIU_RsvpTemplate_NonRecruitment</fullName>
+                <default>false</default>
+                <label>RSVP - Non Recruitment</label>
+            </value>
+            <value>
+                <fullName>FIU_GeneralPayment_Template</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>General Payment Template</label>
+            </value>
+            <value>
+                <fullName>FIU_EPE_NonRecruitment</fullName>
+                <default>false</default>
+                <label>FIU EPE Application</label>
+            </value>
+            <value>
+                <fullName>SP_OpenEnrollmentTemplate</fullName>
+                <default>false</default>
+                <label>Open Enrollment</label>
+            </value>
+            <value>
+                <fullName>FIU_OGI_Template</fullName>
+                <default>false</default>
+                <label>OGI Template</label>
+            </value>
+            <value>
+                <fullName>FIU_EPE_OpenEnrollment</fullName>
+                <default>false</default>
+                <label>ExecEd Open Enrollment</label>
+            </value>
+            <value>
+                <fullName>PINO_RsvpTemplate</fullName>
+                <default>false</default>
+                <label>PINO Rsvp Template</label>
+            </value>
+            <value>
+                <fullName>FIU_Pino_Payment_Template</fullName>
+                <default>false</default>
+                <label>Pino Payment Template</label>
+            </value>
+            <value>
+                <fullName>FIU_GSC_RsvpTemplate</fullName>
+                <default>false</default>
+                <label>GSC RSVP Template</label>
+            </value>
+            <value>
+                <fullName>FIU_GSC_Full_Template</fullName>
+                <default>false</default>
+                <label>GSC Full Template</label>
+            </value>
+            <value>
+                <fullName>FIU_EPE_Payment_Template</fullName>
+                <default>false</default>
+                <label>Default EPE Payment Template</label>
+            </value>
+            <value>
+                <fullName>FIU_Student_Services_Template</fullName>
+                <default>false</default>
+                <label>Student Services Template</label>
+            </value>
+            <value>
+                <fullName>FIU_Chapman_Payment_Template</fullName>
+                <default>false</default>
+                <label>Chapman Payment Template</label>
+            </value>
+            <value>
+                <fullName>FIU_EPE_RsvpTemplate</fullName>
+                <default>false</default>
+                <label>ExecEd Recruitment Template</label>
+            </value>
+            <value>
+                <fullName>FIU_Financial_Aid_RSVP_Template</fullName>
+                <default>false</default>
+                <label>FIU Financial Aid RSVP Template</label>
+            </value>
+            <value>
+                <fullName>CastorTemplate2017</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>CastorTemplate2017</label>
+            </value>
+            <value>
+                <fullName>OPUSTemplate2018</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>OPUSTemplate2018</label>
+            </value>
+            <value>
+                <fullName>crowncollege2020</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>crowncollege2020</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Retires the CIBER Events record type (the CIBER department was dissolved). Deploy with
+  destructiveChanges.xml as pre-destructive changes: the CIBER criteria sharing rule filters on this
+  record type, so it must be deleted before the record type can be deactivated.
+-->
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>summit__Summit_Events__c.CIBER_Events</members>
+        <name>RecordType</name>
+    </types>
+    <version>66.0</version>
+</Package>
