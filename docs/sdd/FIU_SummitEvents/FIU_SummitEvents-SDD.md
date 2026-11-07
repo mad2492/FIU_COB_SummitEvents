@@ -4,10 +4,10 @@ subtitle: Plain-language design and operating reference for FIU_SummitEvents
 profile: controlled
 owner: FIU Business Salesforce Team
 audience: FIU Business administrators and technical support
-version: "0.4"
-last_updated: November 5, 2026
+version: "0.5"
+last_updated: November 7, 2026
 status: Draft
-related_metadata: FIU_Events app, FIU_Events_User, FIU_ADA_Notice, FIU_Floating_Register, FIU_RSVP_Core2026, FIU_Site_Error, FIU_SiteErrorController, SPRsvpTemplateService, Summit Events Visualforce templates, Fiu* Apex classes and LWCs
+related_metadata: FIU_Events app, FIU_Events_User, FIU_ADA_Notice, FIU_Footer, FIU_Confirmation_Fallback, FIU_Apply_Bar, FIU_Form_Errors, FIU_ReCaptcha_Notice, FIU_Floating_Register, FIU_RSVP_Core2026, FIU_Site_Error, FIU_SiteErrorController, SPRsvpTemplateService, Summit Events Visualforce templates, Fiu* Apex classes and LWCs
 ---
 
 > Audience: any admin, with or without a developer background. Write in plain language.
@@ -15,7 +15,8 @@ related_metadata: FIU_Events app, FIU_Events_User, FIU_ADA_Notice, FIU_Floating_
 >
 > **Status: mixed.** The FIU Events app is **in development (Phase 1)** in the **Partial UAT**
 > sandbox and has not been promoted to Production. The public registration page templates **are
-> live in Production** as of November 4, 2026.
+> live in Production** as of November 4, 2026, and the template overhaul (shared footer, confirmation
+> receipt, Core-style payment-step cards) was deployed to Production on November 7, 2026.
 
 | Project detail | Value |
 |---|---|
@@ -23,8 +24,8 @@ related_metadata: FIU_Events app, FIU_Events_User, FIU_ADA_Notice, FIU_Floating_
 | Repo | https://github.com/mad2492/FIU_COB_SummitEvents |
 | Protected branch | main |
 | Build target org | Partial UAT sandbox, then Production when approved |
-| Last documented commit | 5dc0b0a |
-| Last updated | November 5, 2026 |
+| Last documented commit | f0b1d56 |
+| Last updated | November 7, 2026 |
 
 # Plain-language Summary
 
@@ -73,12 +74,56 @@ or another Instance?"), guide the user through valid setup, and surface readines
   buttons.
 - **Who uses it:** Anyone registering for an FIU event. Staff choose a template on the Event
   record.
-- **Notable behavior:** Each unit keeps its own logo, contact details, and form scripts. On
-  phones, a Register button floats at the bottom of open registration pages until the form is
-  on screen.
+- **Notable behavior:** Each unit keeps its own logo and form scripts, and the contact details
+  now come from one shared footer (next section). Summit's other steps, which it draws itself,
+  now match the registration page: the payment-style register page, the questions, appointments,
+  and submit pages appear as Core-style cards, Summit's warning messages appear as callouts that
+  fit a phone, a styled overlay shows while a page loads, the accommodations notice is smaller, single-card
+  pages share one width, and printing a page uses print-friendly styles. These rules live in
+  `FIU_RSVP_Core2026`.
+- **Follow-along helpers:** Four templates (`SP_RsvpTemplate`, `SP_OpenEnrollmentTemplate`,
+  `FIU_EPE_RsvpTemplate`, `FIU_EPE_OpenEnrollment`) keep an Apply bar on screen once the banner's
+  Apply link scrolls away (Executive Education shows "Explore Programs" instead). On phones the
+  bar also carries a Register link until the visitor reaches the form. The other twelve templates still
+  use the floating Register button on phones. All 16 templates show clearer form errors (a red
+  message and border, and a specific message for a malformed email), and the two reCAPTCHA
+  templates (`SP_RsvpTemplate`, `FIU_EPE_RsvpTemplate`) print Google's required wording under the
+  form instead of the floating badge. All 16 skip Google Tag Manager on sandbox hosts so test
+  registrations don't send real conversions.
 - **Event text in page scripts:** The templates encode event values before placing them in a
   script, so a quote mark or tag in a field such as Register Button Text can't break the page or
   run code. Button text shows as plain text, so HTML typed there appears literally.
+
+## Shared footer for every template 🟢
+
+- **What it does:** One component, `FIU_Footer`, draws the footer on all 16 templates: the logo,
+  the unit's contact block, and the legal and social links.
+- **Who uses it:** Registrants see it; staff and admins edit it.
+- **Notable behavior:** Each template passes a `unit` value that picks the contact block:
+  `chapman` (the default), `studentservices`, `finaid`, `ogi`, `epe`, `gsc`, or `pino`. Student
+  Services has no public phone number, so its block shows an address and email only. Contact details
+  and links live in this one component, so a change to a phone number or email is made there once,
+  never in a template. Payment-style templates ask the footer to sit at the bottom of a short page.
+
+## Confirmation page and receipt 🟢
+
+- **What it does:** On Summit's managed confirmation page, `FIU_Confirmation_Fallback` turns
+  Summit's plain output into a Core-style success card. It shows the registration number
+  (`EVR-xxxxxx`, which is also the invoice number in CyberSource), the registrant, and the event,
+  session, and date. When the registration has payments, it also shows a receipt: transaction ID,
+  paid-on date, amount, card type, and name on card.
+- **Who uses it:** Registrants after they register or pay; staff use the transaction ID to match
+  a payment in CyberSource.
+- **Notable behavior:** The event's own confirmation title and text are used when set, and the
+  card supplies defaults ("You're registered!") only when they are blank. The event's own
+  confirmation text and its Event Footer fine print are moved into the card rather than shown twice. The
+  receipt lists every received payment, so a balance paid later appears as a second block. A **Print or save
+  receipt** button appears once the balance is $0.00, and printing shows only a receipt with an FIU
+  header, the print date, and the unit's contact block from the footer. A free event's empty $0.00 fee
+  table is hidden. An event that is closed to registration keeps Summit's wording and is not
+  styled as a success.
+- **How the receipt data arrives:** The server builds it (see Sharing and visibility under Personas
+  & Permissions), and the template passes it to the component.
 
 ## Reasonable Accommodations Policy notice 🟢
 
@@ -194,12 +239,19 @@ not modified.
   `FIU_GSC_RsvpTemplate`, `FIU_GSC_Full_Template`, `FIU_EPE_Payment_Template`,
   `FIU_Student_Services_Template`, `FIU_Chapman_Payment_Template`, `FIU_EPE_RsvpTemplate`,
   `FIU_Financial_Aid_RSVP_Template`.
-- Components: `FIU_ADA_Notice` (required policy text) and `FIU_Floating_Register` (phone button).
-- Static resource: `FIU_RSVP_Core2026` (the layout rules Core does not provide, and form sizing).
+- Components: `FIU_ADA_Notice` (required policy text), `FIU_Footer` (shared footer and unit contact
+  blocks), `FIU_Confirmation_Fallback` (confirmation success card and receipt), `FIU_Apply_Bar`,
+  `FIU_Form_Errors`, `FIU_ReCaptcha_Notice`, and `FIU_Floating_Register` (phone button, used by the
+  templates that do not have the Apply bar).
+- Static resource: `FIU_RSVP_Core2026` (the layout rules Core does not provide: form sizing, the
+  Core-style cards for Summit's payment-style steps, message callouts, the loading overlay, and print styles).
+- Manifest: `manifest/ciber-retire/` (a package plus `destructiveChanges.xml`) records the CIBER
+  cleanup deploy described under Integrations & Dependencies.
 - External assets, loaded live: FIU Core CSS and JS from `digicdn.fiu.edu`, `brand-2026.css` from
   `core.fiu.edu`, the proxima-nova font kit from Adobe Fonts, and `custom.js` and
   `info-sessions-listing.js` from `business.fiu.edu`.
-- Apex: `SPRsvpTemplateService` (chooses the event for the page and checks its required setup),
+- Apex: `SPRsvpTemplateService` (version 2.4; chooses the event for the page, checks its required
+  setup, and builds the `confirmationReceipt` text for the confirmation page),
   `FIU_SiteErrorController` and page `FIU_Site_Error` (site error page), and the tests
   `SPRsvpTemplateServiceTest` and `FIU_SiteErrorControllerTest`. `SPSummitEventsTestDataFactory`
   gives test events a Campaign so the Create Campaign flow skips them; that flow fails when tests
@@ -209,9 +261,11 @@ not modified.
   by org, so deploy it from a retrieve of the target org.
 - In Production but not yet in this repo: `SPRsvpTemplateController`,
   `SPSummitEventBaseService`, `SPSummitEventsUtils`, and the `sp_rsvp` and `sp_open_enrollment`
-  static resources.
+  static resources. The controller is kept in the separate payment repo (see Integrations &
+  Dependencies).
+- Template picklist: `summit__Template__c` marks `FIU_GeneralPayment_Template` as inactive.
 
-**Apex (all with sharing):**
+**Apex (all with sharing, except the template service's receipt lookup):**
 
 - `FiuEventsAccessService` — resolves the Summit Event object API name across org variants and
   the allowed/scoped record-type IDs; central access/describe helper used by other services.
@@ -277,6 +331,34 @@ The permission set grants the FIU Events tabs and the supporting Apex/UI. It is 
 access grant for this layer today; finer-grained role separation (e.g. read-only diagnostic
 vs. full editor) is an open item.
 
+## Sharing and visibility on the public pages
+
+Registration pages run as the Site's **guest user**, a built-in anonymous user who is deliberately
+blocked from seeing registrations and payments. That is a problem for the confirmation receipt,
+which has to show the visitor their own registration number and payments.
+
+`SPRsvpTemplateService` solves it with a small inner class, `ReceiptQueries`, declared `without
+sharing`. In plain terms, only these two lookups ignore the guest user's restrictions, and
+everything else in the service still follows normal sharing:
+
+- one lookup of the registration (number, event instance, registrant first and last name, and email), and
+- one lookup of that registration's payments with status **Received** (transaction ID, date, amount,
+  card type, and name on card).
+
+The receipt is built only when all of these are true:
+
+- the page is Summit's confirmation page (the page name must end in `summiteventsconfirmation`; the word in a
+  query string doesn't count);
+- the registration comes from the visitor's Summit cookie, which Summit encrypts, so a visitor cannot ask for
+  someone else's registration by editing the address; and
+- that registration belongs to the same event instance as the page, so a cookie left from another event
+  shows nothing.
+
+On every other page the receipt is blank. The class returns just the listed fields, nothing else from
+the records. Payments that were not received are not listed. The test class covers the confirmation
+page, other pages, another event's cookie, the query-string case, unreceived payments, and currency
+formatting.
+
 # Integrations & Dependencies
 
 - **Summit Events managed package** — the system of record this layer wraps. Hard dependency;
@@ -294,7 +376,21 @@ vs. full editor) is an open item.
 - **Payment / CyberSource integration** (pre-existing, out of scope to rewrite in Phase 1):
   `summit__Summit_Events_Payment__c`, `FIU_checkout_log__c`, `SPCybersourcePaymentManager` and
   related `SP*` classes, Visualforce `SP_SummitEventsPayment`. This project only surfaces the
-  required setup fields more clearly.
+  required setup fields more clearly. The redesigned payment page (`SP_SummitEventsPayment`) shipped
+  in the same November 7, 2026 release from the payment repo; see the payment project's SDD for it.
+- **Payment repo dependency (one combined package).** The templates read `confirmationReceipt`
+  through `SPRsvpTemplateController`, which lives in the separate payment repo
+  (`FIU_COB_PaymentApp`, branch `claude/payment-loading-ux`). That controller in turn needs this
+  repo's `SPRsvpTemplateService` v2.4. Deploy changes to these pieces together as one package. **This
+  repo owns SPRsvpTemplateService; the payment repo's older copy must never be deployed**, or
+  it would replace v2.4 and take the receipt away.
+- **CIBER cleanup (done November 7, 2026).** The CIBER department was dissolved. The `CIBER_Events`
+  record type on the Summit Event is now inactive, and the two CIBER sharing rules on Summit
+  events (`CIBER_Events_to_CIBER_Users` and `RW_CIBER_Events_Only`) were removed, after checking
+  in Production that no active user lost access. The `General Payment Template` value in the
+  Template picklist is inactive too; no event used it after four Chapman events moved to
+  `FIU_Chapman_Payment_Template`. CIBER sharing rules on Opportunity, Account, and Contact still
+  exist in Production and were left alone on purpose.
 - **FIU public website / API & Opportunity creation** — driven by program/plan/business-unit
   values (`FiuProgramFilterService`, `spEventsFIUPlanLookup`) and
   `FIU_Create_Opps_From_Regs__c`.
@@ -327,23 +423,35 @@ vs. full editor) is an open item.
 - **Other Apex tests may still depend on the old test factory behavior.** Only
   `SPRsvpTemplateServiceTest`, `SPRsvpTemplateControllerTest`, and `FIU_SiteErrorControllerTest` were
   run with the factory change.
-- **Templates are still separate copies.** Only the notice, the floating button, and the layout
-  CSS are shared. The head, footer, and custom scripts still live in each of the 16 templates.
+- **Templates are still separate copies.** The notice, footer, confirmation card, form errors,
+  Apply bar, and layout CSS are shared. The head and custom scripts still live in each of the 16
+  templates.
 - **Testing templates in UAT:** record types limit which templates an event can use, and
   `FIU_Financial_Aid_RSVP_Template` is not in UAT's picklist.
+- **Which sandbox to use.** Verify template work in **Partial UAT** first. Test-card runs through the
+  payment step belong in the org aliased **UAT**, which has CyberSource test setup (Partial UAT does
+  not). The November 7, 2026 CyberSource test-card runs passed in UAT. Before a test-card run, deploy
+  the template's dependencies there, because UAT lags behind Production.
+- **Receipt wording depends on the Summit page.** The confirmation card finds Summit's markup by its
+  class names and breadcrumb order, so a Summit package update could change what it shows. Check
+  a paid test registration after any package upgrade.
+- **The old General Payment template is still in the org.** The Visualforce page
+  `FIU_GeneralPayment_Template` remains, but its Template picklist value is inactive, so no new event
+  can choose it. No event used it at the November 7, 2026 release.
 - **Staff-entered links and text are still trusted.** The online-event button opens the instance's
   Virtual Meeting Link as entered, and the event disclaimer text displays as HTML on the templates
   that show it. Script encoding doesn't cover either one, so only trusted staff should edit them.
   No Production meeting link used `javascript:` on November 5, 2026.
-- **Some footers still don't match the event's unit.** `FIU_GeneralPayment_Template` shows
-  `globiz@fiu.edu` on 4 Chapman events, `FIU_EPE_NonRecruitment` shows Chapman details on 1
-  Executive Education event, and `FIU_RsvpTemplate_NonRecruitment` shows Chapman details on 2
-  Executive Education events (counts from the November 5, 2026 review).
+- **A footer can still show the wrong unit if an event uses the wrong template.** Contact blocks now
+  follow the template, not the event. `FIU_RsvpTemplate_NonRecruitment` uses the Chapman block, and
+  the November 5, 2026 review found it on 2 Executive Education events; those were not re-checked
+  on November 7.
 
 # Revision History
 
 | Date | Commit | Summary of change |
 |---|---|---|
+| November 7, 2026 | f0b1d56 | Template overhaul. Added the shared `FIU_Footer` (per-unit contact blocks) to all 16 templates and rewrote `FIU_Confirmation_Fallback` as a success card with a printable receipt. `SPRsvpTemplateService` v2.4 builds `confirmationReceipt` through a `without sharing` inner class. Added Core-style cards, message callouts, a loading overlay, and print styles to `FIU_RSVP_Core2026`. Also documented the November 5-6 work: Apply bar, clearer form errors, reCAPTCHA wording, GTM skipped on sandboxes, removal of the honeypot script and the accreditation section, and a rebuilt `FIU_Chapman_Payment_Template`. Made the General Payment template value and the `CIBER_Events` record type inactive and removed the CIBER sharing rules on Summit events. Shipped with the payment page redesign from the payment repo as one Prod package: validation 0AfVr000002u5FBKAY, deploy 0AfVr000002u5iDKAQ (22 tests passed). |
 | November 5, 2026 | 5dc0b0a | Encoded event values placed in template scripts on all 16 templates, after a Codex review found the gap. Pointed Title IX links to titleix.fiu.edu, gave FIU_EPE_OpenEnrollment the Executive Education footer, and kept the Apply Today arrow inside the banner. Prod deploys 0AfVr000002sr2zKAA and 0AfVr000002srJ7KAI. |
 | November 4, 2026 | ab9187a | Fixed the registration banner showing the previously viewed event: the template now uses the event in the page address before the Summit cookies. Added the FIU_Site_Error page, which names missing event setup and bad links instead of showing "Authorization Required". Repaired the shared test factory. Prod deploys 0AfVr000002sfHxKAI and 0AfVr000002sfJZKAY (site settings). |
 | November 4, 2026 | ca393cf | Moved all 16 public registration templates to FIU Core 2026 in Production. Added the required Reasonable Accommodations Policy text as a shared component in Core's Blue - General callout, including 5 templates that had no notice. Added the phone register button, fixed footer links and accessibility gaps, and removed staging references. Corrected the status: the templates are live in Production, and the FIU Events app remains UAT-only. Prod deploys 0AfVr000002sVAXKA2 and 0AfVr000002sVldKAE. |
