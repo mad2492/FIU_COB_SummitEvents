@@ -290,6 +290,7 @@
             ></script>
             <c:FIU_ReCaptcha_Notice />
             <c:FIU_Apply_Bar applyUrl="https://business.fiu.edu/apply/index.html#2" />
+            <c:FIU_Description_Collapse />
             <script
                 src="https://digicdn.fiu.edu/core/_assets/js/core.js?v1.47.0"
                 type="text/javascript"

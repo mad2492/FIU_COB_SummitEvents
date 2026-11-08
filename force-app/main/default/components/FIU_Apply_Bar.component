@@ -73,6 +73,18 @@
                 window.addEventListener("scroll", hideOnceFormReached, { passive: true });
                 hideOnceFormReached();
 
+                // FIU_Description_Collapse: opening a long description, or resizing the window, can put the form far
+                // below the visitor again after they had reached it. Bring the Register link back until they do again.
+                document.addEventListener("fiu:layout-changed", function () {
+                    if (form.getBoundingClientRect().top < window.innerHeight) {
+                        return;
+                    }
+                    formReached = false;
+                    register.hidden = false;
+                    window.removeEventListener("scroll", hideOnceFormReached);
+                    window.addEventListener("scroll", hideOnceFormReached, { passive: true });
+                });
+
                 // A plain fragment jump moves the view but not keyboard focus, so put the cursor in the first field.
                 register.addEventListener("click", function (event) {
                     event.preventDefault();

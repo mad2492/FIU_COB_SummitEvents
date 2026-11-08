@@ -325,7 +325,8 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
   Below desktop the columns stack in source order: the event description, then the form card. An earlier rule
   moved the card first, but that read backwards on short descriptions, put visual order out of step with
   screen-reader and keyboard order, and hid the Apply bar's Register link on load. On long descriptions the
-  banner's Register button and the bar's Register link jump to the form. The card's 1rem top margin left the
+  banner's Register button and the bar's Register link jump to the form, and FIU_Description_Collapse shortens
+  very long ones (rules below). The card's 1rem top margin left the
   description's last line almost touching it, so the card gets one 1.5rem gap and the column adds none.
 */
 @media (max-width: 1024px) {
@@ -335,6 +336,105 @@ html.fiu-recaptcha-disclosed .grecaptcha-badge {
 
     .landing-page-intro .row:has(> .medium-4 form[id$="SummitEventRegisterForm"]) > .medium-4 > .related-content {
         margin-top: 1.5rem;
+    }
+}
+
+/*
+  Very long descriptions below desktop: FIU_Description_Collapse adds these classes, so without its script nothing
+  is clipped. The 18rem preview (about 12 lines) and 5rem fade must match CLIP_REM and FADE_REM in the component.
+  rem rather than px so the preview grows with text zoom. The button is a Core outline button like Previous; gold
+  stays for Register and Apply. The skip link is hidden until it has keyboard focus.
+*/
+@media (max-width: 1024px) {
+    .landing-page-intro .fiu-desc--collapsed {
+        position: relative;
+        max-height: 18rem;
+        overflow: hidden;
+    }
+
+    .landing-page-intro .fiu-desc--collapsed::after {
+        content: "";
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: 5rem;
+        background: linear-gradient(rgba(255, 255, 255, 0), #ffffff);
+        pointer-events: none;
+    }
+
+    .landing-page-intro .fiu-desc-toggle {
+        margin-top: 0.75rem;
+    }
+
+    .landing-page-intro .fiu-desc-toggle__button {
+        box-sizing: border-box;
+        min-height: 2.75rem;
+        padding: 0.5rem 1.5rem;
+        border: 2px solid #081e3f;
+        border-radius: 4px;
+        background: #ffffff;
+        color: #081e3f;
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 600;
+        line-height: 1.3;
+        cursor: pointer;
+    }
+
+    .landing-page-intro .fiu-desc-toggle__button:hover,
+    .landing-page-intro .fiu-desc-toggle__button:focus {
+        background: #f4f6f9;
+    }
+
+    .landing-page-intro .fiu-desc-toggle__button:focus-visible {
+        outline: 2px solid #081e3f;
+        outline-offset: 3px;
+    }
+
+    .landing-page-intro .fiu-desc-skip:focus {
+        display: inline-block;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        background: #ffffff;
+        color: #081e3f;
+        font-weight: 600;
+        outline: 2px solid #081e3f;
+        outline-offset: 2px;
+    }
+}
+
+/* Expanding moves focus to the description so reading continues at its top; it isn't a control, so no ring. */
+.landing-page-intro .medium-8[tabindex="-1"]:focus {
+    outline: none;
+}
+
+.landing-page-intro .fiu-desc-skip:not(:focus) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+@media (min-width: 1025px) {
+    .landing-page-intro .fiu-desc-toggle,
+    .landing-page-intro .fiu-desc-skip {
+        display: none;
+    }
+}
+
+/* High-contrast mode drops the gradient, so mark the cut with a line instead. */
+@media (forced-colors: active) {
+    .landing-page-intro .fiu-desc--collapsed::after {
+        display: none;
+    }
+
+    .landing-page-intro .fiu-desc--collapsed {
+        border-bottom: 2px dashed CanvasText;
     }
 }
 
@@ -1326,6 +1426,18 @@ form.fiu-confirmation .fiu-confirmation__note p.regularLists {
     /* Sized to fit a typical receipt on one US Letter page; blocks avoid splitting across pages where they fit. */
     @page {
         margin: 0.5in;
+    }
+
+    /* A printed registration page shows the whole description, without the screen-only controls. */
+    .landing-page-intro .fiu-desc--collapsed {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    .landing-page-intro .fiu-desc--collapsed::after,
+    .landing-page-intro .fiu-desc-toggle,
+    .landing-page-intro .fiu-desc-skip {
+        display: none !important;
     }
 
     #fiu-receipt-print .fiu-confirmation__details,

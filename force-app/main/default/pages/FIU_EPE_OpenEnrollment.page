@@ -304,6 +304,7 @@
                 applyUrl="https://business.fiu.edu/academics/executive-education/"
                 applyLabel="Explore Programs"
             />
+            <c:FIU_Description_Collapse />
         </body>
         <script
             src="https://digicdn.fiu.edu/core/_assets/js/core.js?v1.47.0"

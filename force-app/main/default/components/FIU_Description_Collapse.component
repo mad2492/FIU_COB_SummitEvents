@@ -1,0 +1,252 @@
+<!--
+  Long event descriptions on phones and tablets. Below desktop width the description column comes before the form
+  card, so a very long description (one Exec Ed event's runs about 14,000px on a phone) pushes the form many screens
+  down. When the column is taller than one screen plus the 18rem preview, this clips it to the preview with a fade
+  and adds a Show full description button under it. Shorter descriptions and desktop are left alone.
+
+  - The clipped text stays in the page, so screen readers still read all of it. A Skip to registration link, shown
+    only when it has keyboard focus, lets keyboard and screen-reader users get past it.
+  - Tabbing to a link inside the clipped part, or a find-in-page match there, expands the description, so focus
+    and matches never land on hidden content.
+  - Expanding moves focus to the top of the description and never collapses it again. There is no Show less.
+  - Never collapses under a visitor who has already scrolled, arrived on a #link, or focused something inside it,
+    and never when a video or embed sits in the preview.
+  - Several templates add to the description after load, and images load late, so this rechecks on page changes,
+    on load, and on resize instead of measuring once.
+  - Sends fiu:layout-changed when the description opens or the window resizes, so FIU_Apply_Bar can bring its
+    Register link back if the form is now far below the visitor.
+
+  Place after FIU_Apply_Bar or FIU_Floating_Register on templates that use .landing-page-intro.
+-->
+<apex:component layout="none">
+    <apex:attribute name="label" type="String" default="Show full description"
+        description="The expand button's text." />
+    <apex:attribute name="skipLabel" type="String" default="Skip to registration"
+        description="The text of the link that appears on keyboard focus and jumps to the form." />
+    <script>
+        (function () {
+            var LABEL = "{!JSENCODE(label)}";
+            var SKIP_LABEL = "{!JSENCODE(skipLabel)}";
+            var CLIP_REM = 18; // keep in step with max-height in FIU_RSVP_Core2026.css
+            var FADE_REM = 5; // keep in step with the fade's height in FIU_RSVP_Core2026.css
+            var belowDesktop = window.matchMedia("(max-width: 1024px)");
+            var expanded = false;
+            var pending = false;
+            var watched = null;
+
+            var remPx = function () {
+                return parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
+            };
+
+            // The description column and the form, only on the registration page's two-column layout.
+            var findParts = function () {
+                var form = document.querySelector('.landing-page-intro form[id$="SummitEventRegisterForm"]');
+                var card = form && form.closest(".medium-4");
+                var row = card && card.parentElement;
+                var column = row && row.querySelector(":scope > .medium-8");
+                return column ? { form: form, column: column } : null;
+            };
+
+            var hasEmbedInPreview = function (column, clipPx) {
+                var top = column.getBoundingClientRect().top;
+                var embeds = column.querySelectorAll("iframe, video, embed, object");
+                for (var i = 0; i < embeds.length; i++) {
+                    if (embeds[i].getBoundingClientRect().top - top < clipPx) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
+            var removeToggle = function (column) {
+                var next = column.nextElementSibling;
+                if (next && next.classList.contains("fiu-desc-toggle")) {
+                    next.parentNode.removeChild(next);
+                }
+            };
+
+            // The page around the form just grew or changed shape: let FIU_Apply_Bar recheck where the form is.
+            var notifyLayoutChanged = function () {
+                document.dispatchEvent(new CustomEvent("fiu:layout-changed"));
+            };
+
+            var uncollapse = function (column) {
+                column.classList.remove("fiu-desc--collapsed");
+                column.scrollTop = 0;
+                removeToggle(column);
+                notifyLayoutChanged();
+            };
+
+            var expand = function (column, moveFocus) {
+                expanded = true;
+                uncollapse(column);
+                if (moveFocus) {
+                    column.setAttribute("tabindex", "-1");
+                    column.focus({ preventScroll: true });
+                }
+            };
+
+            var addSkipLink = function (column, form) {
+                if (column.querySelector(":scope > .fiu-desc-skip")) {
+                    return;
+                }
+                var skip = document.createElement("a");
+                skip.className = "fiu-desc-skip";
+                skip.href = "#" + form.id;
+                skip.textContent = SKIP_LABEL;
+                // Same as the Apply bar's Register link: a plain fragment jump moves the view but not keyboard focus.
+                skip.addEventListener("click", function (event) {
+                    event.preventDefault();
+                    form.scrollIntoView({ block: "start" });
+                    var firstField = form.querySelector(
+                        "input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled])"
+                    );
+                    if (firstField) {
+                        firstField.focus({ preventScroll: true });
+                    }
+                });
+                column.insertBefore(skip, column.firstChild);
+            };
+
+            var collapse = function (column, form) {
+                if (!column.id) {
+                    column.id = "fiu-event-description";
+                }
+                column.classList.add("fiu-desc--collapsed");
+
+                var wrap = document.createElement("div");
+                wrap.className = "small-12 columns fiu-desc-toggle";
+                var button = document.createElement("button");
+                button.type = "button";
+                button.className = "fiu-desc-toggle__button";
+                button.textContent = LABEL;
+                button.setAttribute("aria-expanded", "false");
+                button.setAttribute("aria-controls", column.id);
+                button.addEventListener("click", function () {
+                    expand(column, true);
+                });
+                wrap.appendChild(button);
+                column.parentNode.insertBefore(wrap, column.nextSibling);
+
+                addSkipLink(column, form);
+            };
+
+            var evaluate = function () {
+                pending = false;
+                var parts = findParts();
+                if (!parts) {
+                    return;
+                }
+                var column = parts.column;
+                watch(column);
+                var collapsed = column.classList.contains("fiu-desc--collapsed");
+
+                if (expanded || !belowDesktop.matches) {
+                    if (collapsed) {
+                        uncollapse(column);
+                    }
+                    return;
+                }
+                if (collapsed) {
+                    // Everything fits in the preview now (a wider tablet, say), or reflow or a late insert moved a
+                    // video or embed into the preview, where it would be cut in half.
+                    if (column.scrollHeight <= column.clientHeight + 1 || hasEmbedInPreview(column, column.clientHeight)) {
+                        uncollapse(column);
+                    }
+                    return;
+                }
+
+                var clipPx = CLIP_REM * remPx();
+                if (column.scrollHeight <= clipPx + window.innerHeight) {
+                    return;
+                }
+                // Don't clip under a visitor who has already moved, or around something they are using.
+                if (window.scrollY > 2 || window.location.hash || column.contains(document.activeElement)) {
+                    return;
+                }
+                if (hasEmbedInPreview(column, clipPx)) {
+                    return;
+                }
+                collapse(column, parts.form);
+            };
+
+            var schedule = function () {
+                if (!pending) {
+                    pending = true;
+                    window.requestAnimationFrame(evaluate);
+                }
+            };
+
+            // A resize can move the form a long way without any collapse change: phone to desktop and back leaves
+            // the description open, and rotating a phone reflows it. After this frame's evaluate, tell the Apply bar.
+            var notifyPending = false;
+            var onResize = function () {
+                schedule();
+                if (!notifyPending) {
+                    notifyPending = true;
+                    window.requestAnimationFrame(function () {
+                        notifyPending = false;
+                        notifyLayoutChanged();
+                    });
+                }
+            };
+
+            // The browser scrolls the clipped box itself to show a focused link or a find-in-page match. Expand
+            // instead, and scroll the page by the same amount so the same text stays where it was on screen.
+            var revealFrom = function (column) {
+                var shifted = column.scrollTop;
+                expand(column, false);
+                if (shifted > 0) {
+                    window.scrollBy(0, shifted);
+                }
+            };
+
+            // Tabbing to a link in the clipped part, or under the fade, expands the description first. By the time
+            // focusin fires the browser may already have scrolled the box, so measure from the top of the content.
+            var onFocusIn = function (event) {
+                var column = event.currentTarget;
+                var target = event.target;
+                if (!column.classList.contains("fiu-desc--collapsed") || target.classList.contains("fiu-desc-skip")) {
+                    return;
+                }
+                var bottomInContent =
+                    target.getBoundingClientRect().bottom - column.getBoundingClientRect().top + column.scrollTop;
+                if (column.scrollTop > 0 || bottomInContent > column.clientHeight - FADE_REM * remPx()) {
+                    revealFrom(column);
+                    target.scrollIntoView({ block: "nearest" });
+                }
+            };
+
+            var onScroll = function (event) {
+                var column = event.currentTarget;
+                if (column.classList.contains("fiu-desc--collapsed") && column.scrollTop > 0) {
+                    revealFrom(column);
+                }
+            };
+
+            var watch = function (column) {
+                if (watched === column) {
+                    return;
+                }
+                watched = column;
+                column.addEventListener("focusin", onFocusIn);
+                column.addEventListener("scroll", onScroll);
+                column.addEventListener("load", schedule, true); // images inside the description
+            };
+
+            document.addEventListener("DOMContentLoaded", function () {
+                var intro = document.querySelector(".landing-page-intro");
+                if (!intro) {
+                    return;
+                }
+                // Templates' jQuery ready handlers add the instance description after this point.
+                if ("MutationObserver" in window) {
+                    new MutationObserver(schedule).observe(intro, { childList: true, subtree: true });
+                }
+                window.addEventListener("load", schedule);
+                window.addEventListener("resize", onResize);
+                schedule();
+            });
+        })();
+    </script>
+</apex:component>
