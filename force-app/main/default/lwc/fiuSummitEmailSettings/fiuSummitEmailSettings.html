@@ -1,0 +1,47 @@
+<template>
+    <lightning-card title="FIU Email Settings" icon-name="standard:email">
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+            <template lwc:if={isLoading}>
+                <lightning-spinner alternative-text="Loading email settings" size="small"></lightning-spinner>
+            </template>
+
+            <template lwc:if={loadError}>
+                <div class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_medium" role="alert">
+                    <span>{loadError}</span>
+                </div>
+            </template>
+
+            <div lwc:if={hasSettings} class="slds-grid slds-gutters slds-wrap">
+                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+                    <lightning-combobox
+                        name="orgWideEmail"
+                        label="Select Org-Wide Email"
+                        value={selectedOrgWideEmailId}
+                        options={orgWideEmailOptions}
+                        onchange={handleOrgWideEmailChange}
+                        disabled={senderDisabled}>
+                    </lightning-combobox>
+                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">{currentOrgWideEmailText}</p>
+                    <p lwc:if={senderChoicesUnavailable} class="slds-text-body_small slds-text-color_error" role="status">Sender choices are unavailable.</p>
+                </div>
+
+                <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+                    <lightning-combobox
+                        name="letterhead"
+                        label="Select Classic Letterhead"
+                        value={selectedLetterheadId}
+                        options={letterheadOptions}
+                        onchange={handleLetterheadChange}
+                        disabled={letterheadDisabled}>
+                    </lightning-combobox>
+                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">{currentLetterheadText}</p>
+                    <p lwc:if={letterheadChoicesUnavailable} class="slds-text-body_small slds-text-color_error" role="status">Letterhead choices are unavailable.</p>
+                </div>
+            </div>
+
+            <template lwc:if={isSaving}>
+                <p class="slds-text-body_small slds-text-color_weak slds-m-top_medium">Saving...</p>
+            </template>
+        </div>
+    </lightning-card>
+</template>
