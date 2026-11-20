@@ -263,10 +263,26 @@
                                                 <lightning-input
                                                     data-field="templateBannerImage"
                                                     label="Template Banner Image"
-                                                    field-level-help="Banner image URL shown in the RSVP template header."
+                                                    field-level-help="Paste a public image URL, or upload an image below and the wizard will fill this in."
                                                     value={form.templateBannerImage}
                                                     onchange={handleInput}>
                                                 </lightning-input>
+                                                <div class="top-gap-xs">
+                                                    <lightning-file-upload
+                                                        label="Or upload a banner image"
+                                                        name="bannerImageUpload"
+                                                        record-id={uploadRecordId}
+                                                        accept=".jpg,.jpeg,.png,.gif,.webp,.svg"
+                                                        onuploadfinished={handleBannerUploadFinished}
+                                                        disabled={bannerUploadBusy}>
+                                                    </lightning-file-upload>
+                                                    <template if:true={bannerUploadBusy}>
+                                                        <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">Creating a public link for your image&hellip;</p>
+                                                    </template>
+                                                    <template if:true={bannerUploadError}>
+                                                        <p class="slds-text-body_small slds-text-color_error slds-m-top_xx-small">{bannerUploadError}</p>
+                                                    </template>
+                                                </div>
                                                 <template if:true={showBannerPreview}>
                                                     <div class="image-preview top-gap-xs">
                                                         <img data-preview="banner" src={form.templateBannerImage} alt="Banner preview" onload={handlePreviewLoad} onerror={handlePreviewError} />
@@ -281,10 +297,26 @@
                                                 <lightning-input
                                                     data-field="templateLogoImage"
                                                     label="Template Logo Image"
-                                                    field-level-help="Logo image URL used by the RSVP template."
+                                                    field-level-help="Paste a public image URL, or upload an image below and the wizard will fill this in."
                                                     value={form.templateLogoImage}
                                                     onchange={handleInput}>
                                                 </lightning-input>
+                                                <div class="top-gap-xs">
+                                                    <lightning-file-upload
+                                                        label="Or upload a logo image"
+                                                        name="logoImageUpload"
+                                                        record-id={uploadRecordId}
+                                                        accept=".jpg,.jpeg,.png,.gif,.webp,.svg"
+                                                        onuploadfinished={handleLogoUploadFinished}
+                                                        disabled={logoUploadBusy}>
+                                                    </lightning-file-upload>
+                                                    <template if:true={logoUploadBusy}>
+                                                        <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">Creating a public link for your image&hellip;</p>
+                                                    </template>
+                                                    <template if:true={logoUploadError}>
+                                                        <p class="slds-text-body_small slds-text-color_error slds-m-top_xx-small">{logoUploadError}</p>
+                                                    </template>
+                                                </div>
                                                 <template if:true={showLogoPreview}>
                                                     <div class="image-preview top-gap-xs">
                                                         <img data-preview="logo" src={form.templateLogoImage} alt="Logo preview" onload={handlePreviewLoad} onerror={handlePreviewError} />
@@ -394,6 +426,39 @@
                                                     <p class="rich-field__help">Explain why the questions are being asked or what details registrants should provide.</p>
                                                     <lightning-input-rich-text data-field="customQuestionsDescription" value={form.customQuestionsDescription} onchange={handleInput}></lightning-input-rich-text>
                                                 </div>
+                                            </section>
+
+                                            <section class="content-section">
+                                                <div class="content-section__header">
+                                                    <h4>Images in page content</h4>
+                                                    <p>Add pictures with the image button inside any text box above. When you click out of the text box or continue, the wizard prepares them for the public registration page.</p>
+                                                </div>
+                                                <template if:true={imageOptimizeBusy}>
+                                                    <div class="public-image-status top-gap-xs">
+                                                        <span>Preparing images for public viewing&hellip;</span>
+                                                    </div>
+                                                </template>
+                                                <template if:true={imageOptimizeNotice}>
+                                                    <div class="public-image-status top-gap-xs">
+                                                        <span class="slds-text-color_success">{imageOptimizeNotice}</span>
+                                                    </div>
+                                                </template>
+                                                <template if:true={imageOptimizeError}>
+                                                    <div class="public-image-status top-gap-xs">
+                                                        <span class="slds-text-color_error">{imageOptimizeError}</span>
+                                                    </div>
+                                                </template>
+                                                <template if:true={hasPrivateImageIssues}>
+                                                    <div class="validation-summary validation-summary--warning top-gap" role="status">
+                                                        <strong>{privateImageIssueSummary}</strong>
+                                                        <p>{privateImageFixCopy}</p>
+                                                        <template for:each={privateImageIssues} for:item="issue">
+                                                            <div key={issue.value} class="private-image-issue-row">
+                                                                <span>{issue.label}: {issue.count}</span>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
                                             </section>
                                         </div>
 

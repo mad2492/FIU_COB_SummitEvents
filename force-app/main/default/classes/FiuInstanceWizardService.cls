@@ -195,7 +195,7 @@ public with sharing class FiuInstanceWizardService {
         putWritable(newInstance, fields, 'summit__Instance_Time_Zone__c', getEasternTimeZoneLabel());
         putWritableDateTimeCompatible(newInstance, fields, 'summit__Instance_Start_Time__c', req.startDateTime);
         putWritableDateTimeCompatible(newInstance, fields, 'summit__Instance_End_Time__c', req.endDateTime);
-        insert newInstance;
+        Database.insert(newInstance, AccessLevel.USER_MODE);
 
         Integer remindersCreated = 0;
         if (req.createDefaultReminders == true) {
@@ -246,7 +246,7 @@ public with sharing class FiuInstanceWizardService {
             clones.add(dst);
         }
         if (clones.isEmpty()) return 0;
-        insert clones;
+        Database.insert(clones, AccessLevel.USER_MODE);
         return clones.size();
     }
 

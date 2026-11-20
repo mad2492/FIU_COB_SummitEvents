@@ -1,12 +1,20 @@
 import { LightningElement, track, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
+import USER_ID from '@salesforce/user/Id';
 import getInitData from '@salesforce/apex/FIU_EventsWizardService.getInitData';
 import createEventAndFirstInstance from '@salesforce/apex/FIU_EventsWizardService.createEventAndFirstInstance';
 import previewEventJson from '@salesforce/apex/FIU_EventsWizardService.previewEventJson';
 import getBusinessUnits from '@salesforce/apex/FIU_EventsWizardService.getBusinessUnits';
 import getProgramsForBusinessUnit from '@salesforce/apex/FIU_EventsWizardService.getProgramsForBusinessUnit';
 import evaluateReadiness from '@salesforce/apex/FiuEventsReadinessService.evaluateEvent';
+import createPublicImageFromBase64 from '@salesforce/apex/FiuPublicFileService.createPublicImageFromBase64';
+import createPublicLinkForContentDocument from '@salesforce/apex/FiuPublicFileService.createPublicLinkForContentDocument';
+import createPublicLinkForContentVersion from '@salesforce/apex/FiuPublicFileService.createPublicLinkForContentVersion';
+
+// Reject base64 payloads larger than ~1 MB of image so the Apex request and
+// decoded Blob stay inside the synchronous heap limit.
+const MAX_IMAGE_BASE64_LENGTH = 1400000;
 
 export default class FiuEventCreateWizard extends NavigationMixin(LightningElement) {
     STEP1_TAB_ORDER = ['basics', 'programs', 'branding', 'logistics', 'payment', 'review'];
@@ -57,6 +65,31 @@ export default class FiuEventCreateWizard extends NavigationMixin(LightningEleme
     businessUnitOptions = [];
     programOptions = [];
     selectedStep1Tab = 'basics';
+    previewSessionKey = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    // Rich-text fields whose embedded images must be made public before the
+    // guest-facing registration page can render them.
+    RICH_TEXT_IMAGE_FIELDS = [
+        { value: 'landingDescription', label: 'Landing Description' },
+        { value: 'landingFullText', label: 'Landing Full Text' },
+        { value: 'landingShortListingDescription', label: 'Short Listing Description' },
+        { value: 'templateDisclaimerText', label: 'Disclaimer Text' },
+        { value: 'confirmationDescription', label: 'Confirmation Description' },
+        { value: 'customQuestionsDescription', label: 'Custom Questions Description' },
+        { value: 'eventPaymentReceivedDescription', label: 'Payment Received Description' },
+        { value: 'eventPaymentDueDescription', label: 'Payment Due Description' }
+    ];
+
+    imageOptimizeBusy = false;
+    imageOptimizeNotice;
+    imageOptimizeError;
+
+    // Banner/logo image upload (optional — users may also paste a URL).
+    uploadRecordId = USER_ID;
+    bannerUploadBusy = false;
+    bannerUploadError;
+    logoUploadBusy = false;
+    logoUploadError;
 
     // @track is required here because previewState is mutated via object spread.
     @track previewState = {
@@ -348,7 +381,28 @@ export default class FiuEventCreateWizard extends NavigationMixin(LightningEleme
         if (!this.form.confirmationTitle && !this.form.confirmationDescription) warnings.push('Confirmation page content still uses defaults/blank values.');
         if (!this.form.createOppsFromRegs) warnings.push('Create Opportunities from Registrations is off.');
         if (!this.form.sendRegistrationConfirmation) warnings.push('Registration confirmation email is off.');
+        if (this.privateImageIssueCount) warnings.push(`${this.privateImageIssueCount} public page image(s) may not load for visitors.`);
         return warnings;
+    }
+    get privateImageIssues() {
+        return this.RICH_TEXT_IMAGE_FIELDS
+            .map((field) => ({
+                ...field,
+                count: this.countPrivateImageSources(this.form[field.value])
+            }))
+            .filter((field) => field.count > 0);
+    }
+    get hasPrivateImageIssues() { return this.privateImageIssues.length > 0; }
+    get privateImageIssueCount() {
+        return this.privateImageIssues.reduce((sum, item) => sum + item.count, 0);
+    }
+    get privateImageIssueSummary() {
+        const count = this.privateImageIssueCount;
+        const plural = count === 1 ? 'image may not load' : 'images may not load';
+        return `${count} ${plural} on the public registration page.`;
+    }
+    get privateImageFixCopy() {
+        return 'The wizard is trying to prepare these automatically. Click out of the text box or continue to the next step. If the warning stays, remove the image and upload it again with the same image button.';
     }
     get previewRecordTypeLabel() {
         return this.recordTypeOptions.find((opt) => opt.value === this.form.recordTypeId)?.label || 'Select a record type';
@@ -739,6 +793,11 @@ export default class FiuEventCreateWizard extends NavigationMixin(LightningEleme
             };
         }
         this.applyDependencyOptions();
+        // lightning-input-rich-text fires change on blur — convert any images
+        // the user just inserted into public URLs without them noticing.
+        if (this.isRichTextImageField(key)) {
+            this.normalizeRichTextField(key);
+        }
     }
 
     handleStatusTabClick(event) {
@@ -839,10 +898,284 @@ export default class FiuEventCreateWizard extends NavigationMixin(LightningEleme
         this.form = { ...this.form, [key]: values.join(';') };
     }
 
+    isRichTextImageField(key) {
+        return this.RICH_TEXT_IMAGE_FIELDS.some((field) => field.value === key);
+    }
+
+    // Runs when focus leaves a rich-text editor. Depending on Salesforce's
+    // editor internals, a new image may appear as a base64 data URI or as a
+    // private Salesforce file URL. Convert both forms to public links.
+    async normalizeRichTextField(fieldName) {
+        const html = this.form[fieldName];
+        if (!this.containsImageNeedingPublicLink(html)) return;
+        this.imageOptimizeError = undefined;
+        this.imageOptimizeBusy = true;
+        try {
+            const converted = await this.convertRichTextImages(html, fieldName);
+            if (converted.changed) {
+                this.form = { ...this.form, [fieldName]: converted.html };
+            }
+            if (converted.count > 0) {
+                this.imageOptimizeNotice = converted.count === 1
+                    ? 'Image is ready for the public registration page.'
+                    : `${converted.count} images are ready for the public registration page.`;
+            }
+        } catch (error) {
+            this.imageOptimizeError =
+                error?.body?.message || error?.message || 'An image could not be prepared for public viewing.';
+        } finally {
+            this.imageOptimizeBusy = false;
+        }
+    }
+
+    // Guaranteed sweep over every rich-text field. Run before leaving step 1
+    // and before save so no private image source reaches the saved record.
+    async normalizeAllRichTextImages() {
+        this.imageOptimizeError = undefined;
+        const pendingFields = this.RICH_TEXT_IMAGE_FIELDS
+            .map((field) => field.value)
+            .filter((name) => this.containsImageNeedingPublicLink(this.form[name]));
+        if (!pendingFields.length) return;
+
+        this.imageOptimizeBusy = true;
+        let totalConverted = 0;
+        try {
+            for (const fieldName of pendingFields) {
+                // eslint-disable-next-line no-await-in-loop
+                const converted = await this.convertRichTextImages(this.form[fieldName], fieldName);
+                if (converted.changed) {
+                    this.form = { ...this.form, [fieldName]: converted.html };
+                }
+                totalConverted += converted.count;
+            }
+            if (totalConverted > 0) {
+                this.imageOptimizeNotice =
+                    `${totalConverted} image${totalConverted === 1 ? '' : 's'} prepared for the public registration page.`;
+            }
+        } catch (error) {
+            this.imageOptimizeError =
+                error?.body?.message || error?.message || 'An image could not be prepared for public viewing.';
+            throw error;
+        } finally {
+            this.imageOptimizeBusy = false;
+        }
+    }
+
+    containsBase64Image(html) {
+        return !!html && /<img\b[^>]*\bsrc\s*=\s*["']data:image\//i.test(html);
+    }
+
+    containsImageNeedingPublicLink(html) {
+        return this.containsBase64Image(html) || this.extractPrivateImageSources(html).length > 0;
+    }
+
+    async convertRichTextImages(html, fieldName) {
+        const dataUris = this.extractBase64ImageUris(html);
+
+        const fieldLabel = this.RICH_TEXT_IMAGE_FIELDS.find((f) => f.value === fieldName)?.label || 'Event image';
+        let nextHtml = html;
+        let count = 0;
+        for (const dataUri of dataUris) {
+            const meta = this.parseDataUri(dataUri);
+            if (!meta) continue;
+            if (meta.base64.length > MAX_IMAGE_BASE64_LENGTH) {
+                throw new Error('One image is larger than about 1 MB. Use a smaller image, then try again.');
+            }
+            // eslint-disable-next-line no-await-in-loop
+            const result = await createPublicImageFromBase64({
+                base64Data: meta.base64,
+                fileName: fieldLabel,
+                contentType: meta.contentType
+            });
+            const publicUrl = result?.publicImageUrl || result?.contentDownloadUrl || result?.distributionPublicUrl;
+            if (!publicUrl) {
+                throw new Error('A public URL could not be generated for an image.');
+            }
+            nextHtml = nextHtml.split(dataUri).join(publicUrl);
+            count += 1;
+        }
+
+        const privateSources = this.extractPrivateImageSources(nextHtml);
+        for (const source of privateSources) {
+            // eslint-disable-next-line no-await-in-loop
+            const publicUrl = await this.convertPrivateImageSource(source, fieldLabel);
+            if (!publicUrl) continue;
+            nextHtml = nextHtml.split(source).join(publicUrl);
+            count += 1;
+        }
+        return { html: nextHtml, changed: count > 0, count };
+    }
+
+    extractBase64ImageUris(html) {
+        if (!html) return [];
+        const matches = html.match(/data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+/gi) || [];
+        return [...new Set(matches)];
+    }
+
+    parseDataUri(dataUri) {
+        const semiIndex = dataUri.indexOf(';');
+        const commaIndex = dataUri.indexOf(',');
+        if (semiIndex < 0 || commaIndex < 0) return null;
+        return {
+            contentType: dataUri.slice(5, semiIndex),
+            base64: dataUri.slice(commaIndex + 1)
+        };
+    }
+
+    extractPrivateImageSources(html) {
+        if (!html) return [];
+        const sources = [];
+        html.replace(/<img\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1/gi, (_match, _quote, src) => {
+            if (this.isPrivateSalesforceImageUrl(src)) sources.push(src);
+            return _match;
+        });
+        return [...new Set(sources)];
+    }
+
+    async convertPrivateImageSource(source, fieldLabel) {
+        const contentVersionId = this.extractContentVersionId(source);
+        if (contentVersionId) {
+            const result = await createPublicLinkForContentVersion({ contentVersionId });
+            return result?.publicImageUrl || result?.contentDownloadUrl || result?.distributionPublicUrl;
+        }
+
+        const fetched = await this.fetchPrivateImageAsBase64(source);
+        if (!fetched) return undefined;
+        if (fetched.base64.length > MAX_IMAGE_BASE64_LENGTH) {
+            throw new Error('One image is larger than about 1 MB. Use a smaller image, then try again.');
+        }
+        const result = await createPublicImageFromBase64({
+            base64Data: fetched.base64,
+            fileName: fieldLabel,
+            contentType: fetched.contentType
+        });
+        return result?.publicImageUrl || result?.contentDownloadUrl || result?.distributionPublicUrl;
+    }
+
+    extractContentVersionId(value) {
+        const normalized = this.decodeHtmlEntities(value || '');
+        const idPattern = '(068[A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?)';
+        const patterns = [
+            new RegExp(`[?&]versionId=${idPattern}`, 'i'),
+            new RegExp(`/version/(?:download|renditionDownload)/${idPattern}`, 'i'),
+            new RegExp(`/servlet\\.shepherd/version/(?:download|renditionDownload)/${idPattern}`, 'i')
+        ];
+        for (const pattern of patterns) {
+            const match = normalized.match(pattern);
+            if (match?.[1]) return match[1];
+        }
+        return undefined;
+    }
+
+    async fetchPrivateImageAsBase64(source) {
+        const response = await fetch(this.absoluteUrl(this.decodeHtmlEntities(source)), { credentials: 'include' });
+        if (!response.ok) return undefined;
+        const blob = await response.blob();
+        if (!blob?.type?.toLowerCase().startsWith('image/')) return undefined;
+        const dataUri = await this.blobToDataUri(blob);
+        return this.parseDataUri(dataUri);
+    }
+
+    blobToDataUri(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('The image data could not be read.'));
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    absoluteUrl(value) {
+        try {
+            return new URL(value, window.location.origin).toString();
+        } catch (_e) {
+            return value;
+        }
+    }
+
+    // Banner/logo uploads stream the file straight to Salesforce (no size cap),
+    // then we turn it into a public link and drop the URL into the field.
+    async handleBannerUploadFinished(event) {
+        this.bannerUploadError = undefined;
+        const documentId = event.detail?.files?.[0]?.documentId;
+        if (!documentId) {
+            this.bannerUploadError = 'The upload finished but no file was returned. Please try again.';
+            return;
+        }
+        this.bannerUploadBusy = true;
+        try {
+            const url = await this.toPublicImageUrl(documentId);
+            this.form = { ...this.form, templateBannerImage: url };
+            this.previewState = { ...this.previewState, bannerLoaded: false, bannerError: false };
+        } catch (error) {
+            this.bannerUploadError =
+                error?.body?.message || error?.message || 'Could not create a public link for that image.';
+        } finally {
+            this.bannerUploadBusy = false;
+        }
+    }
+
+    async handleLogoUploadFinished(event) {
+        this.logoUploadError = undefined;
+        const documentId = event.detail?.files?.[0]?.documentId;
+        if (!documentId) {
+            this.logoUploadError = 'The upload finished but no file was returned. Please try again.';
+            return;
+        }
+        this.logoUploadBusy = true;
+        try {
+            const url = await this.toPublicImageUrl(documentId);
+            this.form = { ...this.form, templateLogoImage: url };
+            this.previewState = { ...this.previewState, logoLoaded: false, logoError: false };
+        } catch (error) {
+            this.logoUploadError =
+                error?.body?.message || error?.message || 'Could not create a public link for that image.';
+        } finally {
+            this.logoUploadBusy = false;
+        }
+    }
+
+    async toPublicImageUrl(contentDocumentId) {
+        const result = await createPublicLinkForContentDocument({ contentDocumentId });
+        const url = result?.publicImageUrl || result?.contentDownloadUrl || result?.distributionPublicUrl;
+        if (!url) {
+            throw new Error('A public link could not be generated for that image.');
+        }
+        return url;
+    }
+
+    countPrivateImageSources(html) {
+        if (!html) return 0;
+        let count = 0;
+        html.replace(/<img\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1[^>]*>/gi, (_match, _quote, src) => {
+            if (this.isPrivateSalesforceImageUrl(src)) count += 1;
+            return _match;
+        });
+        return count;
+    }
+
+    isPrivateSalesforceImageUrl(value) {
+        const normalized = (value || '').toLowerCase();
+        return (
+            normalized.includes('/servlet/rtaimage') ||
+            normalized.includes('/sfc/servlet.shepherd') ||
+            normalized.includes('/servlet/servlet.filedownload') ||
+            normalized.includes('/servlet/filefield') ||
+            normalized.includes('documentforce.com') ||
+            normalized.includes('file.force.com')
+        );
+    }
+
     async openInstanceStep() {
         const msg = this.validateStep1();
         if (msg) {
             this.error = msg;
+            return;
+        }
+        try {
+            await this.normalizeAllRichTextImages();
+        } catch (e) {
+            this.error = 'Some images still need to be prepared for public viewing. Please review the page content and try again.';
             return;
         }
         this.error = undefined;
@@ -971,7 +1304,8 @@ export default class FiuEventCreateWizard extends NavigationMixin(LightningEleme
                 workingEventId: null,
                 draftEventId: null,
                 createFirstInstance: false,
-                isPreview: true
+                isPreview: true,
+                previewSessionKey: this.previewSessionKey
             };
             // Prevent Apex JSON deserialize typed-field errors (Date/Datetime/Decimal) from empty strings.
             req.instanceStart = req.instanceStart || null;
@@ -1123,6 +1457,14 @@ export default class FiuEventCreateWizard extends NavigationMixin(LightningEleme
             }
         }
 
+        try {
+            await this.normalizeAllRichTextImages();
+        } catch (e) {
+            this.error = 'Some images still need to be prepared for public viewing. Please review the page content and try again.';
+            this.step = 1;
+            return;
+        }
+
         this.error = undefined;
         this.isSaving = true;
         try {
@@ -1131,6 +1473,7 @@ export default class FiuEventCreateWizard extends NavigationMixin(LightningEleme
                 workingEventId: null,
                 draftEventId: null,
                 createFirstInstance,
+                previewSessionKey: this.previewSessionKey,
                 paymentGateway: this.form.isPaidRegistration ? this.form.paymentGateway : 'No Gateway',
                 instanceStart: this.form.instanceStart ? new Date(this.form.instanceStart).toISOString() : null,
                 instanceEnd: this.form.instanceEnd ? new Date(this.form.instanceEnd).toISOString() : null

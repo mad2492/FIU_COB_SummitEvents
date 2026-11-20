@@ -50,6 +50,9 @@ export default class FiuListShell extends LightningElement {
     @api pageNumber = 1;
     @api pageSize = 25;
     @api pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS;
+    @api useCursorPagination = false;
+    @api hasNextPage = false;
+    @api hasPreviousPage = false;
 
     // ---- filters
     @api activeFilterPills = [];
@@ -97,8 +100,8 @@ export default class FiuListShell extends LightningElement {
         return Math.max(1, Math.ceil((this.totalCount || 0) / size));
     }
 
-    get disablePrev() { return this.pageNumber <= 1; }
-    get disableNext() { return this.pageNumber >= this.totalPages; }
+    get disablePrev() { return this.useCursorPagination ? !this.hasPreviousPage : this.pageNumber <= 1; }
+    get disableNext() { return this.useCursorPagination ? !this.hasNextPage : this.pageNumber >= this.totalPages; }
     get pageSizeValue() { return String(this.pageSize); }
 
     get visibleColumns() {
@@ -176,10 +179,20 @@ export default class FiuListShell extends LightningElement {
     }
 
     get pagerSummary() {
+        if (this.useCursorPagination) {
+            const n = Array.isArray(this.rows) ? this.rows.length : 0;
+            const suffix = this.hasNextPage ? '+' : '';
+            return `Page ${this.pageNumber} (${n}${suffix} ${n === 1 && !this.hasNextPage ? 'record' : 'records'})`;
+        }
         return `Page ${this.pageNumber} of ${this.totalPages} (${this.totalCount} ${this.totalCount === 1 ? 'record' : 'records'})`;
     }
 
     get countLabel() {
+        if (this.useCursorPagination) {
+            const n = Array.isArray(this.rows) ? this.rows.length : 0;
+            const suffix = this.hasNextPage ? '+' : '';
+            return `${n}${suffix} ${n === 1 && !this.hasNextPage ? 'record' : 'records'}`;
+        }
         const n = this.totalCount || 0;
         return `${n} ${n === 1 ? 'record' : 'records'}`;
     }

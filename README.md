@@ -15,6 +15,8 @@ The current delivery target is **Phase 1 in Partial UAT** with a **Prod discover
 ## Environment Boundaries
 - **Production**: discovery and source-of-truth behavior validation only.
 - **Partial UAT**: implementation, iteration, and UAT validation.
+- Codex may auto-deploy FIU-owned changes to **Partial UAT** with `NoTestRun` for UAT iteration.
+- **Production deployments require explicit user consent for each Prod deployment.**
 - Managed package assets are not modified directly; FIU-owned metadata/components are used for extensions.
 
 ## What Is Implemented So Far

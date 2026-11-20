@@ -79,8 +79,13 @@ public with sharing class FiuReadinessRecalcService {
             'summit__Account__c',
             'summit__Payment_Gateway__c',
             'Accounting_Department__c',
+            'FIU_Create_Opps_From_Regs__c',
+            'Send_Registration_Confirmation_Email__c',
             'Default_Plan__c',
             'Includes_Multiple_Programs__c',
+            'summit__Add_Info_Question_Text_1__c',
+            'summit__Add_Info_Question_Pick_List_1__c',
+            'summit__Add_Info_Question_Pick_List_Long_1__c',
             'summit__Event_Additional_Question_Title__c',
             'summit__Event_Additional_Questions_Description__c',
             'summit__Event_description__c',
@@ -89,6 +94,8 @@ public with sharing class FiuReadinessRecalcService {
             'summit__Event_Full_Text__c',
             'summit__Event_Confirmation_Description__c'
         };
+        String eventCapacityField = resolveOptionalField(eventFields, new List<String>{ 'summit__Capacity__c', 'Capacity__c' });
+        if (eventCapacityField != null) eventSelectFields.add(eventCapacityField);
         eventSelectFields.addAll(programConfig.eventProgramFields);
         if (programConfig.hasDefaultPlanLookup) eventSelectFields.add('Default_Plan__r.Plan_Code__c');
 
@@ -136,7 +143,9 @@ public with sharing class FiuReadinessRecalcService {
             SObject instanceRow = instanceRowsById.get(instanceId);
             if (instanceRow == null) continue;
             SObject parentEvent = eventRowsById.get((Id) instanceRow.get(instanceEventLookupField));
-            List<String> reasons = computeInstanceReasons(instanceRow, parentEvent, childInstCapField);
+            FiuReadinessPolicyService.InstancePolicyContext context = new FiuReadinessPolicyService.InstancePolicyContext();
+            context.instanceCapacityField = childInstCapField;
+            List<String> reasons = FiuReadinessPolicyService.evaluateInstance(instanceRow, parentEvent, context).blockingMessages();
             String status = reasons.isEmpty() ? 'Ready' : 'Not Ready';
             String reason = reasons.isEmpty() ? null : String.join(reasons, '; ');
             SObject updateRow = instanceType.newSObject(instanceId);
@@ -151,7 +160,16 @@ public with sharing class FiuReadinessRecalcService {
             SObject eventRow = eventRowsById.get(eventId);
             if (eventRow == null) continue;
             Integer questionCount = questionCountByEventId.containsKey(eventId) ? questionCountByEventId.get(eventId) : 0;
-            List<String> reasons = computeEventReasons(eventRow, instancesByEventId.get(eventId), programConfig, questionCount, childInstCapField);
+            FiuReadinessPolicyService.EventPolicyContext context = new FiuReadinessPolicyService.EventPolicyContext();
+            context.eventCapacityField = eventCapacityField;
+            context.instanceCapacityField = childInstCapField;
+            context.relatedInstances = instancesByEventId.get(eventId);
+            context.programConfig = programConfig;
+            context.relatedQuestionCount = questionCount;
+            context.includeProgramCheck = true;
+            context.includeRelatedInstancePresenceCheck = true;
+            context.includeRelatedInstanceCapacityCheck = true;
+            List<String> reasons = FiuReadinessPolicyService.evaluateEvent(eventRow, context).blockingMessages();
             String status = reasons.isEmpty() ? 'Ready' : 'Not Ready';
             String reason = reasons.isEmpty() ? null : String.join(reasons, '; ');
             SObject updateRow = eventType.newSObject(eventId);
@@ -169,70 +187,6 @@ public with sharing class FiuReadinessRecalcService {
         } finally {
             internalUpdateInProgress = false;
         }
-    }
-
-    private static List<String> computeEventReasons(SObject eventRow, List<SObject> relatedInstances, FiuProgramFilterService.ProgramFilterConfig programConfig, Integer relatedQuestionCount, String instanceCapacityField) {
-        List<String> reasons = new List<String>();
-        if (eventRow.get('summit__Account__c') == null) reasons.add('Missing account');
-
-        Boolean includesMultiple = (Boolean) eventRow.get('Includes_Multiple_Programs__c');
-        Boolean hasDefaultPlan = eventRow.get('Default_Plan__c') != null;
-        Boolean hasProgramFilterCodes = !FiuProgramFilterService.extractProgramCodesFromEvent(eventRow, programConfig).isEmpty();
-        if (includesMultiple == true) {
-            if (!hasProgramFilterCodes && !hasDefaultPlan) reasons.add('Missing selected program');
-        } else if (!hasDefaultPlan && !hasProgramFilterCodes) {
-            reasons.add('Missing selected program');
-        }
-
-        String customQuestionTitle = (String) eventRow.get('summit__Event_Additional_Question_Title__c');
-        String customQuestionDescription = (String) eventRow.get('summit__Event_Additional_Questions_Description__c');
-        Boolean hasCustomQuestionPageDetails = !String.isBlank(customQuestionTitle) || !String.isBlank(customQuestionDescription);
-        if (hasCustomQuestionPageDetails && (relatedQuestionCount == null || relatedQuestionCount == 0)) {
-            reasons.add('Custom questions details set but no related Summit Event Questions');
-        }
-        reasons.addAll(FiuEventsReadinessService.collectRichTextImageWarnings(eventRow));
-
-        Boolean hasInstances = relatedInstances != null && !relatedInstances.isEmpty();
-        if (!hasInstances) {
-            reasons.add('No instances configured');
-        } else if (instanceCapacityField != null) {
-            Boolean hasCapacityIssue = false;
-            for (SObject inst : relatedInstances) {
-                Decimal cap = (Decimal) inst.get(instanceCapacityField);
-                if (cap == null || cap <= 0) {
-                    hasCapacityIssue = true;
-                    break;
-                }
-            }
-            if (hasCapacityIssue) reasons.add('Instance missing capacity');
-        }
-        return reasons;
-    }
-
-    private static List<String> computeInstanceReasons(SObject instanceRow, SObject eventRow, String instanceCapacityField) {
-        List<String> reasons = new List<String>();
-        Date startDate = (Date) instanceRow.get('summit__Instance_Start_Date__c');
-        Date today = Date.today();
-        Boolean isPast = startDate != null && startDate < today;
-        if (!isPast && (String) instanceRow.get('summit__Active_Status__c') != 'Active') reasons.add('Not Active');
-        if (!isPast && (Boolean) instanceRow.get('summit__Open_Registration__c') == false) reasons.add('Registration closed');
-        if (instanceCapacityField != null) {
-            Decimal capacity = (Decimal) instanceRow.get(instanceCapacityField);
-            if (capacity == null || capacity <= 0) reasons.add('Missing capacity');
-        }
-        if (instanceRow.get('summit__Location_Title_Override__c') == null) reasons.add('Missing location title');
-        if (instanceRow.get('summit__Location_Address_Override__c') == null) reasons.add('Missing location address');
-        if (instanceRow.get('summit__Location_Map_Link_Override__c') == null) reasons.add('Missing location map link');
-        if (instanceRow.get('Parking_info__c') == null) reasons.add('Missing parking info');
-
-        if (eventRow != null) {
-            if (eventRow.get('summit__Account__c') == null) reasons.add('Parent event missing account');
-            String gateway = (String) eventRow.get('summit__Payment_Gateway__c');
-            if (!String.isBlank(gateway) && gateway != 'No Gateway' && eventRow.get('Accounting_Department__c') == null) {
-                reasons.add('Paid event missing accounting department');
-            }
-        }
-        return reasons;
     }
 
     private static Map<Id, Integer> loadQuestionCounts(Set<Id> eventIds) {

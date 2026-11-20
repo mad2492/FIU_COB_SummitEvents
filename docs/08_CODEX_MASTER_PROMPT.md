@@ -9,6 +9,8 @@ Read the handoff pack files in this folder before doing anything else.
 - Build, modify, test, and deploy **only in Partial UAT**.
 - Do not push any new code, metadata, configuration changes, or destructive changes to Prod.
 - Prod is for discovery and understanding only.
+- Codex may auto-deploy FIU-owned changes to **Partial UAT** using `--test-level NoTestRun` when the user asks for implementation or UAT iteration.
+- Never deploy to **Prod** without the user's explicit consent for that specific Prod deployment.
 
 ## Absolute Package Rule
 - Do **not** modify managed package assets from Summit Events.

@@ -465,6 +465,17 @@
     object-fit: contain;
 }
 
+.public-image-status {
+    display: grid;
+    gap: 0.25rem;
+    color: var(--wizard-text-muted);
+    font-size: 0.82rem;
+}
+
+.public-image-action {
+    align-self: end;
+}
+
 .callout {
     display: flex;
     gap: 0.65rem;
@@ -826,6 +837,14 @@
     background: var(--wizard-warning-bg);
     border-color: #f4c0a8;
     color: var(--wizard-warning);
+}
+
+.private-image-issue-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.35rem;
 }
 
 .validation-summary--error {

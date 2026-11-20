@@ -19,14 +19,14 @@ public with sharing class FiuEventBrowserService {
     }
 
     @AuraEnabled(cacheable=true)
-    public static EventQueryResult queryEvents(String searchKey, String statusFilter, String programCode, String readinessFilter, Integer pageNumber, Integer pageSize, String sortField1, String sortDir1, String sortField2, String sortDir2) {
+    public static EventQueryResult queryEvents(String searchKey, String statusFilter, String programCode, String readinessFilter, Integer pageNumber, Integer pageSize, String sortField1, String sortDir1, String sortField2, String sortDir2, String recordTypeId) {
         String eventObject = FiuEventsAccessService.resolveEventObject();
         EventQueryResult result = new EventQueryResult();
         result.rows = new List<EventRow>();
         result.totalCount = 0;
         if (eventObject == null) return result;
 
-        Set<Id> allowedRecordTypes = FiuEventsAccessService.getAllowedEventRecordTypeIds();
+        Set<Id> allowedRecordTypes = FiuEventsAccessService.getScopedEventRecordTypeIds(recordTypeId);
         if (allowedRecordTypes.isEmpty()) return result;
 
         FiuProgramFilterService.ProgramFilterConfig programConfig = FiuProgramFilterService.getConfig();
@@ -39,7 +39,9 @@ public with sharing class FiuEventBrowserService {
         String normalizedSearch = String.isBlank(searchKey) ? null : searchKey.trim().toLowerCase();
         List<String> selectFields = new List<String>{
             'Id', 'Name', 'RecordType.Name', 'summit__Event_Status__c', 'summit__Start_Date__c', 'summit__End_Date__c',
-            'summit__Account__c', 'Default_Plan__c', 'Includes_Multiple_Programs__c',
+            'summit__Account__c', 'FIU_Create_Opps_From_Regs__c', 'Send_Registration_Confirmation_Email__c',
+            'Default_Plan__c', 'Includes_Multiple_Programs__c', 'summit__Add_Info_Question_Text_1__c',
+            'summit__Add_Info_Question_Pick_List_1__c', 'summit__Add_Info_Question_Pick_List_Long_1__c',
             'summit__Event_Additional_Question_Title__c', 'summit__Event_Additional_Questions_Description__c',
             'summit__Event_description__c', 'summit__Event_Short_Listing_Description__c',
             'summit__Event_Footer__c', 'summit__Event_Full_Text__c', 'summit__Event_Confirmation_Description__c'
@@ -65,18 +67,18 @@ public with sharing class FiuEventBrowserService {
         Integer safePageNumber = pageNumber == null || pageNumber < 1 ? 1 : pageNumber;
         Integer offsetRows = (safePageNumber - 1) * safePageSize;
         String orderedSoql = soql + ' ORDER BY ' + buildOrderBy(sortField1, sortDir1, sortField2, sortDir2);
+        List<SObject> rawRows;
         if (normalizedSearch == null) {
-            String countSoql = 'SELECT COUNT() FROM ' + eventObject + ' WHERE RecordTypeId IN :allowedRecordTypes';
-            if (previewField != null) countSoql += ' AND (' + previewField + ' = false OR ' + previewField + ' = null)';
-            if (String.isNotBlank(statusFilter)) countSoql += ' AND summit__Event_Status__c = :statusFilter';
-            if (programClause != null) countSoql += ' AND ' + programClause;
-            result.totalCount = Integer.valueOf(Database.countQuery(countSoql));
-            orderedSoql += ' LIMIT :safePageSize OFFSET :offsetRows';
+            ApexPages.StandardSetController pager = new ApexPages.StandardSetController(Database.getQueryLocator(orderedSoql));
+            pager.setPageSize(safePageSize);
+            pager.setPageNumber(safePageNumber);
+            result.totalCount = pager.getResultSize();
+            rawRows = pager.getRecords();
         } else {
-            orderedSoql += ' LIMIT 5000';
+            orderedSoql += ' LIMIT 10000';
+            rawRows = Database.query(orderedSoql);
         }
 
-        List<SObject> rawRows = Database.query(orderedSoql);
         Map<Id, Integer> questionCountByEventId = new Map<Id, Integer>();
         Map<Id, Integer> instanceCountByEventId = new Map<Id, Integer>();
         Set<Id> eventIds = new Set<Id>();
@@ -196,29 +198,14 @@ public with sharing class FiuEventBrowserService {
     }
 
     private static String getEventIssueReason(SObject eventRow, FiuProgramFilterService.ProgramFilterConfig programConfig, Integer relatedQuestionCount, String capacityField) {
-        List<String> reasons = new List<String>();
-        if (eventRow.get('summit__Account__c') == null) reasons.add('Missing account');
-        if (capacityField != null) {
-            Decimal capacity = (Decimal) eventRow.get(capacityField);
-            if (capacity == null || capacity <= 0) reasons.add('Missing capacity');
-        }
-
-        Boolean includesMultiple = (Boolean) eventRow.get('Includes_Multiple_Programs__c');
-        Boolean hasDefaultPlan = eventRow.get('Default_Plan__c') != null;
-        Boolean hasProgramFilterCodes = !FiuProgramFilterService.extractProgramCodesFromEvent(eventRow, programConfig).isEmpty();
-
-        if (includesMultiple == true) {
-            if (!hasProgramFilterCodes && !hasDefaultPlan) reasons.add('Missing selected program');
-        } else {
-            if (!hasDefaultPlan && !hasProgramFilterCodes) reasons.add('Missing selected program');
-        }
-        String customQuestionTitle = (String) eventRow.get('summit__Event_Additional_Question_Title__c');
-        String customQuestionDescription = (String) eventRow.get('summit__Event_Additional_Questions_Description__c');
-        Boolean hasCustomQuestionPageDetails = !String.isBlank(customQuestionTitle) || !String.isBlank(customQuestionDescription);
-        if (hasCustomQuestionPageDetails && (relatedQuestionCount == null || relatedQuestionCount == 0)) {
-            reasons.add('Custom questions details set but no related Summit Event Questions');
-        }
-        reasons.addAll(FiuEventsReadinessService.collectRichTextImageWarnings(eventRow));
+        FiuReadinessPolicyService.EventPolicyContext context = new FiuReadinessPolicyService.EventPolicyContext();
+        context.eventCapacityField = capacityField;
+        context.programConfig = programConfig;
+        context.relatedQuestionCount = relatedQuestionCount;
+        context.includeProgramCheck = true;
+        context.includeRelatedInstancePresenceCheck = false;
+        context.includeRelatedInstanceCapacityCheck = false;
+        List<String> reasons = FiuReadinessPolicyService.evaluateEvent(eventRow, context).blockingMessages();
         return reasons.isEmpty() ? null : String.join(reasons, '; ');
     }
 

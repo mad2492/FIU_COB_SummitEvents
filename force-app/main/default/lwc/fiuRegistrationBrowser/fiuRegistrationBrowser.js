@@ -7,8 +7,10 @@ import queryRegistrations from '@salesforce/apex/FiuRegistrationBrowserService.q
 import massUpdateRegistrations from '@salesforce/apex/FiuRegistrationBrowserService.massUpdateRegistrations';
 import getLocationTypeOverrideOptions from '@salesforce/apex/FiuRegistrationBrowserService.getLocationTypeOverrideOptions';
 import getProgramOptions from '@salesforce/apex/FiuProgramFilterService.getProgramOptions';
+import getEventRecordTypeOptions from '@salesforce/apex/FiuEventsAccessService.getEventRecordTypeOptions';
 
 const VIEW_STATE_KEY = 'fiuRegBrowserViewStateV1';
+const APP_SCOPE_KEY = 'fiuEventsAppScopeV1';
 
 const COLUMN_DEFS = [
     { key: 'name', label: 'Registration', type: 'link', sortable: true, defaultVisible: true },
@@ -33,6 +35,7 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
 
     searchKey = '';
     statusFilter = '';
+    recordTypeId = '';
     programCode = '';
     locationTypeOverrideFilter = '';
     instanceId;
@@ -60,6 +63,7 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
 
     isFilterModalOpen = false;
     draftStatusFilter = '';
+    draftRecordTypeId = '';
     draftProgramCode = '';
     draftLocationTypeOverrideFilter = '';
 
@@ -76,6 +80,8 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
     inlineErrorMessage;
 
     programOptions = [{ label: 'All Programs', value: '' }];
+    availableRecordTypeOptions = [];
+    recordTypeOptions = [{ label: 'All Record Types', value: '' }];
     locationTypeOverrideOptions = [{ label: 'All Location Types', value: '' }];
     canImport = false;
     openMassUpdateHint = false;
@@ -101,16 +107,21 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
     }
 
     get hasActiveFilters() {
-        return !!(this.searchKey || this.statusFilter || this.programCode || this.locationTypeOverrideFilter);
+        return !!(this.searchKey || this.statusFilter || (this.recordTypeId && this.showRecordTypePicker) || this.programCode || this.locationTypeOverrideFilter);
     }
 
     get activeFilterPills() {
         const pills = [];
         if (this.searchKey) pills.push({ key: 'search', label: `Search: "${this.searchKey}"` });
         if (this.statusFilter) pills.push({ key: 'status', label: `Status: ${this.statusOptions.find((o) => o.value === this.statusFilter)?.label || this.statusFilter}` });
+        if (this.recordTypeId && this.showRecordTypePicker) pills.push({ key: 'recordType', label: `Record Type: ${this.recordTypeOptions.find((o) => o.value === this.recordTypeId)?.label || 'Selected'}` });
         if (this.programCode) pills.push({ key: 'program', label: `Program: ${this.programOptions.find((o) => o.value === this.programCode)?.label || this.programCode}` });
         if (this.locationTypeOverrideFilter) pills.push({ key: 'locationType', label: `Location Type: ${this.locationTypeOverrideFilter}` });
         return pills;
+    }
+
+    get showRecordTypePicker() {
+        return this.availableRecordTypeOptions.length > 1;
     }
 
     get fieldChooserOptions() {
@@ -154,6 +165,8 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
     setPageRef(pageRef) {
         const state = pageRef?.state || {};
         this.instanceId = state.c__instanceId || null;
+        this.restoreAppScope();
+        if (Object.prototype.hasOwnProperty.call(state, 'c__recordType')) this.recordTypeId = state.c__recordType || '';
         if (Object.prototype.hasOwnProperty.call(state, 'c__program')) this.programCode = state.c__program || '';
         if (Object.prototype.hasOwnProperty.call(state, 'c__status')) this.statusFilter = state.c__status || '';
         this.openMassUpdateHint = state.c__openMassUpdate === '1';
@@ -168,9 +181,27 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         }
     }
 
-    @wire(getProgramOptions)
+    @wire(getEventRecordTypeOptions)
+    wiredRecordTypes({ data }) {
+        if (data) {
+            this.availableRecordTypeOptions = data;
+            this.recordTypeOptions = data.length > 1 ? [{ label: 'All Record Types', value: '' }, ...data] : data;
+            if (this.normalizeRecordTypeScope()) {
+                this.pageNumber = 1;
+                this.loadRows();
+            }
+        }
+    }
+
+    @wire(getProgramOptions, { recordTypeId: '$recordTypeId' })
     wiredPrograms({ data }) {
-        if (data) this.programOptions = [{ label: 'All Programs', value: '' }, ...data];
+        if (data) {
+            this.programOptions = [{ label: 'All Programs', value: '' }, ...data];
+            if (this.programCode && !this.programOptions.some((option) => option.value === this.programCode)) {
+                this.programCode = '';
+                this.persistAppScope();
+            }
+        }
     }
 
     @wire(getObjectInfo, { objectApiName: REGISTRATION_OBJECT })
@@ -200,7 +231,6 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
             if (Array.isArray(savedState.visibleColumnKeys) && savedState.visibleColumnKeys.length) this.visibleColumnKeys = savedState.visibleColumnKeys;
             if (typeof savedState.pageSize === 'number') this.pageSize = savedState.pageSize;
             if (typeof savedState.statusFilter === 'string') this.statusFilter = savedState.statusFilter;
-            if (typeof savedState.programCode === 'string' && !this.instanceId) this.programCode = savedState.programCode;
             if (typeof savedState.locationTypeOverrideFilter === 'string') this.locationTypeOverrideFilter = savedState.locationTypeOverrideFilter;
             if (typeof savedState.sortField1 === 'string') this.sortField1 = savedState.sortField1;
             if (typeof savedState.sortDir1 === 'string') this.sortDir1 = savedState.sortDir1;
@@ -216,7 +246,6 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
             visibleColumnKeys: this.visibleColumnKeys,
             pageSize: this.pageSize,
             statusFilter: this.statusFilter,
-            programCode: this.programCode,
             locationTypeOverrideFilter: this.locationTypeOverrideFilter,
             sortField1: this.sortField1,
             sortDir1: this.sortDir1,
@@ -241,7 +270,8 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
                 sortField1: this.sortField1,
                 sortDir1: this.sortDir1,
                 sortField2: this.sortField2,
-                sortDir2: this.sortDir2
+                sortDir2: this.sortDir2,
+                recordTypeId: this.recordTypeId
             });
             const baseRows = data?.rows || [];
             this.totalCount = data?.totalCount || 0;
@@ -261,6 +291,7 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
             if (this.selectedRegistrationId && !currentIds.has(this.selectedRegistrationId)) {
                 this.selectedRegistrationId = null;
             }
+            this.persistAppScope();
             this.persistViewState();
         } catch (error) {
             this.rows = [];
@@ -323,8 +354,13 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         const key = event.detail.key;
         if (key === 'search') this.searchKey = '';
         if (key === 'status') this.statusFilter = '';
+        if (key === 'recordType') {
+            this.recordTypeId = '';
+            this.programCode = '';
+        }
         if (key === 'program') this.programCode = '';
         if (key === 'locationType') this.locationTypeOverrideFilter = '';
+        if (key === 'recordType' || key === 'program') this.persistAppScope();
         this.pageNumber = 1;
         this.loadRows();
     }
@@ -381,6 +417,7 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
     // ---- filter modal
     openFilterModal() {
         this.draftStatusFilter = this.statusFilter;
+        this.draftRecordTypeId = this.recordTypeId;
         this.draftProgramCode = this.programCode;
         this.draftLocationTypeOverrideFilter = this.locationTypeOverrideFilter;
         this.isFilterModalOpen = true;
@@ -391,14 +428,20 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
     }
 
     handleDraftStatus(event) { this.draftStatusFilter = event.detail.value; }
+    handleDraftRecordType(event) {
+        this.draftRecordTypeId = event.detail.value;
+        this.draftProgramCode = '';
+    }
     handleDraftProgram(event) { this.draftProgramCode = event.detail.value; }
     handleDraftLocationTypeOverride(event) { this.draftLocationTypeOverrideFilter = event.detail.value; }
 
     applyFilters() {
         this.statusFilter = this.draftStatusFilter || '';
+        this.recordTypeId = this.draftRecordTypeId || '';
         this.programCode = this.draftProgramCode || '';
         this.locationTypeOverrideFilter = this.draftLocationTypeOverrideFilter || '';
         this.isFilterModalOpen = false;
+        this.persistAppScope();
         this.pageNumber = 1;
         this.loadRows();
     }
@@ -426,6 +469,7 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
     resetToDefaultView() {
         this.visibleColumnKeys = [...DEFAULT_VISIBLE_COLUMN_KEYS];
         this.statusFilter = '';
+        this.recordTypeId = this.defaultRecordTypeScopeValue;
         this.programCode = '';
         this.locationTypeOverrideFilter = '';
         this.searchKey = '';
@@ -436,6 +480,7 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         this.pageSize = 25;
         this.pageNumber = 1;
         this.inlineErrorMessage = undefined;
+        this.persistAppScope();
         this.persistViewState();
         this.loadRows();
     }
@@ -487,6 +532,7 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
             exportMode: 'filtered',
             searchKey: this.searchKey || '',
             statusFilter: this.statusFilter || '',
+            recordTypeId: this.recordTypeId || '',
             programCode: this.programCode || '',
             locationTypeOverrideFilter: this.locationTypeOverrideFilter || '',
             instanceId: this.instanceId || '',
@@ -565,6 +611,9 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
             this.inlineErrorMessage = undefined;
             this.selectedRowIds = [];
             this.showToast('Mass update complete', `${result.updatedCount} registration(s) updated.`, 'success');
+            if (result?.warnings?.length) {
+                this.showToast('Review alignment', result.warnings.join(' '), 'warning');
+            }
             await this.loadRows();
         } catch (error) {
             this.inlineErrorMessage = error?.body?.message || 'Mass update failed.';
@@ -577,5 +626,46 @@ export default class FiuRegistrationBrowser extends NavigationMixin(LightningEle
         if (status === 'Cancelled') return 'neutral';
         if (!status) return 'neutral';
         return 'success';
+    }
+
+    restoreAppScope() {
+        try {
+            const raw = window.sessionStorage.getItem(APP_SCOPE_KEY);
+            if (!raw) return;
+            const scope = JSON.parse(raw);
+            if (typeof scope.recordTypeId === 'string') this.recordTypeId = scope.recordTypeId;
+            if (typeof scope.programCode === 'string') this.programCode = scope.programCode;
+        } catch (error) {
+            // ignore malformed app scope
+        }
+    }
+
+    persistAppScope() {
+        window.sessionStorage.setItem(APP_SCOPE_KEY, JSON.stringify({
+            recordTypeId: this.recordTypeId,
+            programCode: this.programCode
+        }));
+    }
+
+    get defaultRecordTypeScopeValue() {
+        return this.availableRecordTypeOptions.length === 1 ? this.availableRecordTypeOptions[0].value : '';
+    }
+
+    normalizeRecordTypeScope() {
+        if (this.availableRecordTypeOptions.length === 1) {
+            const onlyRecordTypeId = this.availableRecordTypeOptions[0].value;
+            if (this.recordTypeId !== onlyRecordTypeId) {
+                this.recordTypeId = onlyRecordTypeId;
+                this.programCode = '';
+                this.persistAppScope();
+                return true;
+            }
+        } else if (this.recordTypeId && !this.availableRecordTypeOptions.some((option) => option.value === this.recordTypeId)) {
+            this.recordTypeId = '';
+            this.programCode = '';
+            this.persistAppScope();
+            return true;
+        }
+        return false;
     }
 }

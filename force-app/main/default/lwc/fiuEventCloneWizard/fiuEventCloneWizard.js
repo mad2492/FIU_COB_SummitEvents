@@ -57,7 +57,8 @@ export default class FiuEventCloneWizard extends NavigationMixin(LightningElemen
                 sortField1: 'startDate',
                 sortDir1: 'DESC',
                 sortField2: '',
-                sortDir2: 'ASC'
+                sortDir2: 'ASC',
+                recordTypeId: ''
             });
             this.rows = (data?.rows || []).map((row) => ({
                 ...row,

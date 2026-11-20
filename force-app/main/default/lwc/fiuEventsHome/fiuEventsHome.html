@@ -12,6 +12,16 @@
                 </p>
             </div>
             <div class="page-header__actions">
+                <template if:true={showRecordTypePicker}>
+                    <lightning-combobox
+                        class="scope-picker"
+                        variant="label-hidden"
+                        label="Record Type Scope"
+                        value={recordTypeId}
+                        options={recordTypeOptions}
+                        onchange={handleRecordType}>
+                    </lightning-combobox>
+                </template>
                 <lightning-combobox
                     class="scope-picker"
                     variant="label-hidden"

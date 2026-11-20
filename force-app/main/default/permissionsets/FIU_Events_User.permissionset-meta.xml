@@ -8,9 +8,65 @@
         <visible>true</visible>
     </applicationVisibilities>
     <classAccesses>
+        <apexClass>ExportCsvController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>FiuEventBrowserService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>FiuEventsAccessService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>FiuEventsOrchestratorService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>FiuEventsReadinessService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>FiuEventsRosterService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>FIU_EventsWizardService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>FiuHomeDashboardService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>FiuInstanceBrowserService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>FiuInstanceWizardService</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>FiuProgramFilterService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>FiuPublicFileService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>FiuReadinessRecalcService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>FiuRegistrationBrowserService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <customPermissions>
+        <enabled>true</enabled>
+        <name>FIU_Events_Create_Public_File_Links</name>
+    </customPermissions>
     <tabSettings>
         <tab>fiuEventBrowser</tab>
         <visibility>Visible</visibility>
@@ -42,6 +98,16 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>summit__Summit_Events__c.Preview_Session_Key__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>summit__Summit_Events__c.Preview_Expires_At__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>summit__Summit_Events__c.FIU_Readiness_Status__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -68,6 +134,16 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>summit__Summit_Events_Instance__c.FIU_Readiness_Updated_At__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>summit__Summit_Events_Instance__c.Preview_Instance__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>summit__Summit_Events_Instance__c.Preview_Session_Key__c</field>
         <readable>true</readable>
     </fieldPermissions>
 </PermissionSet>

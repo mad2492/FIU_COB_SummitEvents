@@ -8,6 +8,8 @@ The target result is a significantly more intuitive Lightning experience for FIU
 ## Critical Delivery Rule
 - Use **Prod** only to learn and discover current metadata, automation, field usage, business rules, and working patterns.
 - Push **all new code, metadata, configuration, and deployment changes only to Partial UAT**.
+- Codex may auto-deploy FIU-owned changes to **Partial UAT** with no Apex test run required for UAT iteration.
+- Never deploy anything to **Prod** without explicit user consent for that specific production deployment.
 - Do **not** modify managed package assets.
 
 ## Root UX Problem

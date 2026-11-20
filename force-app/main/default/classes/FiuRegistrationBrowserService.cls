@@ -56,7 +56,8 @@ public with sharing class FiuRegistrationBrowserService {
         String sortField1,
         String sortDir1,
         String sortField2,
-        String sortDir2
+        String sortDir2,
+        String recordTypeId
     ) {
         String emailField = resolveOptionalField('summit__Summit_Events_Registration__c', new List<String>{ 'summit__Email__c', 'Email__c' });
         String processStatusField = resolveOptionalField('summit__Summit_Events_Registration__c', new List<String>{ 'summit__Status__c', 'Status__c' });
@@ -69,7 +70,7 @@ public with sharing class FiuRegistrationBrowserService {
         result.totalCount = 0;
         if (eventObject == null) return result;
 
-        Set<Id> allowedRecordTypes = FiuEventsAccessService.getAllowedEventRecordTypeIds();
+        Set<Id> allowedRecordTypes = FiuEventsAccessService.getScopedEventRecordTypeIds(recordTypeId);
         if (allowedRecordTypes.isEmpty()) return result;
         FiuProgramFilterService.ProgramFilterConfig programConfig = FiuProgramFilterService.getConfig();
         String previewField = FiuEventsAccessService.resolveEventPreviewField();
@@ -128,14 +129,16 @@ public with sharing class FiuRegistrationBrowserService {
 
         Integer safePageSize = pageSize == null || pageSize < 1 ? 25 : Math.min(pageSize, 100);
         Integer safePageNumber = pageNumber == null || pageNumber < 1 ? 1 : pageNumber;
-        Integer offsetRows = (safePageNumber - 1) * safePageSize;
 
         String orderBy = buildOrderBy(sortField1, sortDir1, sortField2, sortDir2, emailField, processStatusField);
-        result.totalCount = Integer.valueOf(Database.countQuery(countSoql));
-        soql += ' ORDER BY ' + orderBy + ' LIMIT :safePageSize OFFSET :offsetRows';
+        soql += ' ORDER BY ' + orderBy;
+        ApexPages.StandardSetController pager = new ApexPages.StandardSetController(Database.getQueryLocator(soql));
+        pager.setPageSize(safePageSize);
+        pager.setPageNumber(safePageNumber);
+        result.totalCount = pager.getResultSize();
 
         List<RegistrationRow> rows = new List<RegistrationRow>();
-        for (SObject reg : Database.query(soql)) {
+        for (SObject reg : pager.getRecords()) {
             SObject inst = reg.getSObject('summit__Event_Instance__r');
             SObject evt = inst == null ? null : inst.getSObject('summit__Event__r');
             RegistrationRow row = new RegistrationRow();
@@ -244,13 +247,22 @@ public with sharing class FiuRegistrationBrowserService {
             throw new AuraHandledException('Choose at least one field to update.');
         }
 
-        if (newInstanceId != null && newEventId != null) {
-            Integer relationCount = [
-                SELECT COUNT()
+        Id parentEventIdForInstance;
+        if (newInstanceId != null) {
+            List<summit__Summit_Events_Instance__c> instances = [
+                SELECT Id, summit__Event__c
                 FROM summit__Summit_Events_Instance__c
-                WHERE Id = :newInstanceId AND summit__Event__c = :newEventId
+                WHERE Id = :newInstanceId
+                LIMIT 1
             ];
-            if (relationCount == 0) throw new AuraHandledException('Selected Instance does not belong to selected Event.');
+            if (instances.isEmpty()) throw new AuraHandledException('Selected Instance was not found.');
+            parentEventIdForInstance = instances[0].summit__Event__c;
+            if (newEventId != null && parentEventIdForInstance != newEventId) {
+                throw new AuraHandledException('Selected Instance does not belong to selected Event.');
+            }
+            if (newEventId == null) {
+                newEventId = parentEventIdForInstance;
+            }
         }
 
         List<SObject> updates = new List<SObject>();
@@ -262,13 +274,15 @@ public with sharing class FiuRegistrationBrowserService {
             updates.add(row);
         }
 
-        update updates;
+        Database.update(updates, AccessLevel.USER_MODE);
 
         MassUpdateResult result = new MassUpdateResult();
         result.updatedCount = updates.size();
         result.warnings = new List<String>();
-        if (newInstanceId == null && newEventId != null) {
-            result.warnings.add('Event was updated without changing Instance. Confirm event/instance alignment.');
+        if (newInstanceId != null && parentEventIdForInstance != null) {
+            result.warnings.add('Event was aligned to the selected Instance automatically.');
+        } else if (newInstanceId == null && newEventId != null) {
+            result.warnings.add('Event was updated without changing Instance. Confirm the selected registrations should remain on their current instances.');
         }
         return result;
     }

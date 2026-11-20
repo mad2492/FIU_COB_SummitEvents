@@ -106,14 +106,18 @@
 }
 
 /* ---------- list shell ---------- */
+/* No overflow:hidden here — it would clip the pager's "Rows per page"
+   combobox dropdown. Rounded corners are restored on the first/last
+   children (header + pager) instead. */
 .fls-list-shell {
-    overflow: hidden;
+    overflow: visible;
 }
 
 .fls-list-shell__header {
     padding: 0.85rem 1rem;
     background: var(--fls-surface-alt);
     border-bottom: 1px solid var(--fls-border);
+    border-radius: 8px 8px 0 0;
 }
 
 .fls-list-shell__title {
@@ -647,6 +651,7 @@
     padding: 0.75rem 1rem 0.9rem;
     border-top: 1px solid var(--fls-border);
     background: var(--fls-surface);
+    border-radius: 0 0 8px 8px;
 }
 
 .fls-pager__summary {

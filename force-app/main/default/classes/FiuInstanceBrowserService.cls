@@ -2,6 +2,10 @@ public with sharing class FiuInstanceBrowserService {
     public class InstanceQueryResult {
         @AuraEnabled public List<InstanceRow> rows;
         @AuraEnabled public Integer totalCount;
+        @AuraEnabled public String nextCursor;
+        @AuraEnabled public Boolean hasNext;
+        @AuraEnabled public Boolean hasPrevious;
+        @AuraEnabled public Boolean cursorPaging;
     }
 
     public class InstanceRow {
@@ -19,23 +23,46 @@ public with sharing class FiuInstanceBrowserService {
         @AuraEnabled public String registerUrl;
     }
 
+    private class SortSpec {
+        public String key;
+        public String soqlField;
+        public String valueType;
+        public String direction;
+    }
+
+    private class InstanceCursor {
+        public String sortField;
+        public String sortDir;
+        public String stringValue;
+        public Date dateValue;
+        public Datetime datetimeValue;
+        public Id id;
+    }
+
     @AuraEnabled(cacheable=true)
-    public static InstanceQueryResult queryInstances(Id eventId, String searchKey, String bucketFilter, String programCode, Integer pageNumber, Integer pageSize, String sortField1, String sortDir1, String sortField2, String sortDir2) {
+    public static InstanceQueryResult queryInstances(Id eventId, String searchKey, String bucketFilter, String programCode, Integer pageNumber, Integer pageSize, String sortField1, String sortDir1, String sortField2, String sortDir2, String pageCursor, String recordTypeId) {
         InstanceQueryResult result = new InstanceQueryResult();
         result.rows = new List<InstanceRow>();
         result.totalCount = 0;
-        Set<Id> allowedRecordTypes = FiuEventsAccessService.getAllowedEventRecordTypeIds();
+        result.hasNext = false;
+        result.hasPrevious = false;
+        result.cursorPaging = false;
+        Set<Id> allowedRecordTypes = FiuEventsAccessService.getScopedEventRecordTypeIds(recordTypeId);
         if (allowedRecordTypes.isEmpty()) return result;
         FiuProgramFilterService.ProgramFilterConfig programConfig = FiuProgramFilterService.getConfig();
         String previewField = FiuEventsAccessService.resolveEventPreviewField();
         String normalizedSearch = String.isBlank(searchKey) ? null : searchKey.trim().toLowerCase();
 
         List<String> fields = new List<String>{
-            'Id', 'summit__Instance_Title__c', 'summit__Instance_Start_Date__c', 'summit__Instance_End_Date__c',
+            'Id', 'CreatedDate', 'summit__Instance_Title__c', 'summit__Instance_Start_Date__c', 'summit__Instance_End_Date__c',
             'summit__Active_Status__c', 'summit__Open_Registration__c', 'summit__Capacity__c', 'summit__Registration_Link__c',
             'summit__Location_Title_Override__c', 'summit__Location_Address_Override__c', 'summit__Location_Map_Link_Override__c', 'Parking_info__c',
             'summit__Event__r.Id', 'summit__Event__r.Name', 'summit__Event__r.summit__Account__c', 'summit__Event__r.summit__Payment_Gateway__c', 'summit__Event__r.Accounting_Department__c',
+            'summit__Event__r.FIU_Create_Opps_From_Regs__c', 'summit__Event__r.Send_Registration_Confirmation_Email__c',
             'summit__Event__r.Default_Plan__c', 'summit__Event__r.Includes_Multiple_Programs__c',
+            'summit__Event__r.summit__Add_Info_Question_Text_1__c',
+            'summit__Event__r.summit__Add_Info_Question_Pick_List_1__c',
+            'summit__Event__r.summit__Add_Info_Question_Pick_List_Long_1__c',
             'summit__Event__r.summit__Event_Additional_Question_Title__c', 'summit__Event__r.summit__Event_Additional_Questions_Description__c',
             'summit__Event__r.summit__Event_description__c', 'summit__Event__r.summit__Event_Short_Listing_Description__c',
             'summit__Event__r.summit__Event_Footer__c', 'summit__Event__r.summit__Event_Full_Text__c',
@@ -57,25 +84,41 @@ public with sharing class FiuInstanceBrowserService {
         if (bucketFilter == 'Upcoming') soql += ' AND summit__Instance_Start_Date__c >= :today';
         if (bucketFilter == 'Past') soql += ' AND summit__Instance_Start_Date__c < :today';
 
-        String countSoql = 'SELECT COUNT() FROM summit__Summit_Events_Instance__c WHERE summit__Event__r.RecordTypeId IN :allowedRecordTypes';
-        if (previewField != null) countSoql += ' AND (summit__Event__r.' + previewField + ' = false OR summit__Event__r.' + previewField + ' = null)';
-        if (eventId != null) countSoql += ' AND summit__Event__c = :eventId';
-        if (programClause != null) countSoql += ' AND ' + programClause;
-        if (bucketFilter == 'Upcoming') countSoql += ' AND summit__Instance_Start_Date__c >= :today';
-        if (bucketFilter == 'Past') countSoql += ' AND summit__Instance_Start_Date__c < :today';
-
         Integer safePageSize = pageSize == null || pageSize < 1 ? 25 : Math.min(pageSize, 100);
         Integer safePageNumber = pageNumber == null || pageNumber < 1 ? 1 : pageNumber;
         Integer offsetRows = (safePageNumber - 1) * safePageSize;
+        SortSpec keysetSort = resolveSortSpec(sortField1, sortDir1);
         String orderBy = buildOrderBy(sortField1, sortDir1, sortField2, sortDir2);
+        List<SObject> queriedRows;
         if (normalizedSearch == null && bucketFilter != 'Unpublished') {
-            result.totalCount = Integer.valueOf(Database.countQuery(countSoql));
-            soql += ' ORDER BY ' + orderBy + ' LIMIT :safePageSize OFFSET :offsetRows';
+            InstanceCursor cursor = decodeCursor(pageCursor);
+            if (cursor != null && (cursor.sortField != keysetSort.key || cursor.sortDir != keysetSort.direction)) {
+                cursor = null;
+            }
+
+            String cursorStringValue = cursor == null ? null : cursor.stringValue;
+            Date cursorDateValue = cursor == null ? null : cursor.dateValue;
+            Datetime cursorDatetimeValue = cursor == null ? null : cursor.datetimeValue;
+            Id cursorIdValue = cursor == null ? null : cursor.id;
+            String cursorPredicate = buildKeysetPredicate(keysetSort, cursor);
+            if (cursorPredicate != null) soql += ' AND ' + cursorPredicate;
+
+            Integer queryLimit = safePageSize + 1;
+            soql += ' ORDER BY ' + buildKeysetOrderBy(keysetSort) + ' LIMIT :queryLimit';
+            queriedRows = Database.query(soql);
+            result.cursorPaging = true;
+            result.hasPrevious = cursor != null;
+            result.hasNext = queriedRows.size() > safePageSize;
+            if (result.hasNext) queriedRows.remove(queriedRows.size() - 1);
+            result.totalCount = queriedRows.size();
+            if (result.hasNext && !queriedRows.isEmpty()) {
+                result.nextCursor = encodeCursor(queriedRows[queriedRows.size() - 1], keysetSort);
+            }
         } else {
-            soql += ' ORDER BY ' + orderBy + ' LIMIT 2000';
+            soql += ' ORDER BY ' + orderBy + ' LIMIT 10000';
+            queriedRows = Database.query(soql);
         }
 
-        List<SObject> queriedRows = Database.query(soql);
         Set<Id> instanceIds = new Set<Id>();
         Set<Id> eventIds = new Set<Id>();
         for (SObject row : queriedRows) {
@@ -167,6 +210,81 @@ public with sharing class FiuInstanceBrowserService {
         return result;
     }
 
+    private static SortSpec resolveSortSpec(String sortField, String sortDir) {
+        SortSpec spec = new SortSpec();
+        spec.key = String.isBlank(sortField) ? 'startDate' : sortField;
+        spec.direction = String.valueOf(sortDir).toUpperCase() == 'ASC' ? 'ASC' : 'DESC';
+        Map<String, String> sortMap = new Map<String, String>{
+            'title' => 'summit__Instance_Title__c',
+            'eventName' => 'summit__Event__r.Name',
+            'startDate' => 'summit__Instance_Start_Date__c',
+            'activeStatus' => 'summit__Active_Status__c',
+            'createdDate' => 'CreatedDate'
+        };
+        Map<String, String> typeMap = new Map<String, String>{
+            'title' => 'String',
+            'eventName' => 'String',
+            'startDate' => 'Date',
+            'activeStatus' => 'String',
+            'createdDate' => 'Datetime'
+        };
+        if (!sortMap.containsKey(spec.key)) spec.key = 'startDate';
+        spec.soqlField = sortMap.get(spec.key);
+        spec.valueType = typeMap.get(spec.key);
+        return spec;
+    }
+
+    private static String buildKeysetOrderBy(SortSpec spec) {
+        return spec.soqlField + ' ' + spec.direction + ' NULLS LAST, Id ASC';
+    }
+
+    private static String buildKeysetPredicate(SortSpec spec, InstanceCursor cursor) {
+        if (cursor == null || cursor.id == null) return null;
+        String bindName = spec.valueType == 'Date' ? 'cursorDateValue'
+            : spec.valueType == 'Datetime' ? 'cursorDatetimeValue'
+            : 'cursorStringValue';
+        Boolean cursorValueIsNull = (spec.valueType == 'Date' && cursor.dateValue == null)
+            || (spec.valueType == 'Datetime' && cursor.datetimeValue == null)
+            || (spec.valueType == 'String' && cursor.stringValue == null);
+        if (cursorValueIsNull) {
+            return '(' + spec.soqlField + ' = null AND Id > :cursorIdValue)';
+        }
+        String comparison = spec.direction == 'ASC' ? '>' : '<';
+        return '((' + spec.soqlField + ' ' + comparison + ' :' + bindName + ')'
+            + ' OR (' + spec.soqlField + ' = :' + bindName + ' AND Id > :cursorIdValue)'
+            + ' OR ' + spec.soqlField + ' = null)';
+    }
+
+    private static String encodeCursor(SObject row, SortSpec spec) {
+        InstanceCursor cursor = new InstanceCursor();
+        cursor.sortField = spec.key;
+        cursor.sortDir = spec.direction;
+        cursor.id = (Id) row.get('Id');
+        Object sortValue = getSortValue(row, spec);
+        if (spec.valueType == 'Date') cursor.dateValue = (Date) sortValue;
+        else if (spec.valueType == 'Datetime') cursor.datetimeValue = (Datetime) sortValue;
+        else cursor.stringValue = (String) sortValue;
+        return EncodingUtil.base64Encode(Blob.valueOf(JSON.serialize(cursor)));
+    }
+
+    private static InstanceCursor decodeCursor(String pageCursor) {
+        if (String.isBlank(pageCursor)) return null;
+        try {
+            String decoded = EncodingUtil.base64Decode(pageCursor).toString();
+            return (InstanceCursor) JSON.deserialize(decoded, InstanceCursor.class);
+        } catch (Exception ex) {
+            throw new AuraHandledException('The instance list position expired. Refresh the page and try again.');
+        }
+    }
+
+    private static Object getSortValue(SObject row, SortSpec spec) {
+        if (spec.key == 'eventName') {
+            SObject evt = row.getSObject('summit__Event__r');
+            return evt == null ? null : evt.get('Name');
+        }
+        return row.get(spec.soqlField);
+    }
+
     private static String buildOrderBy(String sortField1, String sortDir1, String sortField2, String sortDir2) {
         Map<String, String> sortMap = new Map<String, String>{
             'title' => 'summit__Instance_Title__c',
@@ -178,8 +296,8 @@ public with sharing class FiuInstanceBrowserService {
         List<String> orderParts = new List<String>();
         addSortPart(orderParts, sortMap, sortField1, sortDir1);
         addSortPart(orderParts, sortMap, sortField2, sortDir2);
-        if (orderParts.isEmpty()) return 'summit__Instance_Start_Date__c ASC NULLS LAST, CreatedDate DESC';
-        orderParts.add('CreatedDate DESC');
+        if (orderParts.isEmpty()) return 'summit__Instance_Start_Date__c ASC NULLS LAST, Id ASC';
+        orderParts.add('Id ASC');
         return String.join(orderParts, ', ');
     }
 
@@ -209,32 +327,18 @@ public with sharing class FiuInstanceBrowserService {
     }
 
     private static String getParentEventNotReadyReason(SObject eventRow, FiuProgramFilterService.ProgramFilterConfig programConfig, Integer relatedQuestionCount) {
-        List<String> reasons = new List<String>();
-        if (eventRow.get('summit__Account__c') == null) reasons.add('Parent event missing Account');
-
+        FiuReadinessPolicyService.EventPolicyContext context = new FiuReadinessPolicyService.EventPolicyContext();
+        context.programConfig = programConfig;
+        context.relatedQuestionCount = relatedQuestionCount;
+        context.includeProgramCheck = true;
+        context.includeEventCapacityCheck = false;
+        context.includeRelatedInstancePresenceCheck = false;
+        context.includeRelatedInstanceCapacityCheck = false;
+        List<String> reasons = FiuReadinessPolicyService.evaluateEvent(eventRow, context).blockingMessages();
         String gateway = (String) eventRow.get('summit__Payment_Gateway__c');
         if (!String.isBlank(gateway) && gateway != 'No Gateway' && eventRow.get('Accounting_Department__c') == null) {
             reasons.add('Paid event missing Accounting Department');
         }
-
-        Boolean includesMultiple = (Boolean) eventRow.get('Includes_Multiple_Programs__c');
-        Boolean hasDefaultPlan = eventRow.get('Default_Plan__c') != null;
-        Boolean hasProgramFilterCodes = !FiuProgramFilterService.extractProgramCodesFromEvent(eventRow, programConfig).isEmpty();
-
-        if (includesMultiple == true) {
-            if (!hasProgramFilterCodes && !hasDefaultPlan) reasons.add('Parent event missing selected program');
-        } else {
-            if (!hasDefaultPlan && !hasProgramFilterCodes) reasons.add('Parent event missing selected program');
-        }
-
-        String customQuestionTitle = (String) eventRow.get('summit__Event_Additional_Question_Title__c');
-        String customQuestionDescription = (String) eventRow.get('summit__Event_Additional_Questions_Description__c');
-        Boolean hasCustomQuestionPageDetails = !String.isBlank(customQuestionTitle) || !String.isBlank(customQuestionDescription);
-        if (hasCustomQuestionPageDetails && (relatedQuestionCount == null || relatedQuestionCount == 0)) {
-            reasons.add('Parent event has custom question details but no related Summit Event Questions');
-        }
-        reasons.addAll(FiuEventsReadinessService.collectRichTextImageWarnings(eventRow));
-
         return reasons.isEmpty() ? null : String.join(reasons, '; ');
     }
 

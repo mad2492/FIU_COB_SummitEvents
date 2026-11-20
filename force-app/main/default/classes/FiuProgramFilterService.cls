@@ -11,11 +11,11 @@ public with sharing class FiuProgramFilterService {
     }
 
     @AuraEnabled(cacheable=true)
-    public static List<ProgramOption> getProgramOptions() {
+    public static List<ProgramOption> getProgramOptions(String recordTypeId) {
         ProgramFilterConfig config = getConfig();
         if (config.eventProgramFields.isEmpty()) return new List<ProgramOption>();
 
-        Set<Id> allowedRt = FiuEventsAccessService.getAllowedEventRecordTypeIds();
+        Set<Id> allowedRt = FiuEventsAccessService.getScopedEventRecordTypeIds(recordTypeId);
         if (allowedRt.isEmpty()) return new List<ProgramOption>();
 
         String eventObject = FiuEventsAccessService.resolveEventObject();

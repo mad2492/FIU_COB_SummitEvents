@@ -120,6 +120,7 @@ public with sharing class ExportCsvController {
         String searchKey    = p.get('searchKey');
         String statusFilter = p.get('statusFilter');
         String programCode  = p.get('programCode');
+        String recordTypeId = p.get('recordTypeId');
         String locationTypeOverrideFilter = p.get('locationTypeOverrideFilter');
         String exportMode   = p.get('exportMode');
         String selectedIdsRaw = p.get('selectedIds');
@@ -128,6 +129,7 @@ public with sharing class ExportCsvController {
         String sortField2 = p.get('sortField2');
         String sortDir2   = p.get('sortDir2');
         String instanceIdRaw = p.get('instanceId');
+        Boolean quickDownload = p.get('quickDownload') == '1';
         Id instanceId = parseOptionalId(instanceIdRaw);
 
         if (isLaunch) {
@@ -135,20 +137,46 @@ public with sharing class ExportCsvController {
             return;
         }
 
-        List<String> headers = new List<String>{ 'Registration', 'Contact', 'Email', 'Event', 'Instance', 'Instance Start', 'Instance End', 'Location Type Override', 'Status' };
-        List<String> fieldPaths = new List<String>{
-            'Name',
-            'summit__Contact__r.Name',
-            'summit__Registrant_Email__c',
-            'summit__Event__r.Name',
-            'summit__Event_Instance__r.Name',
-            'summit__Event_Instance_Start_Date__c',
-            'summit__Event_Instance_End_Date__c',
-            'summit__Event_Instance__r.summit__Location_Type_Override__c',
-            'summit__Status__c'
-        };
+        List<String> headers = quickDownload
+            ? new List<String>{
+                'First Name',
+                'Last Name',
+                'Email',
+                'Mobile Phone',
+                'Registration Status',
+                'Event',
+                'Instance Title',
+                'Instance Start',
+                'Location Type Override',
+                'Registration Id'
+            }
+            : new List<String>{ 'Registration', 'Contact', 'Email', 'Event', 'Instance', 'Instance Start', 'Instance End', 'Location Type Override', 'Status' };
+        List<String> fieldPaths = quickDownload
+            ? new List<String>{
+                'summit__Registrant_First_Name__c',
+                'summit__Registrant_Last_Name__c',
+                'summit__Registrant_Email__c',
+                'summit__Registrant_Mobile_Phone__c',
+                'summit__Status__c',
+                'summit__Event__r.Name',
+                'summit__Event_Instance_Title__c',
+                'summit__Event_Instance_Start_Date__c',
+                'summit__Event_Instance__r.summit__Location_Type_Override__c',
+                'Name'
+            }
+            : new List<String>{
+                'Name',
+                'summit__Contact__r.Name',
+                'summit__Registrant_Email__c',
+                'summit__Event__r.Name',
+                'summit__Event_Instance__r.Name',
+                'summit__Event_Instance_Start_Date__c',
+                'summit__Event_Instance_End_Date__c',
+                'summit__Event_Instance__r.summit__Location_Type_Override__c',
+                'summit__Status__c'
+            };
 
-        Set<Id> allowedRecordTypes = FiuEventsAccessService.getAllowedEventRecordTypeIds();
+        Set<Id> allowedRecordTypes = FiuEventsAccessService.getScopedEventRecordTypeIds(recordTypeId);
         if (allowedRecordTypes.isEmpty()) {
             handleError('You do not have access to any FIU Event record types.', isProbe || (isEmail && wantsJson));
             return;
@@ -157,6 +185,8 @@ public with sharing class ExportCsvController {
 
         FiuProgramFilterService.ProgramFilterConfig programConfig = FiuProgramFilterService.getConfig();
         String soql = 'SELECT Id, Name, summit__Registrant_Email__c, summit__Status__c,' +
+            ' summit__Registrant_First_Name__c, summit__Registrant_Last_Name__c, summit__Registrant_Mobile_Phone__c,' +
+            ' summit__Event_Instance_Title__c,' +
             ' summit__Contact__c, summit__Contact__r.Name, summit__Contact__r.Email,' +
             ' summit__Event__r.Name, summit__Event_Instance__r.Name,' +
             ' summit__Event_Instance_Start_Date__c, summit__Event_Instance_End_Date__c,' +
@@ -250,6 +280,7 @@ public with sharing class ExportCsvController {
         String statusFilter = p.get('statusFilter');
         String readinessFilter = p.get('readinessFilter');
         String programCode = p.get('programCode');
+        String recordTypeId = p.get('recordTypeId');
         String exportMode = p.get('exportMode');
         String selectedIdsRaw = p.get('selectedIds');
         String sortField1 = p.get('sortField1');
@@ -262,7 +293,7 @@ public with sharing class ExportCsvController {
             return;
         }
 
-        Set<Id> allowedRecordTypes = FiuEventsAccessService.getAllowedEventRecordTypeIds();
+        Set<Id> allowedRecordTypes = FiuEventsAccessService.getScopedEventRecordTypeIds(recordTypeId);
         if (allowedRecordTypes.isEmpty()) {
             handleError('You do not have access to any FIU Event record types.', isProbe || (isEmail && wantsJson));
             return;
@@ -307,6 +338,7 @@ public with sharing class ExportCsvController {
         String searchKey = p.get('searchKey');
         String bucketFilter = p.get('bucketFilter');
         String programCode = p.get('programCode');
+        String recordTypeId = p.get('recordTypeId');
         String exportMode = p.get('exportMode');
         String selectedIdsRaw = p.get('selectedIds');
         String sortField1 = p.get('sortField1');
@@ -320,7 +352,7 @@ public with sharing class ExportCsvController {
             return;
         }
 
-        Set<Id> allowedRecordTypes = FiuEventsAccessService.getAllowedEventRecordTypeIds();
+        Set<Id> allowedRecordTypes = FiuEventsAccessService.getScopedEventRecordTypeIds(recordTypeId);
         if (allowedRecordTypes.isEmpty()) {
             handleError('You do not have access to any FIU Event record types.', isProbe || (isEmail && wantsJson));
             return;
@@ -329,18 +361,18 @@ public with sharing class ExportCsvController {
         FiuProgramFilterService.ProgramFilterConfig programConfig = FiuProgramFilterService.getConfig();
         String previewField = FiuEventsAccessService.resolveEventPreviewField();
         List<String> headers = new List<String>{ 'Instance', 'Event', 'Start Date', 'Status', 'Readiness', 'Reason (if Not Ready)' };
-        List<String> fieldPaths = new List<String>{ 'Name', 'summit__Event__r.Name', 'summit__Start_Date__c', 'Status_Label__c', 'Readiness__c', 'Readiness_Reason__c' };
+        List<String> fieldPaths = new List<String>{ 'summit__Instance_Title__c', 'summit__Event__r.Name', 'summit__Instance_Start_Date__c', 'summit__Active_Status__c', 'FIU_Readiness_Status__c', 'FIU_Readiness_Reason__c' };
 
-        String soql = 'SELECT Id, Name, summit__Event__r.Name, summit__Event__r.RecordTypeId, summit__Start_Date__c, Status_Label__c, Readiness__c, Readiness_Reason__c, summit__Status__c';
+        String soql = 'SELECT Id, Name, summit__Instance_Title__c, summit__Event__r.Name, summit__Event__r.RecordTypeId, summit__Instance_Start_Date__c, summit__Active_Status__c, FIU_Readiness_Status__c, FIU_Readiness_Reason__c';
         for (String eventProgramField : programConfig.eventProgramFields) soql += ', summit__Event__r.' + eventProgramField;
         if (programConfig.hasDefaultPlanLookup) soql += ', summit__Event__r.Default_Plan__r.Plan_Code__c';
         soql += ' FROM summit__Summit_Events_Instance__c WHERE summit__Event__r.RecordTypeId IN (' + idSetToInClause(allowedRecordTypes) + ')';
         if (previewField != null) soql += ' AND (summit__Event__r.' + previewField + ' = false OR summit__Event__r.' + previewField + ' = null)';
         if (eventId != null) soql += ' AND summit__Event__c = \'' + String.escapeSingleQuotes(String.valueOf(eventId)) + '\'';
         if (String.isNotBlank(searchKey)) soql += ' AND Name LIKE \'%' + String.escapeSingleQuotes(searchKey.trim()) + '%\'';
-        if (bucketFilter == 'Upcoming') soql += ' AND summit__Start_Date__c >= TODAY';
-        else if (bucketFilter == 'Past') soql += ' AND summit__Start_Date__c < TODAY';
-        else if (bucketFilter == 'Unpublished') soql += ' AND (Readiness__c = \'Not Ready\' OR summit__Status__c != \'Active\')';
+        if (bucketFilter == 'Upcoming') soql += ' AND summit__Instance_Start_Date__c >= TODAY';
+        else if (bucketFilter == 'Past') soql += ' AND summit__Instance_Start_Date__c < TODAY';
+        else if (bucketFilter == 'Unpublished') soql += ' AND (FIU_Readiness_Status__c = \'Not Ready\' OR summit__Active_Status__c != \'Active\')';
         String programClause = FiuProgramFilterService.buildProgramWhereClause('summit__Event__r.', programCode, programConfig);
         if (programClause != null) soql += ' AND ' + programClause;
         if (exportMode == 'selected') {
@@ -411,7 +443,7 @@ public with sharing class ExportCsvController {
             'name' => 'Name',
             'recordType' => 'RecordType.Name',
             'status' => 'summit__Event_Status__c',
-            'startDate' => 'summit__Start_Date__c',
+            'startDate' => 'summit__Instance_Start_Date__c',
             'endDate' => 'summit__End_Date__c',
             'createdDate' => 'CreatedDate'
         };
@@ -427,14 +459,14 @@ public with sharing class ExportCsvController {
         Map<String, String> sortMap = new Map<String, String>{
             'title' => 'summit__Instance_Title__c',
             'eventName' => 'summit__Event__r.Name',
-            'startDate' => 'summit__Start_Date__c',
+            'startDate' => 'summit__Instance_Start_Date__c',
             'activeStatus' => 'summit__Active_Status__c',
             'createdDate' => 'CreatedDate'
         };
         List<String> orderParts = new List<String>();
         addSortPart(orderParts, sortMap, sortField1, sortDir1);
         addSortPart(orderParts, sortMap, sortField2, sortDir2);
-        if (orderParts.isEmpty()) return 'summit__Start_Date__c ASC NULLS LAST, summit__Instance_Title__c ASC, CreatedDate DESC';
+        if (orderParts.isEmpty()) return 'summit__Instance_Start_Date__c ASC NULLS LAST, summit__Instance_Title__c ASC, CreatedDate DESC';
         orderParts.add('CreatedDate DESC');
         return String.join(orderParts, ', ');
     }
@@ -447,6 +479,7 @@ public with sharing class ExportCsvController {
         pageContentType = 'text/html';
         String searchKey = safeUrlEncode(p.get('searchKey'));
         String statusFilter = safeUrlEncode(p.get('statusFilter'));
+        String recordTypeId = safeUrlEncode(p.get('recordTypeId'));
         String programCode = safeUrlEncode(p.get('programCode'));
         String instanceId = safeUrlEncode(p.get('instanceId'));
         String exportMode = safeUrlEncode(p.get('exportMode'));
@@ -459,12 +492,14 @@ public with sharing class ExportCsvController {
         String readinessFilter = safeUrlEncode(p.get('readinessFilter'));
         String bucketFilter = safeUrlEncode(p.get('bucketFilter'));
         String eventId = safeUrlEncode(p.get('eventId'));
+        String quickDownload = safeUrlEncode(p.get('quickDownload'));
         output = '<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Export Custom Scope</title></head><body>'
             + '<script>'
             + 'var base="/apex/ExportCsv?scope=' + safeUrlEncode(scope) + '";'
             + 'base += "&searchKey=' + searchKey + '";'
             + 'base += "&statusFilter=' + statusFilter + '";'
             + 'base += "&readinessFilter=' + readinessFilter + '";'
+            + 'base += "&recordTypeId=' + recordTypeId + '";'
             + 'base += "&programCode=' + programCode + '";'
             + 'base += "&bucketFilter=' + bucketFilter + '";'
             + 'base += "&instanceId=' + instanceId + '";'
@@ -476,6 +511,7 @@ public with sharing class ExportCsvController {
             + 'base += "&sortField2=' + sortField2 + '";'
             + 'base += "&sortDir2=' + sortDir2 + '";'
             + 'base += "&locationTypeOverrideFilter=' + locationTypeOverrideFilter + '";'
+            + 'base += "&quickDownload=' + quickDownload + '";'
             + 'window.location.href = base;'
             + '</script></body></html>';
     }

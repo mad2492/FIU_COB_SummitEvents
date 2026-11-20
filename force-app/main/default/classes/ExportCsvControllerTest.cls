@@ -257,4 +257,63 @@ private class ExportCsvControllerTest {
 
         System.assert(ctrl.output.contains('Unable to determine'), 'Should show fallback error');
     }
+    @isTest
+    static void testCustomEventScopeProbeAndLaunch() {
+        PageReference launch = Page.ExportCsv;
+        launch.getParameters().put('scope', 'fiuEventBrowser');
+        launch.getParameters().put('action', 'launch');
+        launch.getParameters().put('recordTypeId', defaultEventRecordTypeId());
+        Test.setCurrentPage(launch);
+        ExportCsvController launchCtrl = new ExportCsvController();
+        System.assertEquals('text/html', launchCtrl.pageContentType);
+        System.assert(launchCtrl.output.contains('Export Custom Scope'));
+
+        PageReference probe = Page.ExportCsv;
+        probe.getParameters().put('scope', 'fiuEventBrowser');
+        probe.getParameters().put('action', 'probe');
+        probe.getParameters().put('recordTypeId', defaultEventRecordTypeId());
+        probe.getParameters().put('sortField1', 'name');
+        probe.getParameters().put('sortDir1', 'ASC');
+        Test.setCurrentPage(probe);
+        ExportCsvController probeCtrl = new ExportCsvController();
+        System.assertEquals('application/json', probeCtrl.pageContentType);
+        System.assert(probeCtrl.output.contains('"status":"ok"') || probeCtrl.output.contains('"status":"error"'));
+    }
+
+    @isTest
+    static void testCustomInstanceAndRegistrationScopeProbes() {
+        PageReference instanceProbe = Page.ExportCsv;
+        instanceProbe.getParameters().put('scope', 'fiuInstanceBrowser');
+        instanceProbe.getParameters().put('action', 'probe');
+        instanceProbe.getParameters().put('recordTypeId', defaultEventRecordTypeId());
+        instanceProbe.getParameters().put('bucketFilter', 'All');
+        instanceProbe.getParameters().put('sortField1', 'startDate');
+        instanceProbe.getParameters().put('sortDir1', 'ASC');
+        Test.setCurrentPage(instanceProbe);
+        ExportCsvController instanceCtrl = new ExportCsvController();
+        System.assertEquals('application/json', instanceCtrl.pageContentType);
+
+        PageReference regProbe = Page.ExportCsv;
+        regProbe.getParameters().put('scope', 'fiuRegistrationBrowser');
+        regProbe.getParameters().put('action', 'probe');
+        regProbe.getParameters().put('recordTypeId', defaultEventRecordTypeId());
+        regProbe.getParameters().put('statusFilter', 'Open');
+        regProbe.getParameters().put('sortField1', 'name');
+        regProbe.getParameters().put('sortDir1', 'ASC');
+        Test.setCurrentPage(regProbe);
+        ExportCsvController regCtrl = new ExportCsvController();
+        System.assertEquals('application/json', regCtrl.pageContentType);
+    }
+
+    private static String defaultEventRecordTypeId() {
+        String eventObject = FiuEventsAccessService.resolveEventObject();
+        if (String.isBlank(eventObject)) return null;
+        String fallback;
+        for (Schema.RecordTypeInfo rti : Schema.getGlobalDescribe().get(eventObject).getDescribe().getRecordTypeInfos()) {
+            if (!rti.isAvailable() || rti.isMaster()) continue;
+            if (rti.isDefaultRecordTypeMapping()) return String.valueOf(rti.getRecordTypeId());
+            if (fallback == null) fallback = String.valueOf(rti.getRecordTypeId());
+        }
+        return fallback;
+    }
 }

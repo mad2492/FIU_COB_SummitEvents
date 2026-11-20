@@ -22,6 +22,9 @@
         page-number={pageNumber}
         page-size={pageSize}
         page-size-options={pageSizeOptions}
+        use-cursor-pagination={useCursorPagination}
+        has-next-page={hasNextPage}
+        has-previous-page={hasPreviousPage}
         active-filter-pills={activeFilterPills}
         empty-title="No instances match these filters."
         empty-body="Try adjusting your search or filters, or clear all to start over."
@@ -69,8 +72,16 @@
                 <div class="qv-action-bar">
                     <lightning-button-group>
                         <lightning-button label="Open" variant="brand" onclick={openSelectedInstanceRecord}></lightning-button>
-                        <lightning-button label="Clone Instance" variant="neutral" onclick={cloneSelectedInstance}></lightning-button>
                         <lightning-button label="Registrations" variant="neutral" onclick={openSelectedInstanceRegistrations}></lightning-button>
+                        <lightning-button-menu
+                            alternative-text="More actions"
+                            menu-alignment="right"
+                            icon-size="x-small"
+                            variant="border-filled"
+                            onselect={handleQuickViewMoreSelect}>
+                            <lightning-menu-item value="clone" label="Clone Instance"></lightning-menu-item>
+                            <lightning-menu-item value="download" label="Download Registrations"></lightning-menu-item>
+                        </lightning-button-menu>
                     </lightning-button-group>
                 </div>
 
@@ -145,6 +156,9 @@
             <div class="slds-modal__container">
                 <header class="slds-modal__header"><h2 class="slds-text-heading_medium">Filters</h2></header>
                 <div class="slds-modal__content slds-p-around_medium">
+                    <template if:true={showRecordTypePicker}>
+                        <lightning-combobox label="Record Type" value={draftRecordTypeId} options={recordTypeOptions} onchange={handleDraftRecordType}></lightning-combobox>
+                    </template>
                     <lightning-combobox label="Program" value={draftProgramCode} options={programOptions} onchange={handleDraftProgram}></lightning-combobox>
                 </div>
                 <footer class="slds-modal__footer">

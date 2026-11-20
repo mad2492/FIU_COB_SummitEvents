@@ -5,18 +5,27 @@ import USER_ID from '@salesforce/user/Id';
 import USER_FIRST_NAME_FIELD from '@salesforce/schema/User.FirstName';
 import loadDashboard from '@salesforce/apex/FiuHomeDashboardService.loadDashboard';
 import getProgramOptions from '@salesforce/apex/FiuProgramFilterService.getProgramOptions';
+import getEventRecordTypeOptions from '@salesforce/apex/FiuEventsAccessService.getEventRecordTypeOptions';
 
 const ATTENTION_PREVIEW_LIMIT = 5;
 const UPCOMING_PREVIEW_LIMIT = 5;
+const APP_SCOPE_KEY = 'fiuEventsAppScopeV1';
 
 export default class FiuEventsHome extends NavigationMixin(LightningElement) {
     dashboard;
     userId = USER_ID;
+    recordTypeId = '';
+    availableRecordTypeOptions = [];
+    recordTypeOptions = [{ label: 'All Record Types', value: '' }];
     programCode = '';
     programOptions = [{ label: 'All Programs', value: '' }];
     hasLoadedDashboardOnce = false;
 
-    @wire(loadDashboard, { programCode: '$programCode' })
+    connectedCallback() {
+        this.restoreAppScope();
+    }
+
+    @wire(loadDashboard, { programCode: '$programCode', recordTypeId: '$recordTypeId' })
     wiredDashboard({ data }) {
         if (data) {
             this.dashboard = data;
@@ -24,9 +33,24 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
         }
     }
 
-    @wire(getProgramOptions)
+    @wire(getEventRecordTypeOptions)
+    wiredRecordTypes({ data }) {
+        if (data) {
+            this.availableRecordTypeOptions = data;
+            this.recordTypeOptions = data.length > 1 ? [{ label: 'All Record Types', value: '' }, ...data] : data;
+            this.normalizeRecordTypeScope();
+        }
+    }
+
+    @wire(getProgramOptions, { recordTypeId: '$recordTypeId' })
     wiredPrograms({ data }) {
-        if (data) this.programOptions = [{ label: 'All Programs', value: '' }, ...data];
+        if (data) {
+            this.programOptions = [{ label: 'All Programs', value: '' }, ...data];
+            if (this.programCode && !this.programOptions.some((option) => option.value === this.programCode)) {
+                this.programCode = '';
+                this.persistAppScope();
+            }
+        }
     }
 
     @wire(getRecord, { recordId: '$userId', fields: [USER_FIRST_NAME_FIELD] })
@@ -77,16 +101,21 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
     }
 
     get scopeLabel() {
-        const selected = this.programOptions.find((opt) => opt.value === this.programCode);
-        return selected ? selected.label : 'All Programs';
+        const recordTypeLabel = this.recordTypeOptions.find((opt) => opt.value === this.recordTypeId)?.label || 'All Record Types';
+        const programLabel = this.programOptions.find((opt) => opt.value === this.programCode)?.label || 'All Programs';
+        return `${recordTypeLabel} / ${programLabel}`;
     }
 
     get scopeIsAll() {
-        return !this.programCode;
+        return !this.recordTypeId && !this.programCode;
     }
 
     get scopeChipLabel() {
-        return this.scopeIsAll ? 'All Programs' : this.scopeLabel;
+        return this.scopeIsAll ? 'All Record Types / All Programs' : this.scopeLabel;
+    }
+
+    get showRecordTypePicker() {
+        return this.availableRecordTypeOptions.length > 1;
     }
 
     get attentionRows() {
@@ -174,20 +203,38 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
         return this.hasAttention ? 'Review issues →' : 'All clear ✓';
     }
 
+    handleRecordType(event) {
+        this.recordTypeId = event.detail.value;
+        this.programCode = '';
+        this.persistAppScope();
+    }
+
     handleProgram(event) {
         this.programCode = event.detail.value;
+        this.persistAppScope();
+    }
+
+    get navigationScopeState() {
+        return {
+            c__program: this.programCode || '',
+            c__recordType: this.recordTypeId || ''
+        };
     }
 
     openInstances() {
         this[NavigationMixin.Navigate]({
             type: 'standard__navItemPage',
             attributes: { apiName: 'fiuInstanceBrowser' },
-            state: { c__bucket: 'Upcoming', c__program: this.programCode || '' }
+            state: { ...this.navigationScopeState, c__bucket: 'Upcoming' }
         });
     }
 
     openEvents() {
-        this[NavigationMixin.Navigate]({ type: 'standard__navItemPage', attributes: { apiName: 'fiuEventBrowser' } });
+        this[NavigationMixin.Navigate]({
+            type: 'standard__navItemPage',
+            attributes: { apiName: 'fiuEventBrowser' },
+            state: this.navigationScopeState
+        });
     }
 
     openCreateWizard() {
@@ -215,7 +262,7 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
         this[NavigationMixin.Navigate]({
             type: 'standard__navItemPage',
             attributes: { apiName: 'fiuEventBrowser' },
-            state: { c__readiness: 'NotReady', c__program: this.programCode || '' }
+            state: { ...this.navigationScopeState, c__readiness: 'NotReady' }
         });
     }
 
@@ -223,7 +270,7 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
         this[NavigationMixin.Navigate]({
             type: 'standard__navItemPage',
             attributes: { apiName: 'fiuRegistrationBrowser' },
-            state: { c__status: 'Open', c__program: this.programCode || '' }
+            state: { ...this.navigationScopeState, c__status: 'Open' }
         });
     }
 
@@ -231,7 +278,7 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
         this[NavigationMixin.Navigate]({
             type: 'standard__navItemPage',
             attributes: { apiName: 'fiuRegistrationBrowser' },
-            state: { c__status: 'Open', c__program: this.programCode || '', c__openMassUpdate: '1' }
+            state: { ...this.navigationScopeState, c__status: 'Open', c__openMassUpdate: '1' }
         });
     }
 
@@ -239,7 +286,7 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
         this[NavigationMixin.Navigate]({
             type: 'standard__navItemPage',
             attributes: { apiName: 'fiuRegistrationBrowser' },
-            state: { c__status: 'Started', c__program: this.programCode || '' }
+            state: { ...this.navigationScopeState, c__status: 'Started' }
         });
     }
 
@@ -291,5 +338,39 @@ export default class FiuEventsHome extends NavigationMixin(LightningElement) {
         if (action === 'openRegs') this.openRegistrations();
         if (action === 'followUp') this.openStartedRegistrations();
         if (action === 'attention') this.openNotReadyEvents();
+    }
+
+    restoreAppScope() {
+        try {
+            const raw = window.sessionStorage.getItem(APP_SCOPE_KEY);
+            if (!raw) return;
+            const scope = JSON.parse(raw);
+            if (typeof scope.recordTypeId === 'string') this.recordTypeId = scope.recordTypeId;
+            if (typeof scope.programCode === 'string') this.programCode = scope.programCode;
+        } catch (error) {
+            // ignore malformed app scope
+        }
+    }
+
+    persistAppScope() {
+        window.sessionStorage.setItem(APP_SCOPE_KEY, JSON.stringify({
+            recordTypeId: this.recordTypeId,
+            programCode: this.programCode
+        }));
+    }
+
+    normalizeRecordTypeScope() {
+        if (this.availableRecordTypeOptions.length === 1) {
+            const onlyRecordTypeId = this.availableRecordTypeOptions[0].value;
+            if (this.recordTypeId !== onlyRecordTypeId) {
+                this.recordTypeId = onlyRecordTypeId;
+                this.programCode = '';
+                this.persistAppScope();
+            }
+        } else if (this.recordTypeId && !this.availableRecordTypeOptions.some((option) => option.value === this.recordTypeId)) {
+            this.recordTypeId = '';
+            this.programCode = '';
+            this.persistAppScope();
+        }
     }
 }

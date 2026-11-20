@@ -3,8 +3,10 @@ import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import queryInstances from '@salesforce/apex/FiuInstanceBrowserService.queryInstances';
 import getProgramOptions from '@salesforce/apex/FiuProgramFilterService.getProgramOptions';
+import getEventRecordTypeOptions from '@salesforce/apex/FiuEventsAccessService.getEventRecordTypeOptions';
 
 const VIEW_STATE_KEY = 'fiuInstanceBrowserViewStateV1';
+const APP_SCOPE_KEY = 'fiuEventsAppScopeV1';
 
 const COLUMN_DEFS = [
     { key: 'title', label: 'Instance', type: 'link', sortable: true, defaultVisible: true },
@@ -26,13 +28,20 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
     searchKey = '';
     bucketFilter = 'Upcoming';
     eventId;
+    recordTypeId = '';
     programCode = '';
+    availableRecordTypeOptions = [];
+    recordTypeOptions = [{ label: 'All Record Types', value: '' }];
     programOptions = [{ label: 'All Programs', value: '' }];
     loadError = '';
     isLoading = false;
     totalCount = 0;
     pageNumber = 1;
     pageSize = 25;
+    pageCursor = null;
+    nextCursor = null;
+    cursorHistory = [];
+    hasNextPage = false;
     pageSizeOptions = [
         { label: '25', value: '25' },
         { label: '50', value: '50' },
@@ -49,6 +58,7 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
     visibleColumnKeys = [...DEFAULT_VISIBLE_COLUMN_KEYS];
 
     isFilterModalOpen = false;
+    draftRecordTypeId = '';
     draftProgramCode = '';
 
     isFieldModalOpen = false;
@@ -63,14 +73,17 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
     copyResetTimer;
     hasStateBucketOverride = false;
     hasStateProgramOverride = false;
+    hasStateRecordTypeOverride = false;
     hasCopiedRegisterUrl = false;
 
     @wire(CurrentPageReference)
     setPageRef(pageRef) {
         const state = pageRef?.state || {};
         this.eventId = state.c__eventId || null;
+        this.restoreAppScope();
         this.hasStateBucketOverride = Object.prototype.hasOwnProperty.call(state, 'c__bucket');
         this.hasStateProgramOverride = Object.prototype.hasOwnProperty.call(state, 'c__program');
+        this.hasStateRecordTypeOverride = Object.prototype.hasOwnProperty.call(state, 'c__recordType');
         if (state.c__bucket && this.bucketOptions.some((opt) => opt.value === state.c__bucket)) {
             this.bucketFilter = state.c__bucket;
         } else if (this.hasStateBucketOverride) {
@@ -80,18 +93,35 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         }
         if (this.hasStateProgramOverride) {
             this.programCode = state.c__program || '';
-        } else {
-            this.programCode = '';
+        }
+        if (this.hasStateRecordTypeOverride) {
+            this.recordTypeId = state.c__recordType || '';
         }
         this.restoreViewState();
-        this.pageNumber = 1;
+        this.resetPaging();
         this.loadRows();
     }
 
-    @wire(getProgramOptions)
+    @wire(getEventRecordTypeOptions)
+    wiredRecordTypes({ data }) {
+        if (data) {
+            this.availableRecordTypeOptions = data;
+            this.recordTypeOptions = data.length > 1 ? [{ label: 'All Record Types', value: '' }, ...data] : data;
+            if (this.normalizeRecordTypeScope()) {
+                this.resetPaging();
+                this.loadRows();
+            }
+        }
+    }
+
+    @wire(getProgramOptions, { recordTypeId: '$recordTypeId' })
     wiredPrograms({ data }) {
         if (data) {
             this.programOptions = [{ label: 'All Programs', value: '' }, ...data];
+            if (this.programCode && !this.programOptions.some((option) => option.value === this.programCode)) {
+                this.programCode = '';
+                this.persistAppScope();
+            }
         }
     }
 
@@ -120,6 +150,14 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         const reason = this.selectedInstance?.unpublishedReason;
         if (!reason || reason === '—') return '';
         return reason;
+    }
+
+    get useCursorPagination() {
+        return !(this.searchKey || '').trim() && this.bucketFilter !== 'Unpublished';
+    }
+
+    get hasPreviousPage() {
+        return this.useCursorPagination ? this.cursorHistory.length > 0 : this.pageNumber > 1;
     }
 
     get registerUrlRowClass() {
@@ -151,6 +189,9 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         if (this.bucketFilter && this.bucketFilter !== 'Upcoming') {
             pills.push({ key: 'bucket', label: `View: ${this.bucketFilter}` });
         }
+        if (this.recordTypeId && this.showRecordTypePicker) {
+            pills.push({ key: 'recordType', label: `Record Type: ${this.recordTypeOptions.find((option) => option.value === this.recordTypeId)?.label || 'Selected'}` });
+        }
         if (this.programCode) {
             pills.push({ key: 'program', label: `Program: ${this.programOptions.find((option) => option.value === this.programCode)?.label || this.programCode}` });
         }
@@ -159,6 +200,10 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
 
     get fieldChooserOptions() {
         return COLUMN_DEFS.map((column) => ({ label: column.label, value: column.key }));
+    }
+
+    get showRecordTypePicker() {
+        return this.availableRecordTypeOptions.length > 1;
     }
 
     // ---- view state persistence
@@ -174,9 +219,6 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
             if (typeof savedState.bucketFilter === 'string' && !this.hasStateBucketOverride && !this.eventId) {
                 this.bucketFilter = savedState.bucketFilter;
             }
-            if (typeof savedState.programCode === 'string' && !this.hasStateProgramOverride && !this.eventId) {
-                this.programCode = savedState.programCode;
-            }
             if (typeof savedState.sortField1 === 'string') this.sortField1 = savedState.sortField1;
             if (typeof savedState.sortDir1 === 'string') this.sortDir1 = savedState.sortDir1;
             if (typeof savedState.sortField2 === 'string') this.sortField2 = savedState.sortField2;
@@ -191,7 +233,6 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
             visibleColumnKeys: this.visibleColumnKeys,
             pageSize: this.pageSize,
             bucketFilter: this.bucketFilter,
-            programCode: this.programCode,
             sortField1: this.sortField1,
             sortDir1: this.sortDir1,
             sortField2: this.sortField2,
@@ -213,7 +254,9 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
                 sortField1: this.sortField1,
                 sortDir1: this.sortDir1,
                 sortField2: this.sortField2,
-                sortDir2: this.sortDir2
+                sortDir2: this.sortDir2,
+                pageCursor: this.useCursorPagination ? this.pageCursor : null,
+                recordTypeId: this.recordTypeId
             });
             const rawRows = data?.rows || [];
             this.rows = rawRows.map((row) => {
@@ -238,14 +281,21 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
                 };
             });
             this.totalCount = data?.totalCount || 0;
+            this.nextCursor = data?.nextCursor || null;
+            this.hasNextPage = this.useCursorPagination
+                ? !!data?.hasNext
+                : this.pageNumber < Math.max(1, Math.ceil((this.totalCount || 0) / this.pageSize));
             const currentIds = new Set(this.rows.map((row) => row.id));
             this.selectedRowIds = this.selectedRowIds.filter((id) => currentIds.has(id));
             if (this.selectedInstanceId && !currentIds.has(this.selectedInstanceId)) this.selectedInstanceId = null;
             this.loadError = '';
+            this.persistAppScope();
             this.persistViewState();
         } catch (error) {
             this.rows = [];
             this.totalCount = 0;
+            this.nextCursor = null;
+            this.hasNextPage = false;
             this.loadError = error?.body?.message || 'Could not load instances. Please refresh.';
         } finally {
             this.isLoading = false;
@@ -258,7 +308,7 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         this.searchKey = value;
         if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
         this.searchDebounceTimer = setTimeout(() => {
-            this.pageNumber = 1;
+            this.resetPaging();
             this.loadRows();
         }, 300);
     }
@@ -268,18 +318,34 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         this.sortDir1 = event.detail.direction;
         this.sortField2 = '';
         this.sortDir2 = 'ASC';
-        this.pageNumber = 1;
+        this.resetPaging();
         this.loadRows();
     }
 
     handlePageChange(event) {
-        this.pageNumber = event.detail.pageNumber;
+        const requestedPage = event.detail.pageNumber;
+        if (this.useCursorPagination) {
+            if (requestedPage > this.pageNumber && this.hasNextPage && this.nextCursor) {
+                this.cursorHistory = [...this.cursorHistory, this.pageCursor];
+                this.pageCursor = this.nextCursor;
+                this.pageNumber += 1;
+            } else if (requestedPage < this.pageNumber && this.hasPreviousPage) {
+                const previousCursors = [...this.cursorHistory];
+                this.pageCursor = previousCursors.pop() || null;
+                this.cursorHistory = previousCursors;
+                this.pageNumber = Math.max(1, this.pageNumber - 1);
+            } else {
+                return;
+            }
+        } else {
+            this.pageNumber = requestedPage;
+        }
         this.loadRows();
     }
 
     handlePageSizeChange(event) {
         this.pageSize = event.detail.pageSize;
-        this.pageNumber = 1;
+        this.resetPaging();
         this.loadRows();
     }
 
@@ -310,8 +376,13 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         const key = event.detail.key;
         if (key === 'search') this.searchKey = '';
         if (key === 'bucket') this.bucketFilter = 'Upcoming';
+        if (key === 'recordType') {
+            this.recordTypeId = '';
+            this.programCode = '';
+        }
         if (key === 'program') this.programCode = '';
-        this.pageNumber = 1;
+        if (key === 'recordType' || key === 'program') this.persistAppScope();
+        this.resetPaging();
         this.loadRows();
     }
 
@@ -346,12 +417,13 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
 
     handleBucketChange(event) {
         this.bucketFilter = event.detail.value || 'Upcoming';
-        this.pageNumber = 1;
+        this.resetPaging();
         this.loadRows();
     }
 
     // ---- filter modal (Program only — Bucket is inline)
     openFilterModal() {
+        this.draftRecordTypeId = this.recordTypeId;
         this.draftProgramCode = this.programCode;
         this.isFilterModalOpen = true;
     }
@@ -364,10 +436,17 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         this.draftProgramCode = event.detail.value;
     }
 
+    handleDraftRecordType(event) {
+        this.draftRecordTypeId = event.detail.value;
+        this.draftProgramCode = '';
+    }
+
     applyFilters() {
+        this.recordTypeId = this.draftRecordTypeId || '';
         this.programCode = this.draftProgramCode || '';
         this.isFilterModalOpen = false;
-        this.pageNumber = 1;
+        this.persistAppScope();
+        this.resetPaging();
         this.loadRows();
     }
 
@@ -394,6 +473,7 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
     resetToDefaultView() {
         this.visibleColumnKeys = [...DEFAULT_VISIBLE_COLUMN_KEYS];
         this.bucketFilter = 'Upcoming';
+        this.recordTypeId = this.defaultRecordTypeScopeValue;
         this.programCode = '';
         this.searchKey = '';
         this.sortField1 = 'startDate';
@@ -401,7 +481,8 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         this.sortField2 = '';
         this.sortDir2 = 'ASC';
         this.pageSize = 25;
-        this.pageNumber = 1;
+        this.resetPaging();
+        this.persistAppScope();
         this.persistViewState();
         this.loadRows();
     }
@@ -431,6 +512,7 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
             exportMode: 'filtered',
             searchKey: this.searchKey || '',
             bucketFilter: this.bucketFilter || '',
+            recordTypeId: this.recordTypeId || '',
             programCode: this.programCode || '',
             eventId: this.eventId || '',
             sortField1: this.sortField1 || '',
@@ -464,6 +546,12 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         });
     }
 
+    handleQuickViewMoreSelect(event) {
+        const action = event.detail.value;
+        if (action === 'clone') this.cloneSelectedInstance();
+        if (action === 'download') this.downloadSelectedInstanceRegistrations();
+    }
+
     cloneSelectedInstance() {
         if (!this.selectedInstance) return;
         this[NavigationMixin.Navigate]({
@@ -482,8 +570,22 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
         this[NavigationMixin.Navigate]({
             type: 'standard__navItemPage',
             attributes: { apiName: 'fiuRegistrationBrowser' },
-            state: { c__instanceId: this.selectedInstance.id, c__program: this.programCode || '' }
+            state: { c__instanceId: this.selectedInstance.id, c__program: this.programCode || '', c__recordType: this.recordTypeId || '' }
         });
+    }
+
+    downloadSelectedInstanceRegistrations() {
+        if (!this.selectedInstance) return;
+        const params = new URLSearchParams({
+            action: 'launch',
+            scope: 'fiuRegistrationBrowser',
+            exportMode: 'filtered',
+            instanceId: this.selectedInstance.id,
+            recordTypeId: this.recordTypeId || '',
+            statusFilter: 'Open',
+            quickDownload: '1'
+        });
+        window.open(`/apex/ExportCsv?${params.toString()}`, '_blank');
     }
 
     // ---- clipboard
@@ -522,6 +624,55 @@ export default class FiuInstanceBrowser extends NavigationMixin(LightningElement
             clearTimeout(this.copyResetTimer);
             this.copyResetTimer = null;
         }
+    }
+
+    resetPaging() {
+        this.pageNumber = 1;
+        this.pageCursor = null;
+        this.nextCursor = null;
+        this.cursorHistory = [];
+        this.hasNextPage = false;
+    }
+
+    restoreAppScope() {
+        try {
+            const raw = window.sessionStorage.getItem(APP_SCOPE_KEY);
+            if (!raw) return;
+            const scope = JSON.parse(raw);
+            if (typeof scope.recordTypeId === 'string') this.recordTypeId = scope.recordTypeId;
+            if (typeof scope.programCode === 'string') this.programCode = scope.programCode;
+        } catch (error) {
+            // ignore malformed app scope
+        }
+    }
+
+    persistAppScope() {
+        window.sessionStorage.setItem(APP_SCOPE_KEY, JSON.stringify({
+            recordTypeId: this.recordTypeId,
+            programCode: this.programCode
+        }));
+    }
+
+    get defaultRecordTypeScopeValue() {
+        return this.availableRecordTypeOptions.length === 1 ? this.availableRecordTypeOptions[0].value : '';
+    }
+
+    normalizeRecordTypeScope() {
+        if (this.availableRecordTypeOptions.length === 1) {
+            const onlyRecordTypeId = this.availableRecordTypeOptions[0].value;
+            if (this.recordTypeId !== onlyRecordTypeId) {
+                this.recordTypeId = onlyRecordTypeId;
+                this.programCode = '';
+                this.persistAppScope();
+                return true;
+            }
+        } else if (this.recordTypeId && !this.availableRecordTypeOptions.some((option) => option.value === this.recordTypeId)) {
+            this.recordTypeId = '';
+            this.programCode = '';
+            this.persistAppScope();
+            return true;
+        }
+        return false;
     }
 
     // ---- themes / helpers

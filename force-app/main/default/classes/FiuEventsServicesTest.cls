@@ -4,6 +4,7 @@ private class FiuEventsServicesTest {
     static void readiness_flags_missing_account() {
         SObject mockEvent = newMockEvent();
         putIfPresent(mockEvent, 'summit__Account__c', null);
+        putIfPresent(mockEvent, 'summit__Capacity__c', 25);
         putIfPresent(mockEvent, 'FIU_Create_Opps_From_Regs__c', true);
         putIfPresent(mockEvent, 'Send_Registration_Confirmation_Email__c', true);
 
@@ -11,6 +12,17 @@ private class FiuEventsServicesTest {
         System.assertEquals(false, result.ready);
         System.assert(result.missingFields.contains('summit__Account__c'));
         System.assert(result.warnings.size() > 0);
+    }
+
+    @IsTest
+    static void readiness_flags_missing_capacity() {
+        SObject mockEvent = newMockEvent();
+        putIfPresent(mockEvent, 'summit__Capacity__c', 0);
+
+        FiuEventsReadinessService.ReadinessResult result = FiuEventsReadinessService.evaluateEventRecord(mockEvent);
+
+        System.assertEquals(false, result.ready);
+        System.assert(result.missingFields.contains('summit__Capacity__c'));
     }
 
     @IsTest
@@ -52,6 +64,9 @@ private class FiuEventsServicesTest {
 
     private static SObject newMockEvent() {
         Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+        if (gd.containsKey('summit__Summit_Events__c')) {
+            return gd.get('summit__Summit_Events__c').newSObject();
+        }
         if (gd.containsKey('summit__Summit_Event__c')) {
             return gd.get('summit__Summit_Event__c').newSObject();
         }

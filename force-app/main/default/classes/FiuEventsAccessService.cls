@@ -1,4 +1,10 @@
 public with sharing class FiuEventsAccessService {
+    public class RecordTypeOption {
+        @AuraEnabled public String label;
+        @AuraEnabled public String value;
+        @AuraEnabled public String developerName;
+    }
+
     public static Set<Id> getAllowedEventRecordTypeIds() {
         Set<Id> allowed = new Set<Id>();
         Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
@@ -14,6 +20,35 @@ public with sharing class FiuEventsAccessService {
             }
         }
         return allowed;
+    }
+
+    public static Set<Id> getScopedEventRecordTypeIds(String recordTypeId) {
+        Set<Id> allowed = getAllowedEventRecordTypeIds();
+        if (String.isBlank(recordTypeId)) return allowed;
+        try {
+            Id selectedRecordTypeId = (Id) recordTypeId;
+            return allowed.contains(selectedRecordTypeId) ? new Set<Id>{ selectedRecordTypeId } : new Set<Id>();
+        } catch (Exception ex) {
+            return new Set<Id>();
+        }
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<RecordTypeOption> getEventRecordTypeOptions() {
+        List<RecordTypeOption> options = new List<RecordTypeOption>();
+        String eventObjectName = resolveEventObject();
+        if (eventObjectName == null) return options;
+
+        Schema.DescribeSObjectResult d = Schema.getGlobalDescribe().get(eventObjectName).getDescribe();
+        for (Schema.RecordTypeInfo rti : d.getRecordTypeInfos()) {
+            if (!rti.isAvailable() || rti.isMaster()) continue;
+            RecordTypeOption option = new RecordTypeOption();
+            option.label = rti.getName();
+            option.value = String.valueOf(rti.getRecordTypeId());
+            option.developerName = rti.getDeveloperName();
+            options.add(option);
+        }
+        return options;
     }
 
     public static String resolveEventObject() {
